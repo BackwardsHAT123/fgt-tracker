@@ -54,8 +54,9 @@
     border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px; font-weight: 600; }
   .alert.show { display: block; }
 
-  .search { margin-bottom: 8px; }
-  #search { font-size: 1.05rem; padding: 12px 14px; }
+  .search { margin-top: 10px; }
+  .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  #search { font-size: 1rem; padding: 10px 12px; }
   .nomatch { margin-top: 8px; padding: 10px 12px; background: var(--amber-soft); color: var(--amber);
     border-radius: 8px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
   .nomatch .btn { min-height: 36px; padding: 6px 12px; }
@@ -150,19 +151,19 @@
           </div>
           <div class="bar" id="bar"><div></div></div>
           <div class="alert" id="overAlert" role="alert">Over the limit: you've used <span id="overBy">0</span> too many points. Remove a golfer to continue.</div>
+          <div class="search">
+            <label for="search" class="vh">Find a golfer</label>
+            <input id="search" type="search" placeholder="Find a golfer: type a name, e.g. Scheffler" autocomplete="off">
+            <div class="nomatch" id="noMatch" hidden>
+              No golfer matches "<span id="noMatchQ"></span>".
+              <button type="button" class="btn secondary" id="noMatchAdd">Add as 1-pointer</button>
+            </div>
+          </div>
         </div>
       </div>
 
       <section class="card" aria-labelledby="pickH">
         <h2 id="pickH">Pick your golfers</h2>
-        <div class="search">
-          <label for="search">Find a golfer</label>
-          <input id="search" type="search" placeholder="Search by name, e.g. Scheffler" autocomplete="off">
-          <div class="nomatch" id="noMatch" hidden>
-            No golfer matches "<span id="noMatchQ"></span>".
-            <button type="button" class="btn secondary" id="noMatchAdd">Add as 1-pointer</button>
-          </div>
-        </div>
         <div id="tiers"></div>
         <div class="writein">
           <input id="writeIn" type="text" placeholder="Golfer not listed? Type the name (1 point)" aria-label="Write-in golfer name">
