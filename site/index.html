@@ -61,15 +61,26 @@
   .nomatch { margin-top: 8px; padding: 10px 12px; background: var(--amber-soft); color: var(--amber);
     border-radius: 8px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
   .nomatch .btn { min-height: 36px; padding: 6px 12px; }
-  .tier { margin: 18px 0 6px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; gap: 0; } }
+  .sect { margin-top: 32px; }
+  .col > .sect:first-child { margin-top: 0; }
+  @media (max-width: 900px) { .col + .col > .sect:first-child { margin-top: 32px; } }
+  .tier { margin: 0 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
   .tier h3 { margin: 0; font-size: 1rem; }
-  .tier .note { color: var(--muted); font-size: .85rem; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { font: inherit; font-size: .92rem; cursor: pointer; color: var(--ink); background: var(--bg);
-    border: 1px solid var(--line); border-radius: 99px; padding: 7px 12px; min-height: 40px; }
+  .tier .note { display: block; color: var(--muted); font-size: .8rem; line-height: 1.3; }
+  .chips { display: flex; flex-direction: column; gap: 6px; }
+  .chip { font: inherit; font-size: .92rem; cursor: pointer; color: var(--ink); background: var(--bg); text-align: left;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%;
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; min-height: 40px; }
   .chip:hover { border-color: var(--accent); }
   .chip[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-  .chip .pt { opacity: .7; font-size: .8rem; margin-left: 4px; }
+  .chip .pt { opacity: .7; font-size: .8rem; white-space: nowrap; }
+  .more { margin-top: 32px; }
+  .more > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .more .note { color: var(--muted); font-size: .85rem; margin: 4px 0 10px; }
+  .more .chips { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+  .more .chip { width: auto; border-radius: 99px; gap: 4px; }
   .writein { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .writein input { flex: 1 1 220px; }
 
@@ -169,7 +180,8 @@
 
       <section class="card" aria-labelledby="pickH">
         <h2 id="pickH">Pick your golfers</h2>
-        <div id="tiers"></div>
+        <div class="cols" id="cols"></div>
+        <details class="more" id="more"><summary id="moreSum">More 1-pointers</summary><div class="note" id="moreNote"></div><div id="moreChips"></div></details>
         <div class="writein">
           <input id="writeIn" type="text" placeholder="Golfer not listed? Type the name (1 point)" aria-label="Write-in golfer name">
           <button type="button" class="btn secondary" id="writeInBtn">Add 1-pointer</button>
@@ -240,27 +252,39 @@
   $("deadline").textContent = C.DEADLINE_TEXT || "";
   if (D.provisional) $("provisional").hidden = false;
 
-  // ---- build tiers ----
-  var tiersEl = $("tiers");
-  D.tiers.forEach(function (t) {
-    var head = document.createElement("div"); head.className = "tier"; head.dataset.tier = t.points;
+  // ---- build sections ----
+  function addSection(parent, t, chipsOnly) {
+    var sect = document.createElement("div"); sect.className = "sect";
+    var head = document.createElement("div"); head.className = "tier";
     var h = document.createElement("h3"); h.textContent = t.label;
     var n = document.createElement("span"); n.className = "note"; n.textContent = t.note;
     head.append(h, n);
-    var chips = document.createElement("div"); chips.className = "chips"; chips.dataset.tier = t.points;
+    var chips = document.createElement("div"); chips.className = "chips";
     t.players.forEach(function (p) {
       pointsByName.set(p.toLowerCase(), t.points);
       var b = document.createElement("button");
       b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", "false");
       b.dataset.name = p;
-      b.append(document.createTextNode(p));
+      var nm = document.createElement("span"); nm.textContent = p;
       var pt = document.createElement("span"); pt.className = "pt"; pt.textContent = t.points + " pt";
-      b.append(pt);
+      b.append(nm, pt);
       b.addEventListener("click", function () { toggle(p, t.points); });
       chips.append(b); chipEls.set(p, b);
     });
-    tiersEl.append(head, chips);
+    if (chipsOnly) { parent.append(chips); return; }
+    sect.append(head, chips); parent.append(sect);
+  }
+  var colsEl = $("cols");
+  D.columns.forEach(function (col) {
+    var c = document.createElement("div"); c.className = "col";
+    col.forEach(function (t) { addSection(c, t); });
+    colsEl.append(c);
   });
+  if (D.more) {
+    $("moreSum").textContent = D.more.label + " (" + D.more.players.length + ")";
+    $("moreNote").textContent = D.more.note;
+    addSection($("moreChips"), D.more, true);
+  }
 
   function total() { var s = 0; selected.forEach(function (v) { s += v; }); return s; }
 
@@ -306,12 +330,16 @@
     var q = fold(this.value.trim());
     var matches = 0;
     chipEls.forEach(function (el, name) { el.hidden = q && fold(name).indexOf(q) === -1; });
-    document.querySelectorAll(".tier").forEach(function (head) {
-      var chips = head.nextElementSibling;
-      var any = Array.from(chips.children).some(function (c) { return !c.hidden; });
-      head.hidden = chips.hidden = !any;
+    document.querySelectorAll(".sect").forEach(function (sect) {
+      var any = Array.from(sect.querySelectorAll(".chip")).some(function (c) { return !c.hidden; });
+      sect.hidden = !any;
       if (any) matches++;
     });
+    var more = $("more");
+    var moreAny = Array.from(more.querySelectorAll(".chip")).some(function (c) { return !c.hidden; });
+    more.hidden = !moreAny;
+    if (moreAny) matches++;
+    if (q) { if (moreAny) more.open = true; } else { more.open = false; }
     var none = q && matches === 0;
     $("noMatch").hidden = !none;
     $("noMatchQ").textContent = this.value.trim();
