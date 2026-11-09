@@ -62,7 +62,16 @@ window.FGT_DATA = {
       "Vijay Singh", "Emilio Gonzalez", "Robert Streb", "Henrik Norlander", "Brendon Todd",
       "S.T. Lee", "Charley Hoffman", "Luke Donald", "Taylor Montgomery", "Dylan Frittelli",
       "Frankie Capan III", "Austin Cook", "Bill Haas", "Chez Reavie", "Michael Thompson",
-      "James Hahn", "Nicholas Lindheim", "William McGirt"
+      "James Hahn", "Nicholas Lindheim", "William McGirt",
+      // Top 25 Race to Dubai (DP World Tour) players not already listed above, as of Nov 9, 2026.
+      // Includes Rahm, Hatton and Reed. Update after the DP World Tour Championship if wanted.
+      "Eugenio Chacarra", "Patrick Reed", "Casey Jarvis", "Jon Rahm", "Jayden Schaper",
+      "Daniel Hillier", "Jacob Skov Olesen", "Bernd Wiesberger", "Tyrrell Hatton", "Andy Sullivan",
+      "Oliver Lindell", "Joe Dean", "Angel Ayora", "Nacho Elvira", "Angel Hidalgo",
+      "David Puig", "Hennie du Plessis", "Adrian Meronk", "Dan Bradbury", "Francesco Laporta",
+      "Shaun Norris", "Davis Bryant", "Thriston Lawrence", "Marcus Armitage", "Calum Hill",
+      // Added by request.
+      "Bryson DeChambeau"
     ]}
   ]
 };
