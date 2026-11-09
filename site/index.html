@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FGT Team Entry</title>
+<style>
+  :root {
+    --bg: #f6f7f4; --card: #ffffff; --ink: #1c2420; --muted: #5d6b63; --line: #d9dfda;
+    --accent: #1f6b45; --accent-ink: #ffffff; --accent-soft: #e3f1e9;
+    --warn: #b3261e; --warn-soft: #fbe9e7; --amber: #8a5a00; --amber-soft: #fff4d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121714; --card: #1b221e; --ink: #e9eeea; --muted: #9aa8a0; --line: #2d3832;
+      --accent: #4fb883; --accent-ink: #0c1410; --accent-soft: #1d3327;
+      --warn: #ff8a80; --warn-soft: #3a1e1b; --amber: #f2c14e; --amber-soft: #3a2f12;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px 120px; }
+  header { padding: 28px 0 8px; }
+  h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin: 16px 0; }
+  .banner { border-radius: 10px; padding: 10px 14px; margin: 12px 0; font-size: .95rem; }
+  .banner.amber { background: var(--amber-soft); color: var(--amber); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid .full { grid-column: 1 / -1; }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 4px; }
+  label .opt { font-weight: 400; color: var(--muted); }
+  input[type=text], input[type=tel], input[type=email] {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; }
+  input:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  input.invalid { border-color: var(--warn); }
+  .err { color: var(--warn); font-size: .85rem; min-height: 1.1em; margin-top: 2px; }
+  .hp { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+
+  .meter { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0 6px; }
+  .meter-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+  .meter-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .count { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .count.over { color: var(--warn); }
+  .bar { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+  .bar.over > div { background: var(--warn); }
+  .alert { display: none; margin-top: 10px; background: var(--warn-soft); color: var(--warn);
+    border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px; font-weight: 600; }
+  .alert.show { display: block; }
+
+  .search { margin-bottom: 8px; }
+  .tier { margin: 18px 0 6px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .tier h3 { margin: 0; font-size: 1rem; }
+  .tier .note { color: var(--muted); font-size: .85rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font: inherit; font-size: .92rem; cursor: pointer; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 99px; padding: 7px 12px; min-height: 40px; }
+  .chip:hover { border-color: var(--accent); }
+  .chip[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .chip .pt { opacity: .7; font-size: .8rem; margin-left: 4px; }
+  .writein { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .writein input { flex: 1 1 220px; }
+
+  .btn { font: inherit; font-weight: 600; cursor: pointer; border-radius: 10px; padding: 11px 18px; min-height: 44px;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .btn.secondary { background: transparent; color: var(--accent); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .team { list-style: none; margin: 0; padding: 0; }
+  .team li { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .team li:last-child { border-bottom: 0; }
+  .team .x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 6px 10px; }
+  .empty { color: var(--muted); }
+  .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .status { font-weight: 600; }
+  .status.ok { color: var(--accent); }
+  .status.bad { color: var(--warn); }
+
+  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink);
+    padding: 22px; max-width: 440px; width: calc(100% - 32px); }
+  dialog::backdrop { background: rgba(0,0,0,.5); }
+  dialog h2 { margin-top: 0; }
+  dialog .row { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 18px; }
+  .done h2 { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title">PGA Fantasy Golf Tour</h1>
+    <p class="sub">Build your team with 25 points. Your team is final once the first tournament begins.</p>
+    <p class="sub" id="deadline"></p>
+  </header>
+
+  <div id="provisional" class="banner amber" hidden>
+    Point values are provisional until the FedExCup Fall finishes (RSM Classic, Nov 22). A few golfers ranked 51-100 could change tiers.
+  </div>
+
+  <div id="entry">
+    <form id="form" novalidate>
+      <section class="card" aria-labelledby="contactH">
+        <h2 id="contactH">Your info</h2>
+        <div class="grid">
+          <div>
+            <label for="name">Name</label>
+            <input id="name" type="text" autocomplete="name" required>
+            <div class="err" data-for="name"></div>
+          </div>
+          <div>
+            <label for="teamName">Team name</label>
+            <input id="teamName" type="text" maxlength="60" required>
+            <div class="err" data-for="teamName"></div>
+          </div>
+          <div>
+            <label for="phone">Phone</label>
+            <input id="phone" type="tel" autocomplete="tel" inputmode="tel" required>
+            <div class="err" data-for="phone"></div>
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" required>
+            <div class="err" data-for="email"></div>
+          </div>
+          <div class="full">
+            <label for="address">Address <span class="opt">(optional)</span></label>
+            <input id="address" type="text" autocomplete="street-address">
+          </div>
+          <div class="hp" aria-hidden="true">
+            <label for="website">Website</label>
+            <input id="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+        </div>
+      </section>
+
+      <div class="meter">
+        <div class="meter-box">
+          <div class="meter-top">
+            <div><span class="count" id="count" aria-live="polite">0/25</span> <span class="sub">points used</span></div>
+            <div class="sub" id="golferCount">0 golfers</div>
+          </div>
+          <div class="bar" id="bar"><div></div></div>
+          <div class="alert" id="overAlert" role="alert">Over the limit: you've used <span id="overBy">0</span> too many points. Remove a golfer to continue.</div>
+        </div>
+      </div>
+
+      <section class="card" aria-labelledby="pickH">
+        <h2 id="pickH">Pick your golfers</h2>
+        <div class="search">
+          <label for="search" class="opt" style="font-weight:400">Search golfers</label>
+          <input id="search" type="text" placeholder="Type a name to filter" autocomplete="off">
+        </div>
+        <div id="tiers"></div>
+        <div class="writein">
+          <input id="writeIn" type="text" placeholder="Golfer not listed? Type the name (1 point)" aria-label="Write-in golfer name">
+          <button type="button" class="btn secondary" id="writeInBtn">Add 1-pointer</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="teamH">
+        <h2 id="teamH">Your team</h2>
+        <ul class="team" id="team"></ul>
+        <p class="empty" id="teamEmpty">No golfers selected yet.</p>
+        <div class="actions">
+          <button type="submit" class="btn" id="submitBtn">Submit team</button>
+          <button type="button" class="btn secondary" id="clearBtn">Clear selections</button>
+          <span class="status" id="status" role="status"></span>
+        </div>
+      </section>
+    </form>
+  </div>
+
+  <div id="thanks" class="card done" hidden>
+    <h2>Team submitted</h2>
+    <p>Thanks, <strong id="thanksName"></strong>. <strong id="thanksTeam"></strong> is in. The commissioner will follow up about payment.</p>
+    <ul class="team" id="thanksTeamList"></ul>
+    <p class="sub">If two entries are identical, the first one in keeps its team and the later one has to change.</p>
+  </div>
+</div>
+
+<dialog id="underDlg" aria-labelledby="underH">
+  <h2 id="underH">You haven't used all 25 points</h2>
+  <p>You've used <strong id="underUsed">0</strong> of 25. Unused points are lost, and you can't change your team once the tournament starts.</p>
+  <div class="row">
+    <button type="button" class="btn secondary" id="underBack">Modify selections</button>
+    <button type="button" class="btn" id="underGo">Submit anyway</button>
+  </div>
+</dialog>
+
+<script src="players.js"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  "use strict";
+  var D = window.FGT_DATA, C = window.FGT_CONFIG || {};
+  var BUDGET = D.budget;
+  var selected = new Map();   // name -> points
+  var chipEls = new Map();    // name -> button
+  var pointsByName = new Map();
+  var submitting = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  document.title = (C.TITLE || "FGT") + " | Team Entry";
+  $("title").textContent = C.TITLE || "PGA Fantasy Golf Tour";
+  $("deadline").textContent = C.DEADLINE_TEXT || "";
+  if (D.provisional) $("provisional").hidden = false;
+
+  // ---- build tiers ----
+  var tiersEl = $("tiers");
+  D.tiers.forEach(function (t) {
+    var head = document.createElement("div"); head.className = "tier"; head.dataset.tier = t.points;
+    var h = document.createElement("h3"); h.textContent = t.label;
+    var n = document.createElement("span"); n.className = "note"; n.textContent = t.note;
+    head.append(h, n);
+    var chips = document.createElement("div"); chips.className = "chips"; chips.dataset.tier = t.points;
+    t.players.forEach(function (p) {
+      pointsByName.set(p.toLowerCase(), t.points);
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", "false");
+      b.dataset.name = p;
+      b.append(document.createTextNode(p));
+      var pt = document.createElement("span"); pt.className = "pt"; pt.textContent = t.points + " pt";
+      b.append(pt);
+      b.addEventListener("click", function () { toggle(p, t.points); });
+      chips.append(b); chipEls.set(p, b);
+    });
+    tiersEl.append(head, chips);
+  });
+
+  function total() { var s = 0; selected.forEach(function (v) { s += v; }); return s; }
+
+  function toggle(name, pts) {
+    if (selected.has(name)) selected.delete(name); else selected.set(name, pts);
+    render();
+  }
+
+  function render() {
+    var used = total(), over = used > BUDGET;
+    $("count").textContent = used + "/" + BUDGET;
+    $("count").classList.toggle("over", over);
+    $("bar").classList.toggle("over", over);
+    $("bar").firstElementChild.style.width = Math.min(100, used / BUDGET * 100) + "%";
+    $("overAlert").classList.toggle("show", over);
+    $("overBy").textContent = Math.max(0, used - BUDGET);
+    $("golferCount").textContent = selected.size + (selected.size === 1 ? " golfer" : " golfers");
+    chipEls.forEach(function (el, name) { el.setAttribute("aria-pressed", selected.has(name) ? "true" : "false"); });
+
+    var ul = $("team"); ul.textContent = "";
+    var rows = Array.from(selected.entries()).sort(function (a, b) { return b[1] - a[1] || a[0].localeCompare(b[0]); });
+    rows.forEach(function (r) {
+      var li = document.createElement("li");
+      var s = document.createElement("span"); s.textContent = r[0] + " (" + r[1] + " pt" + (r[1] > 1 ? "s" : "") + ")";
+      var x = document.createElement("button"); x.type = "button"; x.className = "x"; x.textContent = "✕";
+      x.setAttribute("aria-label", "Remove " + r[0]);
+      x.addEventListener("click", function () { selected.delete(r[0]); render(); });
+      li.append(s, x); ul.append(li);
+    });
+    $("teamEmpty").hidden = selected.size > 0;
+    $("submitBtn").disabled = over || submitting;
+    setStatus(over ? "Over 25 points: can't submit." : "", over ? "bad" : "");
+  }
+
+  function setStatus(msg, cls) { var s = $("status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
+
+  // ---- search ----
+  $("search").addEventListener("input", function () {
+    var q = this.value.trim().toLowerCase();
+    chipEls.forEach(function (el, name) { el.hidden = q && name.toLowerCase().indexOf(q) === -1; });
+    document.querySelectorAll(".tier").forEach(function (head) {
+      var chips = head.nextElementSibling;
+      var any = Array.from(chips.children).some(function (c) { return !c.hidden; });
+      head.hidden = chips.hidden = !any;
+    });
+  });
+
+  // ---- write-in ----
+  function addWriteIn() {
+    var inp = $("writeIn"), v = inp.value.trim().replace(/\s+/g, " ");
+    if (!v) return;
+    var known = pointsByName.get(v.toLowerCase());
+    if (known) {
+      // Matches a listed golfer: use the listed value, not 1 point.
+      var exact = Array.from(chipEls.keys()).find(function (k) { return k.toLowerCase() === v.toLowerCase(); });
+      if (!selected.has(exact)) selected.set(exact, known);
+    } else if (!Array.from(selected.keys()).some(function (k) { return k.toLowerCase() === v.toLowerCase(); })) {
+      selected.set(v, 1);
+    }
+    inp.value = ""; render();
+  }
+  $("writeInBtn").addEventListener("click", addWriteIn);
+  $("writeIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addWriteIn(); } });
+
+  $("clearBtn").addEventListener("click", function () { selected.clear(); render(); });
+
+  // ---- validation ----
+  function field(id) { return $(id); }
+  function setErr(id, msg) {
+    var el = document.querySelector('.err[data-for="' + id + '"]');
+    if (el) el.textContent = msg || "";
+    field(id).classList.toggle("invalid", !!msg);
+  }
+  function validate() {
+    var ok = true;
+    var name = field("name").value.trim(), team = field("teamName").value.trim();
+    var phone = field("phone").value.trim(), email = field("email").value.trim();
+    setErr("name", name ? "" : "Name is required."); if (!name) ok = false;
+    setErr("teamName", team ? "" : "Team name is required."); if (!team) ok = false;
+    var digits = phone.replace(/\D/g, "");
+    var pOk = digits.length >= 10 && digits.length <= 15;
+    setErr("phone", pOk ? "" : "Enter a valid phone number."); if (!pOk) ok = false;
+    var eOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    setErr("email", eOk ? "" : "Enter a valid email address."); if (!eOk) ok = false;
+    return ok;
+  }
+  ["name", "teamName", "phone", "email"].forEach(function (id) {
+    field(id).addEventListener("input", function () { if (field(id).classList.contains("invalid")) setErr(id, ""); });
+  });
+
+  // ---- submit flow ----
+  $("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (submitting) return;
+    var used = total();
+    if (used > BUDGET) { render(); return; }
+    if (!validate()) {
+      var bad = document.querySelector("input.invalid"); if (bad) bad.focus();
+      setStatus("Fix the highlighted fields.", "bad"); return;
+    }
+    if (selected.size === 0) { setStatus("Pick at least one golfer.", "bad"); return; }
+    if (used < BUDGET) {
+      $("underUsed").textContent = used;
+      $("underDlg").showModal();
+      return;
+    }
+    send();
+  });
+  $("underBack").addEventListener("click", function () { $("underDlg").close(); });
+  $("underGo").addEventListener("click", function () { $("underDlg").close(); send(); });
+
+  function payload() {
+    return {
+      name: field("name").value.trim(),
+      phone: field("phone").value.trim(),
+      email: field("email").value.trim(),
+      address: field("address").value.trim(),
+      teamName: field("teamName").value.trim(),
+      website: field("website").value,           // honeypot, must stay empty
+      totalPoints: total(),
+      golfers: Array.from(selected.entries()).map(function (r) { return { name: r[0], points: r[1] }; }),
+      pointsVersion: D.provisional ? "provisional" : "final",
+      submittedFrom: location.href
+    };
+  }
+
+  function send() {
+    if (!C.SCRIPT_URL) { setStatus("Not set up yet: add the Apps Script URL in config.js.", "bad"); return; }
+    var body = payload();
+    submitting = true; render(); setStatus("Submitting...", "");
+    fetch(C.SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res || !res.ok) throw new Error((res && res.error) || "The server rejected the entry.");
+        showThanks(body);
+      })
+      .catch(function (err) {
+        submitting = false; render();
+        setStatus("Couldn't submit: " + err.message + " Please try again.", "bad");
+      });
+  }
+
+  function showThanks(body) {
+    $("entry").hidden = true;
+    $("provisional").hidden = true;
+    $("thanksName").textContent = body.name;
+    $("thanksTeam").textContent = body.teamName;
+    var ul = $("thanksTeamList");
+    body.golfers.slice().sort(function (a, b) { return b.points - a.points || a.name.localeCompare(b.name); })
+      .forEach(function (g) {
+        var li = document.createElement("li");
+        li.textContent = g.name + " (" + g.points + " pt" + (g.points > 1 ? "s" : "") + ")";
+        ul.append(li);
+      });
+    $("thanks").hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
