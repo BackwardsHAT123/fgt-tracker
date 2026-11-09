@@ -35,6 +35,12 @@
   .banner.amber { background: var(--amber-soft); color: var(--amber); }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .grid .full { grid-column: 1 / -1; }
+  .contact { padding: 12px 18px 10px; }
+  .contact h2 { margin-bottom: 8px; }
+  .contact .grid { gap: 8px 14px; }
+  .contact label { margin-bottom: 2px; }
+  .contact input[type] { padding: 7px 10px; }
+  .contact .err { min-height: 0; margin-top: 1px; }
   @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
   label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 4px; }
   label .opt { font-weight: 400; color: var(--muted); }
@@ -132,7 +138,7 @@
 
   <div id="entry">
     <form id="form" novalidate>
-      <section class="card" aria-labelledby="contactH">
+      <section class="card contact" aria-labelledby="contactH">
         <h2 id="contactH">Your info</h2>
         <div class="grid">
           <div>
