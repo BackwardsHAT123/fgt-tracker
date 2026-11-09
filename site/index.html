@@ -55,6 +55,10 @@
   .alert.show { display: block; }
 
   .search { margin-bottom: 8px; }
+  #search { font-size: 1.05rem; padding: 12px 14px; }
+  .nomatch { margin-top: 8px; padding: 10px 12px; background: var(--amber-soft); color: var(--amber);
+    border-radius: 8px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .nomatch .btn { min-height: 36px; padding: 6px 12px; }
   .tier { margin: 18px 0 6px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .tier h3 { margin: 0; font-size: 1rem; }
   .tier .note { color: var(--muted); font-size: .85rem; }
@@ -152,8 +156,12 @@
       <section class="card" aria-labelledby="pickH">
         <h2 id="pickH">Pick your golfers</h2>
         <div class="search">
-          <label for="search" class="opt" style="font-weight:400">Search golfers</label>
-          <input id="search" type="text" placeholder="Type a name to filter" autocomplete="off">
+          <label for="search">Find a golfer</label>
+          <input id="search" type="search" placeholder="Search by name, e.g. Scheffler" autocomplete="off">
+          <div class="nomatch" id="noMatch" hidden>
+            No golfer matches "<span id="noMatchQ"></span>".
+            <button type="button" class="btn secondary" id="noMatchAdd">Add as 1-pointer</button>
+          </div>
         </div>
         <div id="tiers"></div>
         <div class="writein">
@@ -269,14 +277,29 @@
   function setStatus(msg, cls) { var s = $("status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
 
   // ---- search ----
+  // Case- and accent-insensitive, so "aberg" finds Åberg and "hojgaard" finds Højgaard.
+  function fold(t) {
+    return t.toLowerCase().replace(/ø/g, "o").replace(/æ/g, "ae").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
   $("search").addEventListener("input", function () {
-    var q = this.value.trim().toLowerCase();
-    chipEls.forEach(function (el, name) { el.hidden = q && name.toLowerCase().indexOf(q) === -1; });
+    var q = fold(this.value.trim());
+    var matches = 0;
+    chipEls.forEach(function (el, name) { el.hidden = q && fold(name).indexOf(q) === -1; });
     document.querySelectorAll(".tier").forEach(function (head) {
       var chips = head.nextElementSibling;
       var any = Array.from(chips.children).some(function (c) { return !c.hidden; });
       head.hidden = chips.hidden = !any;
+      if (any) matches++;
     });
+    var none = q && matches === 0;
+    $("noMatch").hidden = !none;
+    $("noMatchQ").textContent = this.value.trim();
+  });
+  $("noMatchAdd").addEventListener("click", function () {
+    $("writeIn").value = $("search").value.trim();
+    $("search").value = "";
+    $("search").dispatchEvent(new Event("input"));
+    addWriteIn();
   });
 
   // ---- write-in ----
