@@ -11,6 +11,10 @@ window.FGT_DATA = {
   season: 2027,
   provisional: true,
   budget: 25,
+  // Hover/focus popups keyed by golfer name.
+  tips: {
+    "Danny Willett": "That's \"Master's Champion Danny Willett\" to you"
+  },
   columns: [
     [
       { points: 6, label: "6-pointers", note: "Top 10", players: [

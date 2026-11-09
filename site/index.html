@@ -100,6 +100,11 @@
   .chip[aria-pressed=true] { background: var(--success); color: var(--on-success); border-color: var(--success); font-weight: 600; }
   .chip .pt { color: var(--muted); font-size: 13px; white-space: nowrap; }
   .chip[aria-pressed=true] .pt { color: inherit; opacity: .9; }
+  .chip[data-tip] { position: relative; }
+  .chip[data-tip]:hover::after, .chip[data-tip]:focus-visible::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    width: max-content; max-width: 260px; background: var(--ink); color: var(--surface); font-weight: 500; text-align: center;
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); z-index: 10; pointer-events: none; }
   .more { margin-top: 32px; }
   .more > summary { cursor: pointer; font-weight: 500; padding: 6px 0; }
   .more .note { color: var(--muted); font-size: 13px; line-height: 18px; margin: var(--space-1) 0 10px; }
@@ -300,6 +305,7 @@
       var nm = document.createElement("span"); nm.textContent = p;
       var pt = document.createElement("span"); pt.className = "pt"; pt.textContent = t.points + " pt";
       b.append(nm, pt);
+      if (D.tips && D.tips[p]) { b.dataset.tip = D.tips[p]; b.setAttribute("aria-description", D.tips[p]); }
       b.addEventListener("click", function () { toggle(p, t.points); });
       chips.append(b); chipEls.set(p, b);
     });
