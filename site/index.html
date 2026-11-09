@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FGT Team Entry</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <style>
   :root {
     --bg: #f6f7f4; --card: #ffffff; --ink: #1c2420; --muted: #5d6b63; --line: #d9dfda;
@@ -23,6 +24,9 @@
     font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px 120px; }
   header { padding: 28px 0 8px; }
+  header.top { display: flex; align-items: center; gap: 16px; }
+  .logo { width: 80px; height: 80px; border-radius: 14px; flex: none; display: block; }
+  @media (max-width: 600px) { .logo { width: 56px; height: 56px; border-radius: 10px; } }
   h1 { margin: 0 0 4px; font-size: 1.6rem; }
   h2 { font-size: 1.1rem; margin: 0 0 12px; }
   .sub { color: var(--muted); margin: 0; }
@@ -113,10 +117,13 @@
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1 id="title">PGA Fantasy Golf Tour</h1>
-    <p class="sub">Build your team with 25 points. Your team is final once the first tournament begins.</p>
-    <p class="sub" id="deadline"></p>
+  <header class="top">
+    <img class="logo" src="logo.png" width="80" height="80" alt="Fantasy Golf Tour logo">
+    <div>
+      <h1 id="title">PGA Fantasy Golf Tour</h1>
+      <p class="sub">Build your team with 25 points. Your team is final once the first tournament begins.</p>
+      <p class="sub" id="deadline"></p>
+    </div>
   </header>
 
   <div id="provisional" class="banner amber" hidden>
