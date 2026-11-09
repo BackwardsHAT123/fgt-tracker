@@ -46,15 +46,21 @@ function doPost(e) {
     if (total > BUDGET) return json_({ ok: false, error: 'Team is over ' + BUDGET + ' points.' });
 
     var sheet = sheet_();
-    var key = golfers.map(function (g) { return g.name.toLowerCase(); }).sort().join('|');
+    var key = golfers.map(function (g) { return fold_(g.name); }).sort().join('|');
 
-    // Identical-lineup check against earlier rows (rule: first one in keeps the team).
-    var dupRow = '';
+    // Identical-lineup check (rule: first one in keeps the team). Runs inside the script lock, so two
+    // identical teams submitted at the same moment can't both get in. The duplicate is NOT saved.
     var last = sheet.getLastRow();
     if (last > 1) {
       var keys = sheet.getRange(2, 10, last - 1, 1).getValues();
       for (var i = 0; i < keys.length; i++) {
-        if (keys[i][0] === key) { dupRow = i + 2; break; }
+        if (keys[i][0] === key) {
+          return json_({
+            ok: false,
+            duplicate: true,
+            error: 'Another team has this exact lineup. Change at least one golfer (up to 10 points\' worth).'
+          });
+        }
       }
     }
 
@@ -64,7 +70,7 @@ function doPost(e) {
 
     sheet.appendRow([
       new Date(), name, phone, email, address, team,
-      total, golfers.length, list, key, dupRow, clean_(d.pointsVersion)
+      total, golfers.length, list, key, '', clean_(d.pointsVersion)
     ]);
     return json_({ ok: true });
   } catch (err) {
@@ -85,6 +91,14 @@ function sheet_() {
     sh.getRange('C:C').setNumberFormat('@'); // keep phone numbers as text
   }
   return sh;
+}
+
+// Case-, accent- and punctuation-insensitive form of a golfer name, used only for the lineup key.
+// "Ludvig Åberg" == "ludvig aberg", "J.T. Poston" == "JT Poston".
+function fold_(s) {
+  return String(s).toLowerCase().replace(/ø/g, 'o').replace(/æ/g, 'ae')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 // Strip leading characters that make Sheets treat a value as a formula, and trim length.

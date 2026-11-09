@@ -30,7 +30,9 @@ After editing `Code.gs` later, use Deploy > Manage deployments > edit > New vers
 
 ## What lands in the Sheet
 
-One row per team: timestamp, name, phone, email, address, team name, points used, golfer count, golfers with points, a lineup key, "Duplicate Of Row", and whether points were provisional or final. If a lineup exactly matches an earlier entry, "Duplicate Of Row" holds that row number (the rule is that the later entry changes up to 10 points' worth of players).
+One row per team: timestamp, name, phone, email, address, team name, points used, golfer count, golfers with points, a lineup key, "Duplicate Of Row", and whether points were provisional or final. The "Duplicate Of Row" column is no longer filled in. Duplicates are now rejected at submit time instead: if a lineup exactly matches an earlier entry (ignoring case, accents and punctuation in names), the script saves nothing and the page tells the player the lineup is taken and sends them back to the picker. The check runs under a lock, so two identical teams submitted at the same moment can't both get in. The rule is that the later entry changes at least one golfer (up to 10 points' worth).
+
+After changing `Code.gs`, redeploy it (Deploy > Manage deployments > edit > New version) or the live script keeps the old behavior.
 
 ## Privacy notes
 

@@ -54,6 +54,7 @@
     border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px; font-weight: 600; }
   .alert.show { display: block; }
 
+  #pickH { scroll-margin-top: 200px; } /* keeps the heading clear of the pinned points bar */
   .search { margin-top: 10px; }
   .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   #search { font-size: 1rem; padding: 10px 12px; }
@@ -208,6 +209,15 @@
   <div class="row">
     <button type="button" class="btn secondary" id="underBack">Modify selections</button>
     <button type="button" class="btn" id="underGo">Submit anyway</button>
+  </div>
+</dialog>
+
+<dialog id="dupDlg" aria-labelledby="dupH">
+  <h2 id="dupH">That lineup is already taken</h2>
+  <p>Another team has this exact lineup, and the first team in keeps it. <strong>Your entry was not submitted.</strong></p>
+  <p>Change at least one golfer (up to 10 points' worth) and submit again. Your picks and info are still here.</p>
+  <div class="row">
+    <button type="button" class="btn" id="dupBack">Back to lineup picker</button>
   </div>
 </dialog>
 
@@ -376,6 +386,11 @@
   });
   $("underBack").addEventListener("click", function () { $("underDlg").close(); });
   $("underGo").addEventListener("click", function () { $("underDlg").close(); send(); });
+  $("dupBack").addEventListener("click", function () {
+    $("dupDlg").close();
+    $("pickH").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("search").focus({ preventScroll: true });
+  });
 
   function payload() {
     return {
@@ -399,6 +414,12 @@
     fetch(C.SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
       .then(function (r) { return r.json(); })
       .then(function (res) {
+        if (res && res.duplicate) {
+          submitting = false; render();
+          setStatus("That exact lineup is already taken. Change at least one golfer.", "bad");
+          $("dupDlg").showModal();
+          return;
+        }
         if (!res || !res.ok) throw new Error((res && res.error) || "The server rejected the entry.");
         showThanks(body);
       })
