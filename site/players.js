@@ -13,8 +13,8 @@ window.FGT_DATA = {
   budget: 25,
   // Hover/focus popups keyed by golfer name.
   tips: {
-    // Text between _underscores_ is underlined.
-    "Danny Willett": "That's \"_Masters Champion_ Danny Willett\" to you"
+    // Text between _underscores_ is underlined; \n starts a new line.
+    "Danny Willett": "That's\n\"_Masters Champion_ Danny Willett\"\nto you"
   },
   columns: [
     [
