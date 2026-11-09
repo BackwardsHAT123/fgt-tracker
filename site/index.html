@@ -40,7 +40,7 @@
   @media (max-width: 600px) { .logo { width: 56px; height: 56px; } }
   h1 { margin: 0 0 var(--space-1); font-size: 44px; line-height: 48px; font-weight: 700; letter-spacing: -0.5px; }
   @media (max-width: 600px) { h1 { font-size: 30px; line-height: 34px; } }
-  h2 { font-size: 28px; line-height: 34px; font-weight: 600; margin: 0 0 var(--space-3); }
+  h2 { font-size: 18px; line-height: 24px; font-weight: 600; margin: 0 0 var(--space-3); } /* TAH title */
   .sub { color: var(--muted); margin: 0; }
   .card { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-4) 0; }
   .banner { border-radius: var(--radius-md); padding: 10px var(--space-4); margin: var(--space-3) 0; font-size: 15px; line-height: 20px; }
@@ -90,7 +90,7 @@
   .col > .sect:first-child { margin-top: 0; }
   @media (max-width: 900px) { .col + .col > .sect:first-child { margin-top: 32px; } }
   .tier { margin: 0 0 var(--space-2); padding-bottom: 6px; border-bottom: 1px solid var(--hair); }
-  .tier h3 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 500; color: var(--muted); }
+  .tier h3 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 500; color: var(--ink); }
   .tier .note { display: block; color: var(--muted); font-size: 13px; line-height: 18px; }
   .chips { display: flex; flex-direction: column; gap: 6px; }
   .chip { font: inherit; font-size: 15px; line-height: 20px; cursor: pointer; color: var(--ink); background: transparent; text-align: left;
@@ -99,7 +99,7 @@
   .chip:hover { border-color: var(--ink); }
   .chip[aria-pressed=true] { background: var(--success); color: var(--on-success); border-color: var(--success); font-weight: 600; }
   .chip .pt { color: var(--muted); font-size: 13px; white-space: nowrap; }
-  .chip[aria-pressed=true] .pt { color: inherit; opacity: .8; }
+  .chip[aria-pressed=true] .pt { color: inherit; opacity: .9; }
   .more { margin-top: 32px; }
   .more > summary { cursor: pointer; font-weight: 500; padding: 6px 0; }
   .more .note { color: var(--muted); font-size: 13px; line-height: 18px; margin: var(--space-1) 0 10px; }
@@ -131,7 +131,7 @@
   dialog { border: 1px solid var(--hair); border-radius: var(--radius-md); background: var(--raised); color: var(--ink);
     padding: var(--space-5); max-width: 440px; width: calc(100% - 32px); }
   dialog::backdrop { background: rgba(0,0,0,.6); }
-  dialog h2 { margin-top: 0; font-size: 24px; line-height: 30px; }
+  dialog h2 { margin-top: 0; }
   dialog .row { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 18px; }
   .done h2 { color: var(--success); }
   .pay { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 14px var(--space-4); margin: 14px 0; }
