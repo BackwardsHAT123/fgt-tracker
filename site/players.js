@@ -49,7 +49,7 @@ window.FGT_DATA = {
       ]}
     ],
     [
-      { points: 1, label: "1-pointers", note: "Featured: top FedExCup 101+ plus Rahm, DeChambeau, Hatton, Reed", players: [
+      { points: 1, label: "1-pointers", note: "Ranks 101+", players: [
         "Jon Rahm", "Bryson DeChambeau", "Tyrrell Hatton", "Patrick Reed", "Jason Day",
         "Chris Kirk", "Mackenzie Hughes", "Taylor Pendrith", "Brandt Snedeker", "A.J. Ewart",
         "Rico Hoey", "Lee Hodges", "Rasmus Neergaard-Petersen", "Chandler Blanchet", "Tony Finau",
