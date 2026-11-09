@@ -4,5 +4,8 @@ window.FGT_CONFIG = {
   SCRIPT_URL: "https://script.google.com/macros/s/AKfycbypMbpZYM9omrCw2VBRDJyBbqYnEMvKHEY7Fp6fJoGdhwBanSAcduF4kJCQko-CGC8V/exec",
   TITLE: "2027 PGA Fantasy Golf Tour",
   // Shown under the title. Put the entry deadline here once the commissioner sets it.
-  DEADLINE_TEXT: ""
+  DEADLINE_TEXT: "",
+  // Shown on the confirmation page. Handle has no leading @.
+  VENMO_HANDLE: "Thomas-E-OToole",
+  ENTRY_FEE: 100
 };

@@ -93,6 +93,10 @@
   dialog h2 { margin-top: 0; }
   dialog .row { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 18px; }
   .done h2 { color: var(--accent); }
+  .pay { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 10px; padding: 14px 16px; margin: 14px 0; }
+  .pay h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  .pay p { margin: 0 0 12px; }
+  a.btn { display: inline-block; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -186,7 +190,13 @@
 
   <div id="thanks" class="card done" hidden>
     <h2>Team submitted</h2>
-    <p>Thanks, <strong id="thanksName"></strong>. <strong id="thanksTeam"></strong> is in. The commissioner will follow up about payment.</p>
+    <p>Thanks, <strong id="thanksName"></strong>. <strong id="thanksTeam"></strong> has been received. Payment details are below.</p>
+    <div class="pay" id="payBox" hidden>
+      <h3>Pay your $<span id="payFee">100</span> entry fee</h3>
+      <p>Send it by Venmo to <a id="payLink" href="#" target="_blank" rel="noopener noreferrer">@<span id="payHandle"></span></a>.
+        Put your team name (<strong id="payMemo"></strong>) in the note so we can match it.</p>
+      <a class="btn" id="payBtn" href="#" target="_blank" rel="noopener noreferrer">Open Venmo</a>
+    </div>
     <ul class="team" id="thanksTeamList"></ul>
     <p class="sub">If two entries are identical, the first one in keeps its team and the later one has to change.</p>
   </div>
@@ -403,6 +413,17 @@
     $("provisional").hidden = true;
     $("thanksName").textContent = body.name;
     $("thanksTeam").textContent = body.teamName;
+    if (C.VENMO_HANDLE) {
+      var handle = String(C.VENMO_HANDLE).replace(/^@/, "");
+      var fee = Number(C.ENTRY_FEE) || 100;
+      var url = "https://venmo.com/u/" + encodeURIComponent(handle) +
+        "?txn=pay&amount=" + fee + "&note=" + encodeURIComponent("FGT 2027 - " + body.teamName);
+      $("payFee").textContent = fee;
+      $("payHandle").textContent = handle;
+      $("payMemo").textContent = body.teamName;
+      $("payLink").href = url; $("payBtn").href = url;
+      $("payBox").hidden = false;
+    }
     var ul = $("thanksTeamList");
     body.golfers.slice().sort(function (a, b) { return b.points - a.points || a.name.localeCompare(b.name); })
       .forEach(function (g) {
