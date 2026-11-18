@@ -133,6 +133,7 @@ function setupSheets() {
     entries.getRange(1, 13).setValue('Entry ID').setFontWeight('bold');
   }
   Object.keys(TABS).forEach(tab_);
+  fixHeaders_();
   var t = tab_('Tournaments');
   t.getRange('B:B').setNumberFormat('yyyy-mm-dd');
   t.getRange('E:E').setNumberFormat('$#,##0');
@@ -143,6 +144,18 @@ function setupSheets() {
   }
   refreshGolfers();
   rebuildLineupsAndStandings();
+}
+
+// Brings the header row of each extra tab up to date (tabs made by an older version have old headers).
+// A Tournaments tab that already has results is left alone, so typed data can't end up under wrong headers.
+function fixHeaders_() {
+  Object.keys(TABS).forEach(function (name) {
+    var sh = tab_(name), h = TABS[name];
+    if (name === 'Tournaments' && sh.getLastRow() > 1) return;
+    var width = Math.max(sh.getMaxColumns(), h.length);
+    sh.getRange(1, 1, 1, width).clearContent();
+    sh.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold');
+  });
 }
 
 // Replaces the Golfers tab contents with the list in Golfers.gs (generated from site/players.js).
