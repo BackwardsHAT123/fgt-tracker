@@ -261,22 +261,40 @@ function refreshEventScores() {
   }
   if (!events.length || st.getLastRow() < 2) return;
   var teams = st.getRange(2, 2, st.getLastRow() - 1, 2).getValues();
+
+  // Each team's earnings per event are worked out here and written as numbers. (A single big formula
+  // for this did not calculate in Sheets and showed $0.) Rank and Pot Share below stay live formulas.
+  var money = {}; // event -> folded golfer name -> prize money
+  t.getRange(2, 1, t.getLastRow() - 1, 5).getValues().forEach(function (r) {
+    var ev = String(r[0]).trim(), g = fold_(r[2]);
+    if (!ev || !g) return;
+    money[ev] = money[ev] || {};
+    money[ev][g] = (money[ev][g] || 0) + (Number(r[4]) || 0);
+  });
+  var lineup = {}; // entry id -> folded golfer names
+  var lin = tab_('Lineups');
+  if (lin.getLastRow() > 1) {
+    lin.getRange(2, 1, lin.getLastRow() - 1, 3).getValues().forEach(function (r) {
+      if (!r[0] || !r[2]) return;
+      (lineup[r[0]] = lineup[r[0]] || []).push(fold_(r[2]));
+    });
+  }
+
   var vals = [], f = [], row = 2;
   events.forEach(function (ev) {
     teams.forEach(function (tm) {
       var r = String(row++);
-      vals.push([ev, tm[0], tm[1]]);
+      var earned = (lineup[tm[0]] || []).reduce(function (sum, g) { return sum + (money[ev][g] || 0); }, 0);
+      vals.push([ev, tm[0], tm[1], earned]);
       f.push([
-        '=SUMPRODUCT(SUMIFS(Tournaments!$E$2:$E$10000,Tournaments!$A$2:$A$10000,A' + r +
-          ',Tournaments!$C$2:$C$10000,Lineups!$C$2:$C$5000)*(Lineups!$A$2:$A$5000=B' + r + '))',
         '=1+COUNTIFS($A$2:$A$5000,A' + r + ',$D$2:$D$5000,">"&D' + r + ')',
         '=IF(AND(E' + r + '=1,D' + r + '>0),1/COUNTIFS($A$2:$A$5000,A' + r + ',$E$2:$E$5000,1),0)'
       ]);
     });
   });
-  es.getRange(2, 1, vals.length, 3).setValues(vals);
-  es.getRange(2, 4, f.length, 3).setFormulas(f);
-  es.getRange(2, 4, f.length, 1).setNumberFormat('$#,##0');
+  es.getRange(2, 1, vals.length, 4).setValues(vals);
+  es.getRange(2, 5, f.length, 2).setFormulas(f);
+  es.getRange(2, 4, vals.length, 1).setNumberFormat('$#,##0');
 }
 
 // Rebuilds Lineups and Standings from the Entries tab. Gives Entry IDs to older entries that lack one.
