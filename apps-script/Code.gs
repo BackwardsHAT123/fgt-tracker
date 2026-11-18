@@ -23,7 +23,7 @@ var TABS = {
   Tournaments: ['Tournament', 'Date', 'Golfer', 'Finish', 'Earnings'],
   Lineups:     ['Entry ID', 'Team Name', 'Golfer', 'Points', 'Season Earnings'],
   // One row per event per team (made by "Update event scores"). Highest earnings wins the event.
-  EventScores: ['Tournament', 'Entry ID', 'Team Name', 'Earnings', 'Event Rank', 'Event Win'],
+  EventScores: ['Tournament', 'Entry ID', 'Team Name', 'Earnings', 'Event Rank', 'Pot Share'],
   Standings:   ['Rank', 'Entry ID', 'Team Name', 'Name', 'Points Used', '# Golfers', 'Season Earnings', 'Event Wins', 'Paid Spot'],
   Settings:    ['Setting', 'Value']
 };
@@ -190,13 +190,13 @@ function addStanding_(entryId, team, name, total, count) {
   var r = String(row);
   sh.getRange(row, 7).setFormula('=SUMIF(Lineups!$A:$A,B' + r + ',Lineups!$E:$E)').setNumberFormat('$#,##0');
   sh.getRange(row, 1).setFormula('=IF(B' + r + '="","",RANK(G' + r + ',$G$2:$G$1000))');
-  sh.getRange(row, 8).setFormula('=SUMIF(EventScores!$B:$B,B' + r + ',EventScores!$F:$F)');
+  sh.getRange(row, 8).setFormula('=SUMIF(EventScores!$B:$B,B' + r + ',EventScores!$F:$F)').setNumberFormat('0.0#');
   // Paid Spot: blank until Tom types the number of paid teams on the Settings tab (B2).
   sh.getRange(row, 9).setFormula('=IF(AND(ISNUMBER(Settings!$B$2),G' + r + '>0,A' + r + '<=Settings!$B$2),"Yes","")');
 }
 
 // One row per event per team, with that team's earnings and event rank. Highest earnings wins the event.
-// Tied teams all show Event Win = 1; how ties are paid is decided outside the Sheet.
+// Pot Share is 1 for an outright winner; teams tied for the top split the weekly pot (two tied = 0.5 each).
 // Run after adding results to Tournaments (FGT > Update event scores). Safe to run any time.
 function refreshEventScores() {
   var t = tab_('Tournaments'), st = tab_('Standings'), es = tab_('EventScores');
@@ -219,7 +219,7 @@ function refreshEventScores() {
         '=SUMPRODUCT(SUMIFS(Tournaments!$E$2:$E$5000,Tournaments!$A$2:$A$5000,A' + r +
           ',Tournaments!$C$2:$C$5000,Lineups!$C$2:$C$5000)*(Lineups!$A$2:$A$5000=B' + r + '))',
         '=1+COUNTIFS($A$2:$A$5000,A' + r + ',$D$2:$D$5000,">"&D' + r + ')',
-        '=IF(AND(E' + r + '=1,D' + r + '>0),1,0)'
+        '=IF(AND(E' + r + '=1,D' + r + '>0),1/COUNTIFS($A$2:$A$5000,A' + r + ',$E$2:$E$5000,1),0)'
       ]);
     });
   });
