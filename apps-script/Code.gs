@@ -18,9 +18,14 @@ var HEADERS = [
 // so a dashboard can read them without seeing phones or emails.
 var TABS = {
   Golfers:     ['Golfer', 'Points', 'Group', 'Version'],
-  Tournaments: ['Tournament', 'Date', 'Golfer', 'Finish', 'Position', 'Score To Par', 'Earnings', 'Fantasy Points'],
-  Lineups:     ['Entry ID', 'Team Name', 'Golfer', 'Points', 'Fantasy Points'],
-  Standings:   ['Rank', 'Entry ID', 'Team Name', 'Name', 'Points Used', '# Golfers', 'Fantasy Points']
+  // One row per golfer per event. Type the golfer's prize money. Each event gets its own Tournament
+  // name, even when two events run the same weekend (they are scored as separate events).
+  Tournaments: ['Tournament', 'Date', 'Golfer', 'Finish', 'Earnings'],
+  Lineups:     ['Entry ID', 'Team Name', 'Golfer', 'Points', 'Season Earnings'],
+  // One row per event per team (made by "Update event scores"). Highest earnings wins the event.
+  EventScores: ['Tournament', 'Entry ID', 'Team Name', 'Earnings', 'Event Rank', 'Event Win'],
+  Standings:   ['Rank', 'Entry ID', 'Team Name', 'Name', 'Points Used', '# Golfers', 'Season Earnings', 'Event Wins', 'Paid Spot'],
+  Settings:    ['Setting', 'Value']
 };
 
 function doGet() {
@@ -103,6 +108,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('FGT')
     .addItem('Set up tabs', 'setupSheets')
     .addItem('Refresh Golfers tab', 'refreshGolfers')
+    .addItem('Update event scores', 'refreshEventScores')
     .addItem('Rebuild Lineups and Standings', 'rebuildLineupsAndStandings')
     .addToUi();
 }
@@ -129,6 +135,12 @@ function setupSheets() {
   Object.keys(TABS).forEach(tab_);
   var t = tab_('Tournaments');
   t.getRange('B:B').setNumberFormat('yyyy-mm-dd');
+  t.getRange('E:E').setNumberFormat('$#,##0');
+  var set = tab_('Settings');
+  if (!set.getRange(2, 1).getValue()) {
+    set.getRange(2, 1, 1, 2).setValues([['Season payout share (top % of teams paid)', 0.175]]);
+    set.getRange(2, 2).setNumberFormat('0.0%');
+  }
   refreshGolfers();
   rebuildLineupsAndStandings();
 }
@@ -142,7 +154,7 @@ function refreshGolfers() {
 }
 
 function lineupFormula_(row) {
-  return '=SUMIF(Tournaments!$C:$C,C' + row + ',Tournaments!$H:$H)';
+  return '=SUMIF(Tournaments!$C:$C,C' + row + ',Tournaments!$E:$E)';
 }
 
 function addLineup_(entryId, team, golfers) {
@@ -157,9 +169,46 @@ function addLineup_(entryId, team, golfers) {
 function addStanding_(entryId, team, name, total, count) {
   var sh = tab_('Standings');
   var row = sh.getLastRow() + 1;
-  sh.getRange(row, 1, 1, 7).setValues([['', entryId, team, name, total, count, '']]);
-  sh.getRange(row, 7).setFormula('=SUMIF(Lineups!$A:$A,B' + row + ',Lineups!$E:$E)');
-  sh.getRange(row, 1).setFormula('=IF(B' + row + '="","",RANK(G' + row + ',$G$2:$G$1000))');
+  sh.getRange(row, 1, 1, 9).setValues([['', entryId, team, name, total, count, '', '', '']]);
+  var r = String(row);
+  sh.getRange(row, 7).setFormula('=SUMIF(Lineups!$A:$A,B' + r + ',Lineups!$E:$E)').setNumberFormat('$#,##0');
+  sh.getRange(row, 1).setFormula('=IF(B' + r + '="","",RANK(G' + r + ',$G$2:$G$1000))');
+  sh.getRange(row, 8).setFormula('=SUMIF(EventScores!$B:$B,B' + r + ',EventScores!$F:$F)');
+  // Paid Spot: in the top share of teams on the season money list (share is set on the Settings tab).
+  sh.getRange(row, 9).setFormula('=IF(AND(G' + r + '>0,A' + r + '<=ROUND(COUNTA($B$2:$B$1000)*Settings!$B$2,0)),"Yes","")');
+}
+
+// One row per event per team, with that team's earnings and event rank. Highest earnings wins the event.
+// Tied teams all show Event Win = 1; how ties are paid is decided outside the Sheet.
+// Run after adding results to Tournaments (FGT > Update event scores). Safe to run any time.
+function refreshEventScores() {
+  var t = tab_('Tournaments'), st = tab_('Standings'), es = tab_('EventScores');
+  if (es.getLastRow() > 1) es.getRange(2, 1, es.getLastRow() - 1, es.getLastColumn()).clearContent();
+  var events = [];
+  if (t.getLastRow() > 1) {
+    t.getRange(2, 1, t.getLastRow() - 1, 1).getValues().forEach(function (r) {
+      var n = String(r[0]).trim();
+      if (n && events.indexOf(n) < 0) events.push(n);
+    });
+  }
+  if (!events.length || st.getLastRow() < 2) return;
+  var teams = st.getRange(2, 2, st.getLastRow() - 1, 2).getValues();
+  var vals = [], f = [], row = 2;
+  events.forEach(function (ev) {
+    teams.forEach(function (tm) {
+      var r = String(row++);
+      vals.push([ev, tm[0], tm[1]]);
+      f.push([
+        '=SUMPRODUCT(SUMIFS(Tournaments!$E$2:$E$5000,Tournaments!$A$2:$A$5000,A' + r +
+          ',Tournaments!$C$2:$C$5000,Lineups!$C$2:$C$5000)*(Lineups!$A$2:$A$5000=B' + r + '))',
+        '=1+COUNTIFS($A$2:$A$5000,A' + r + ',$D$2:$D$5000,">"&D' + r + ')',
+        '=IF(AND(E' + r + '=1,D' + r + '>0),1,0)'
+      ]);
+    });
+  });
+  es.getRange(2, 1, vals.length, 3).setValues(vals);
+  es.getRange(2, 4, f.length, 3).setFormulas(f);
+  es.getRange(2, 4, f.length, 1).setNumberFormat('$#,##0');
 }
 
 // Rebuilds Lineups and Standings from the Entries tab. Gives Entry IDs to older entries that lack one.
@@ -183,6 +232,7 @@ function rebuildLineupsAndStandings() {
     addLineup_(id, r[5], golfers);
     addStanding_(id, r[5], r[1], r[6], r[7]);
   });
+  refreshEventScores();
 }
 
 function sheet_() {
