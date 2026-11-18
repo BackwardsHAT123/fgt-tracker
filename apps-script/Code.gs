@@ -38,6 +38,8 @@ function doPost(e) {
     lock.waitLock(20000);
     var d = JSON.parse(e.postData.contents);
 
+    if (d.action === 'results') return saveResults_(d); // weekly prize money from the PGA Tour page
+
     if (d.website) return json_({ ok: true }); // honeypot tripped: pretend success, store nothing
 
     if (DEADLINE && new Date() > DEADLINE) return json_({ ok: false, error: 'Entries are closed.' });
@@ -195,6 +197,55 @@ function addStanding_(entryId, team, name, total, count) {
   sh.getRange(row, 9).setFormula('=IF(AND(ISNUMBER(Settings!$B$2),G' + r + '>0,A' + r + '<=Settings!$B$2),"Yes","")');
 }
 
+// Receives one event's results: {action:'results', token, tournament, date:'YYYY-MM-DD', rows:[{golfer, finish, earnings}]}.
+// Needs a Script Property named RESULTS_TOKEN (Project Settings > Script properties) and the same token in the request,
+// so only Tom's tools can write results. Sending the same tournament again replaces its rows, so re-runs are safe.
+// Keeps only golfers that matter (on the Golfers tab, in some lineup, or with earnings > 0). Names are matched to the
+// spelling already used in Golfers/Lineups, ignoring case, accents and punctuation.
+function saveResults_(d) {
+  var want = PropertiesService.getScriptProperties().getProperty('RESULTS_TOKEN');
+  if (!want || String(d.token) !== want) return json_({ ok: false, error: 'Not authorized.' });
+  var name = String(d.tournament || '').trim().slice(0, 200);
+  if (!name || !d.rows || !d.rows.length) return json_({ ok: false, error: 'Missing tournament or rows.' });
+
+  var known = {};
+  GOLFERS.forEach(function (g) { known[fold_(g[0])] = g[0]; });
+  var lin = tab_('Lineups');
+  if (lin.getLastRow() > 1) {
+    lin.getRange(2, 3, lin.getLastRow() - 1, 1).getValues().forEach(function (r) {
+      if (r[0]) known[fold_(r[0])] = String(r[0]);
+    });
+  }
+
+  var date = d.date ? new Date(String(d.date) + 'T12:00:00') : '';
+  var fresh = [], unmatched = [];
+  d.rows.forEach(function (r) {
+    var raw = String(r.golfer || '').trim();
+    if (!raw) return;
+    var money = Number(String(r.earnings == null ? 0 : r.earnings).replace(/[$,\s]/g, ''));
+    if (isNaN(money)) money = 0;
+    var canon = known[fold_(raw)];
+    if (!canon && money <= 0) return;
+    if (!canon) unmatched.push(raw);
+    fresh.push([name, date, canon || clean_(raw), clean_(r.finish), money]);
+  });
+
+  var t = tab_('Tournaments');
+  var kept = [];
+  if (t.getLastRow() > 1) {
+    kept = t.getRange(2, 1, t.getLastRow() - 1, 5).getValues().filter(function (r) {
+      return String(r[0]).trim() !== name;
+    });
+    t.getRange(2, 1, t.getLastRow() - 1, 5).clearContent();
+  }
+  var all = kept.concat(fresh);
+  if (all.length) t.getRange(2, 1, all.length, 5).setValues(all);
+  t.getRange('B:B').setNumberFormat('yyyy-mm-dd');
+  t.getRange('E:E').setNumberFormat('$#,##0');
+  refreshEventScores();
+  return json_({ ok: true, stored: fresh.length, notOnGolfersTabWithMoney: unmatched });
+}
+
 // One row per event per team, with that team's earnings and event rank. Highest earnings wins the event.
 // Pot Share is 1 for an outright winner; teams tied for the top split the weekly pot (two tied = 0.5 each).
 // Run after adding results to Tournaments (FGT > Update event scores). Safe to run any time.
@@ -216,8 +267,8 @@ function refreshEventScores() {
       var r = String(row++);
       vals.push([ev, tm[0], tm[1]]);
       f.push([
-        '=SUMPRODUCT(SUMIFS(Tournaments!$E$2:$E$5000,Tournaments!$A$2:$A$5000,A' + r +
-          ',Tournaments!$C$2:$C$5000,Lineups!$C$2:$C$5000)*(Lineups!$A$2:$A$5000=B' + r + '))',
+        '=SUMPRODUCT(SUMIFS(Tournaments!$E$2:$E$10000,Tournaments!$A$2:$A$10000,A' + r +
+          ',Tournaments!$C$2:$C$10000,Lineups!$C$2:$C$5000)*(Lineups!$A$2:$A$5000=B' + r + '))',
         '=1+COUNTIFS($A$2:$A$5000,A' + r + ',$D$2:$D$5000,">"&D' + r + ')',
         '=IF(AND(E' + r + '=1,D' + r + '>0),1/COUNTIFS($A$2:$A$5000,A' + r + ',$E$2:$E$5000,1),0)'
       ]);
