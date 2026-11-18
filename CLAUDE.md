@@ -16,6 +16,8 @@ Keep this file under ~15 KB. Dated entries, review results and feature write-ups
 - `site/players.js`: golfer point tiers and page layout (`window.FGT_DATA`). The file you edit most.
 - `site/config.js`: `SCRIPT_URL`, `VENMO_HANDLE`, `ENTRY_FEE`, `DEADLINE_TEXT`.
 - `apps-script/Code.gs`: server side. Validates, recomputes points, rejects duplicate lineups, appends to the "Entries" tab.
+- `apps-script/Golfers.gs`: GENERATED from `site/players.js` by `node tools/build-golfers.js`. Never hand-edit. Tom pastes it into the Apps Script project as a second file.
+- Sheet "2027 FGT" (id in the Drive URL Tom gave; the Drive connector could not find it by id) has tabs: Entries (contact info, private), Golfers, Tournaments (results log, filled by hand for now), Lineups (one row per golfer per entry), Standings (team and name only, no contact info; feeds the future dashboard). Menu "FGT" in the Sheet runs setup/refresh.
 - `.github/workflows/pages.yml`: deploys `site/` on every push to `main` (Pages source is "GitHub Actions").
 - `README.md`: setup and behavior notes.
 
@@ -46,7 +48,7 @@ Keep this file under ~15 KB. Dated entries, review results and feature write-ups
 - **Git needs the sandbox off:** the sandbox blocks writes to `.git` and breaks GitHub TLS, so commit and push with `dangerouslyDisableSandbox: true`. Run any local tests in the sandboxed shell (the unsandboxed shell has a different `$TMPDIR`).
 - **Deploys:** pushing two commits within seconds cancels the first deploy (workflow `concurrency`). A "No artifacts named github-pages" failure was transient; re-run it from the GitHub Actions page.
 - **Current status:** point values are PROVISIONAL (`provisional: true`), last updated Nov 16, 2026 (commit a9372ab) from projected FedExCup Fall ranks after the Austin Championship. The RSM Classic (Nov 19-22, 2026) is the last Fall event; standings are official Mon Nov 23.
-- **When Tom says "lock in the point values":** (1) re-pull pgatour.com Fall standings in Chrome, (2) confirm ranks 1-50 are unchanged, (3) rebuild 4/3/2/1 groups from final ranks 51-100 and the featured 1-pointers (FedEx 101-121), moving golfers between `columns` and `more` as needed, (4) set `provisional: false`, (5) check counts, commit, push, (6) show Tom the diff. Close any Chrome tab you open.
+- **When Tom says "lock in the point values":** (1) re-pull pgatour.com Fall standings in Chrome, (2) confirm ranks 1-50 are unchanged, (3) rebuild 4/3/2/1 groups from final ranks 51-100 and the featured 1-pointers (FedEx 101-121), moving golfers between `columns` and `more` as needed, (4) set `provisional: false`, (5) check counts, run `node tools/build-golfers.js`, commit, push, (6) show Tom the diff, and remind him to paste the new `Golfers.gs` into Apps Script and run FGT > Refresh Golfers tab. Close any Chrome tab you open.
 - **Open:** the duplicate-lineup version of `Code.gs` (commit 67633b1) must be redeployed by Tom (Deploy > Manage deployments > edit > New version) or the live script keeps saving duplicates. Not confirmed whether he did.
 - **Open:** `DEADLINE_TEXT` in `config.js` and `DEADLINE` in `Code.gs` are unset until Tom picks a date.
 - **Open:** I suggested adding `*.pdf`, `*.docx` and `.bench/` to `.gitignore`; Tom has not answered.
