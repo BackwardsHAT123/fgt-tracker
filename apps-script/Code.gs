@@ -138,9 +138,13 @@ function setupSheets() {
   t.getRange('B:B').setNumberFormat('yyyy-mm-dd');
   t.getRange('E:E').setNumberFormat('$#,##0');
   var set = tab_('Settings');
-  if (!set.getRange(2, 1).getValue()) {
-    set.getRange(2, 1, 1, 2).setValues([['Season payout share (top % of teams paid)', 0.175]]);
-    set.getRange(2, 2).setNumberFormat('0.0%');
+  var label = 'Season paid spots (set after entries close)';
+  if (set.getRange(2, 1).getValue() !== label) {
+    set.getRange(2, 1, 3, 2).clearContent();
+    set.getRange(2, 1, 3, 1).setValues([[label], ['Teams entered'], ['Reference: 17.5% of teams entered']]);
+    set.getRange(3, 2).setFormula('=COUNTA(Standings!$B$2:$B$1000)');
+    set.getRange(4, 2).setFormula('=ROUND(B3*0.175,0)');
+    set.getRange(2, 2).setNumberFormat('0'); // leave blank until the number of paid teams is decided
   }
   refreshGolfers();
   rebuildLineupsAndStandings();
@@ -187,8 +191,8 @@ function addStanding_(entryId, team, name, total, count) {
   sh.getRange(row, 7).setFormula('=SUMIF(Lineups!$A:$A,B' + r + ',Lineups!$E:$E)').setNumberFormat('$#,##0');
   sh.getRange(row, 1).setFormula('=IF(B' + r + '="","",RANK(G' + r + ',$G$2:$G$1000))');
   sh.getRange(row, 8).setFormula('=SUMIF(EventScores!$B:$B,B' + r + ',EventScores!$F:$F)');
-  // Paid Spot: in the top share of teams on the season money list (share is set on the Settings tab).
-  sh.getRange(row, 9).setFormula('=IF(AND(G' + r + '>0,A' + r + '<=ROUND(COUNTA($B$2:$B$1000)*Settings!$B$2,0)),"Yes","")');
+  // Paid Spot: blank until Tom types the number of paid teams on the Settings tab (B2).
+  sh.getRange(row, 9).setFormula('=IF(AND(ISNUMBER(Settings!$B$2),G' + r + '>0,A' + r + '<=Settings!$B$2),"Yes","")');
 }
 
 // One row per event per team, with that team's earnings and event rank. Highest earnings wins the event.
