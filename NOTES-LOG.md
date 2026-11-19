@@ -181,3 +181,9 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Made-the-cut columns: "made / in" (made in red), "golfers made the cut at the <Event>.", the team's money there in green, then the team's golfer table (points, season earnings bar in point colours). Table shared with the pie popup (`golferTable`).
 - Weekly ranking chart: hover an event for team name, "Rank this week: N", "made $X at the <Event>, to bring total to $Y". Hover strips are per event for the chosen team.
 - Weekly Ranking chart (Tom): every team's line now has the popup. Hovering finds the nearest event and the team line nearest the pointer (the chosen orange team wins near-ties), outlines that line, and shows its rank, money and running total. Replaced the per-event strips with one hover area (uses the SVG's screen transform).
+
+## 2026-11-19: team picker gets its own address
+
+- Tom: give the team picker its own page address and unfold the "More 1-pointers" list, in 4 columns so older players can scan it. Moved `site/index.html` to `site/team-picker.html` (git mv); the new `site/index.html` just forwards to it (meta refresh plus JS, keeping any query string), so old links and bookmarks still work.
+- More list: open on load and stays open after searching; newspaper-style columns (4 desktop, 3 under 900px, 2 under 600px); alphabetical by last name (suffixes like Jr. ignored) on the page only, so `players.js` order is untouched. My idea, not asked for, to make names easier to find.
+- jsdom check: list open, 123 names, sorted, search and picking still work. Weekly Ranking chart popups for every team line also confirmed live in Chrome.

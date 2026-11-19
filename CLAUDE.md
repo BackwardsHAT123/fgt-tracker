@@ -6,26 +6,26 @@ Keep this file under ~15 KB. Dated entries, review results and feature write-ups
 
 ## What it is
 
-- Public entry page: https://backwardshat123.github.io/fgt-tracker/ (GitHub Pages, repo https://github.com/BackwardsHAT123/fgt-tracker, public, branch `main`).
+- Public entry page (team picker): https://backwardshat123.github.io/fgt-tracker/team-picker.html; the bare https://backwardshat123.github.io/fgt-tracker/ forwards there (GitHub Pages, repo https://github.com/BackwardsHAT123/fgt-tracker, public, branch `main`).
 - Players enter name, phone, email, team name (address optional) and pick golfers within a 25-point budget. Entry fee $100, paid by Venmo (handle in `site/config.js`).
 - Submissions go to a Google Sheet through a Google Apps Script web app.
 
 ## Map
 
-- `site/index.html`: the whole page (HTML, CSS, JS, no build step).
+- `site/team-picker.html`: the whole entry page (HTML, CSS, JS, no build step). The "More 1-pointers" list is open by default, alphabetical by last name, in 4 columns (3 on tablets, 2 on phones). `site/index.html` is only a redirect to it, so old links keep working.
 - `site/players.js`: golfer point tiers and page layout (`window.FGT_DATA`). The file you edit most.
 - `site/config.js`: `SCRIPT_URL`, `VENMO_HANDLE`, `ENTRY_FEE`, `DEADLINE_TEXT`.
 - `apps-script/Code.gs`: server side. Validates, recomputes points, rejects duplicate lineups, appends to the "Entries" tab.
 - `apps-script/Golfers.gs`: GENERATED from `site/players.js` by `node tools/build-golfers.js`. Never hand-edit. Tom pastes it into the Apps Script project as a second file.
 - Sheet "2027 FGT" (id in the Drive URL Tom gave; the Drive connector could not find it by id) has tabs: Entries (contact info, private), Golfers, Tournaments (golfer prize money per event, filled by me from pgatour.com after each event via `tools/post-results.js` and the token-protected `action:'results'` call in Code.gs), Lineups (one row per golfer per entry), EventScores (one row per event per team), Standings (team and name only, no contact info; feeds the future dashboard), Settings (number of paid teams, set by Tom after entries close), Schedule (2027 events, finish date, purse; loaded by me with `tools/post-results.js` from a JSON file with an `events` list). Menu "FGT" in the Sheet runs setup/refresh. Scoring is money: highest team earnings wins each event outright (tied teams split that event's pot; EventScores "Pot Share" is 1, or 1 divided by the number tied); two events on one weekend are separate events; a season money list pays a number of top teams Tom sets once entries close (about 17-18% of teams).
-- `site/dashboard.html`: public dashboard. TAH design (Outfit, pill tabs and buttons, hairline cards, same tokens as index.html) with a light/dark toggle top right (dark default, saved in localStorage `fgt-theme`); Tom's own point-level palette and the tracker's green/purple/blue stay. Reads `?view=dashboard` from the Apps Script (`dashboardData_` in Code.gs). Built so far: Tracker, Weekly Results, Leaderboard, Top Teams (pies), Team Performance (Weekly view done; Stats view has earnings bars, strokes gained waits on DataGolf), Winner List, How Many Times Picked?, Past Finishes, Lineup Analysis tabs. `?demo=1` shows fake teams from `site/dashboard-demo.js` (made by `tools/make-demo-data.js`); `?demo=pre` previews the entries-still-open state. Still to build: Team Performance strokes gained panels (DataGolf). All other Tableau tabs are done (Duplicate Teams dropped).
+- `site/dashboard.html`: public dashboard. TAH design (Outfit, pill tabs and buttons, hairline cards, same tokens as team-picker.html) with a light/dark toggle top right (dark default, saved in localStorage `fgt-theme`); Tom's own point-level palette and the tracker's green/purple/blue stay. Reads `?view=dashboard` from the Apps Script (`dashboardData_` in Code.gs). Built so far: Tracker, Weekly Results, Leaderboard, Top Teams (pies), Team Performance (Weekly view done; Stats view has earnings bars, strokes gained waits on DataGolf), Winner List, How Many Times Picked?, Past Finishes, Lineup Analysis tabs. `?demo=1` shows fake teams from `site/dashboard-demo.js` (made by `tools/make-demo-data.js`); `?demo=pre` previews the entries-still-open state. Still to build: Team Performance strokes gained panels (DataGolf). All other Tableau tabs are done (Duplicate Teams dropped).
 - `.github/workflows/pages.yml`: deploys `site/` on every push to `main` (Pages source is "GitHub Actions").
 - `README.md`: setup and behavior notes.
 
 ## Verify a change
 
 - No build step. Data checks: `node -e 'global.window={};require("./site/players.js");console.log(window.FGT_DATA.columns.length)'`. Expect 267 golfers total, no duplicates, sections sized 10/25/15 (column 1), 10/20/20 (column 2), 25/19 (column 3), 123 in `more`.
-- The old jsdom page tests were lost with a cleared scratchpad. To bring them back: `npm install jsdom` in a temp folder and write a script that loads `site/index.html` with a stubbed `fetch` and clicks chips. Not in the repo.
+- The old jsdom page tests were lost with a cleared scratchpad. To bring them back: `npm install jsdom` in a temp folder and write a script that loads `site/team-picker.html` with a stubbed `fetch` and clicks chips. Not in the repo.
 - I have not tested the page in a real browser. Ask Tom to check on his phone after visual changes.
 
 ## Point values (rules that stand)

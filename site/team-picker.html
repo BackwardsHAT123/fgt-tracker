@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FGT Team Entry</title>
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+<style>
+  /* TAH design system: dark-first. Tokens from the TAH tokens.json. Light values kept for a future toggle
+     via <html data-theme="light">. */
+  :root {
+    color-scheme: dark;
+    --surface: #262524; --raised: #1c1a17; --ink: #f2eee8; --muted: #b3b2ae;
+    --hair: #3a3733; --border: #8a877d;
+    --accent: #ed7437; --on-accent: #121310; --accent-text: #ed7437;
+    --success: #79bc76; --on-success: #121310; --danger: #ea6275; --amber: #eaa945;
+    --sans: "Outfit", "Avenir Next", system-ui, sans-serif;
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 40px;
+    --radius-md: 12px; --radius-pill: 999px;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --surface: #f2eee8; --raised: #fbf9f5; --ink: #121310; --muted: #5a574e;
+    --hair: #d9d3c8; --border: #8d887b;
+    --accent-text: #a8420f; --success: #38763a; --on-success: #fffeff; --danger: #b3263d;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--surface); color: var(--ink);
+    font: 400 16px/24px var(--sans); }
+  a { color: var(--accent-text); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 var(--space-4) 120px; }
+  header { padding: 28px 0 8px; }
+  header.top { display: flex; align-items: center; gap: var(--space-4); }
+  .logo { width: 80px; height: 80px; border-radius: var(--radius-md); flex: none; display: block; }
+  @media (max-width: 600px) { .logo { width: 56px; height: 56px; } }
+  h1 { margin: 0 0 var(--space-1); font-size: 44px; line-height: 48px; font-weight: 700; letter-spacing: -0.5px; }
+  @media (max-width: 600px) { h1 { font-size: 30px; line-height: 34px; } }
+  h2 { font-size: 18px; line-height: 24px; font-weight: 600; margin: 0 0 var(--space-3); } /* TAH title */
+  .sub { color: var(--muted); margin: 0; }
+  .card { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-4) 0; }
+  .banner { border-radius: var(--radius-md); padding: 10px var(--space-4); margin: var(--space-3) 0; font-size: 15px; line-height: 20px; }
+  .banner.amber { background: var(--amber); color: var(--on-accent); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid .full { grid-column: 1 / -1; }
+  .contact { padding: 12px var(--space-4) 10px; }
+  .contact h2 { margin-bottom: var(--space-2); }
+  .contact .grid { gap: var(--space-2) 14px; }
+  .contact label { margin-bottom: 2px; }
+  .contact input[type] { padding: 7px 12px; }
+  .contact .err { min-height: 0; margin-top: 1px; }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font-weight: 500; font-size: 15px; line-height: 20px; margin-bottom: var(--space-1); }
+  label .opt { font-weight: 400; color: var(--muted); }
+  input[type=text], input[type=tel], input[type=email], input[type=search] {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius-md); }
+  input::placeholder { color: var(--muted); opacity: 1; }
+  input:focus-visible, button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; }
+  input.invalid { border-color: var(--danger); }
+  .err { color: var(--danger); font-size: 13px; line-height: 18px; min-height: 1.1em; margin-top: 2px; }
+  .hp { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+
+  .meter { position: sticky; top: 0; z-index: 5; background: var(--surface); padding: 10px 0 6px; }
+  .meter-box { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); }
+  .meter-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+  .count { font-size: 28px; line-height: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .count.over { color: var(--danger); }
+  .bar { height: 10px; background: var(--hair); border-radius: var(--radius-pill); overflow: hidden; margin-top: var(--space-2); }
+  .bar > div { height: 100%; width: 0; background: var(--success); transition: width .15s; }
+  .bar.over > div { background: var(--danger); }
+  .alert { display: none; margin-top: 10px; background: var(--raised); color: var(--danger);
+    border: 1px solid var(--danger); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); font-weight: 600; }
+  .alert.show { display: block; }
+
+  #pickH { scroll-margin-top: 200px; } /* keeps the heading clear of the pinned points bar */
+  .search { margin-top: 10px; }
+  .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  #search { font-size: 16px; padding: 10px 14px; }
+  .nomatch { margin-top: var(--space-2); padding: 10px var(--space-3); background: var(--amber); color: var(--on-accent);
+    border-radius: var(--radius-md); display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+  .nomatch .btn { color: var(--on-accent); border-color: var(--on-accent); }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; gap: 0; } }
+  .sect { margin-top: 32px; }
+  .col > .sect:first-child { margin-top: 0; }
+  @media (max-width: 900px) { .col + .col > .sect:first-child { margin-top: 32px; } }
+  .tier { margin: 0 0 var(--space-2); padding-bottom: 6px; border-bottom: 1px solid var(--hair); }
+  .tier h3 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 500; color: var(--ink); }
+  .tier .note { display: block; color: var(--muted); font-size: 13px; line-height: 18px; }
+  .chips { display: flex; flex-direction: column; gap: 6px; }
+  .chip { font: inherit; font-size: 15px; line-height: 20px; cursor: pointer; color: var(--ink); background: transparent; text-align: left;
+    display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); width: 100%;
+    border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 3px 14px; min-height: 32px; }
+  .chip:hover { border-color: var(--ink); }
+  .chip[aria-pressed=true] { background: var(--success); color: var(--on-success); border-color: var(--success); font-weight: 600; }
+  .chip .pt { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .chip[aria-pressed=true] .pt { color: inherit; opacity: .9; }
+  .chip:has(> .tip) { position: relative; }
+  .chip .tip { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    width: max-content; max-width: 90vw; white-space: pre-line; background: var(--ink); color: var(--surface); font-weight: 500; text-align: center;
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); z-index: 10; pointer-events: none; }
+  .chip:hover .tip, .chip:focus-visible .tip { display: block; }
+  .chip .tip u { text-decoration: underline; text-underline-offset: 3px; }
+  .more { margin-top: 32px; }
+  .more > summary { cursor: pointer; font-weight: 500; padding: 6px 0; }
+  .more .note { color: var(--muted); font-size: 13px; line-height: 18px; margin: var(--space-1) 0 10px; }
+  /* Unfolded list in 4 newspaper-style columns (top to bottom, then the next column), alphabetical by last name. */
+  .more .chips { display: block; column-count: 4; column-gap: var(--space-3); }
+  .more .chip { width: 100%; gap: var(--space-1); margin-bottom: var(--space-2); break-inside: avoid; }
+  @media (max-width: 900px) { .more .chips { column-count: 3; } }
+  @media (max-width: 600px) { .more .chips { column-count: 2; } }
+  .writein { display: flex; gap: var(--space-2); margin-top: 10px; flex-wrap: wrap; }
+  .writein input { flex: 1 1 220px; }
+
+  .btn { font: 600 18px/24px var(--sans); cursor: pointer; border-radius: var(--radius-pill); padding: 9px var(--space-5); min-height: 44px;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); }
+  .btn.secondary { background: transparent; border-color: var(--border); color: var(--ink); }
+  .btn.secondary:hover { border-color: var(--ink); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--ink); }
+  .btn.ghost:hover { text-decoration: underline; }
+  .btn.sm { font-size: 15px; line-height: 20px; min-height: 36px; padding: 6px 18px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .team { list-style: none; margin: 0; padding: 0; }
+  .team li { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2);
+    padding: var(--space-2) 0; border-bottom: 1px solid var(--hair); }
+  .team li:last-child { border-bottom: 0; }
+  .team .x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 18px; padding: 6px 10px; border-radius: var(--radius-pill); }
+  .team .x:hover { color: var(--ink); }
+  .empty { color: var(--muted); }
+  .actions { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .status { font-weight: 600; }
+  .status.ok { color: var(--success); }
+  .status.bad { color: var(--danger); }
+
+  dialog { border: 1px solid var(--hair); border-radius: var(--radius-md); background: var(--raised); color: var(--ink);
+    padding: var(--space-5); max-width: 440px; width: calc(100% - 32px); }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog h2 { margin-top: 0; }
+  dialog .row { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 18px; }
+  .done h2 { color: var(--success); }
+  .pay { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 14px var(--space-4); margin: 14px 0; }
+  .pay h3 { margin: 0 0 6px; font-size: 18px; line-height: 24px; font-weight: 600; }
+  .pay p { margin: 0 0 var(--space-3); }
+  a.btn { display: inline-block; text-decoration: none; color: var(--on-accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <img class="logo" src="logo.png" width="80" height="80" alt="Fantasy Golf Tour logo">
+    <div>
+      <h1 id="title">PGA Fantasy Golf Tour</h1>
+      <p class="sub">Build your team with 25 points. Your team is final once the first tournament begins.</p>
+      <p class="sub" id="deadline"></p>
+    </div>
+  </header>
+
+  <div id="provisional" class="banner amber" hidden>
+    Point values are provisional until the FedExCup Fall finishes (RSM Classic, Nov 22). A few golfers ranked 51-100 could change tiers.
+  </div>
+
+  <div id="entry">
+    <form id="form" novalidate>
+      <section class="card contact" aria-labelledby="contactH">
+        <h2 id="contactH">Your info</h2>
+        <div class="grid">
+          <div>
+            <label for="name">Name</label>
+            <input id="name" type="text" autocomplete="name" required>
+            <div class="err" data-for="name"></div>
+          </div>
+          <div>
+            <label for="teamName">Team name</label>
+            <input id="teamName" type="text" maxlength="60" required>
+            <div class="err" data-for="teamName"></div>
+          </div>
+          <div>
+            <label for="phone">Phone</label>
+            <input id="phone" type="tel" autocomplete="tel" inputmode="tel" required>
+            <div class="err" data-for="phone"></div>
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" required>
+            <div class="err" data-for="email"></div>
+          </div>
+          <div class="full">
+            <label for="address">Address <span class="opt">(optional)</span></label>
+            <input id="address" type="text" autocomplete="street-address">
+          </div>
+          <div class="hp" aria-hidden="true">
+            <label for="website">Website</label>
+            <input id="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+        </div>
+      </section>
+
+      <div class="meter">
+        <div class="meter-box">
+          <div class="meter-top">
+            <div><span class="count" id="count" aria-live="polite">0/25</span> <span class="sub">points used</span></div>
+            <div class="sub" id="golferCount">0 golfers</div>
+          </div>
+          <div class="bar" id="bar"><div></div></div>
+          <div class="alert" id="overAlert" role="alert">Over the limit: you've used <span id="overBy">0</span> too many points. Remove a golfer to continue.</div>
+          <div class="search">
+            <label for="search" class="vh">Find a golfer</label>
+            <input id="search" type="search" placeholder="Find a golfer: type a name, e.g. Scheffler" autocomplete="off">
+            <div class="nomatch" id="noMatch" hidden>
+              No golfer matches "<span id="noMatchQ"></span>".
+              <button type="button" class="btn secondary sm" id="noMatchAdd">Add as 1-pointer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section class="card" aria-labelledby="pickH">
+        <h2 id="pickH">Pick your golfers</h2>
+        <div class="cols" id="cols"></div>
+        <details class="more" id="more" open><summary id="moreSum">More 1-pointers</summary><div class="note" id="moreNote"></div><div id="moreChips"></div></details>
+        <div class="writein">
+          <input id="writeIn" type="text" placeholder="Golfer not listed? Type the name (1 point)" aria-label="Write-in golfer name">
+          <button type="button" class="btn secondary sm" id="writeInBtn">Add 1-pointer</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="teamH">
+        <h2 id="teamH">Your team</h2>
+        <ul class="team" id="team"></ul>
+        <p class="empty" id="teamEmpty">No golfers selected yet.</p>
+        <div class="actions">
+          <button type="submit" class="btn" id="submitBtn">Submit team</button>
+          <button type="button" class="btn ghost" id="clearBtn">Clear selections</button>
+          <span class="status" id="status" role="status"></span>
+        </div>
+      </section>
+    </form>
+  </div>
+
+  <div id="thanks" class="card done" hidden>
+    <h2>Team submitted</h2>
+    <p>Thanks, <strong id="thanksName"></strong>. <strong id="thanksTeam"></strong> has been received. Payment details are below.</p>
+    <div class="pay" id="payBox" hidden>
+      <h3>Pay your $<span id="payFee">100</span> entry fee</h3>
+      <p>Send it by Venmo to <a id="payLink" href="#" target="_blank" rel="noopener noreferrer">@<span id="payHandle"></span></a>.
+        Put your team name (<strong id="payMemo"></strong>) in the note so we can match it.</p>
+      <a class="btn" id="payBtn" href="#" target="_blank" rel="noopener noreferrer">Open Venmo</a>
+    </div>
+    <ul class="team" id="thanksTeamList"></ul>
+    <p class="sub">If two entries are identical, the first one in keeps its team and the later one has to change.</p>
+  </div>
+</div>
+
+<dialog id="underDlg" aria-labelledby="underH">
+  <h2 id="underH">You haven't used all 25 points</h2>
+  <p>You've used <strong id="underUsed">0</strong> of 25. Unused points are lost, and you can't change your team once the tournament starts.</p>
+  <div class="row">
+    <button type="button" class="btn secondary" id="underBack">Modify selections</button>
+    <button type="button" class="btn" id="underGo">Submit anyway</button>
+  </div>
+</dialog>
+
+<dialog id="dupDlg" aria-labelledby="dupH">
+  <h2 id="dupH">That lineup is already taken</h2>
+  <p>Another team has this exact lineup, and the first team in keeps it. <strong>Your entry was not submitted.</strong></p>
+  <p>Change at least one golfer (up to 10 points' worth) and submit again. Your picks and info are still here.</p>
+  <div class="row">
+    <button type="button" class="btn" id="dupBack">Back to lineup picker</button>
+  </div>
+</dialog>
+
+<script src="players.js"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  "use strict";
+  var D = window.FGT_DATA, C = window.FGT_CONFIG || {};
+  var BUDGET = D.budget;
+  var selected = new Map();   // name -> points
+  var chipEls = new Map();    // name -> button
+  var pointsByName = new Map();
+  var submitting = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  document.title = (C.TITLE || "FGT") + " | Team Entry";
+  $("title").textContent = C.TITLE || "PGA Fantasy Golf Tour";
+  $("deadline").textContent = C.DEADLINE_TEXT || "";
+  if (D.provisional) $("provisional").hidden = false;
+
+  // ---- build sections ----
+  function addSection(parent, t, chipsOnly) {
+    var sect = document.createElement("div"); sect.className = "sect";
+    var head = document.createElement("div"); head.className = "tier";
+    var h = document.createElement("h3"); h.textContent = t.label;
+    var n = document.createElement("span"); n.className = "note"; n.textContent = t.note;
+    head.append(h, n);
+    var chips = document.createElement("div"); chips.className = "chips";
+    t.players.forEach(function (p) {
+      pointsByName.set(p.toLowerCase(), t.points);
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", "false");
+      b.dataset.name = p;
+      var nm = document.createElement("span"); nm.textContent = p;
+      var pt = document.createElement("span"); pt.className = "pt"; pt.textContent = t.points + " pt";
+      b.append(nm, pt);
+      if (D.tips && D.tips[p]) {
+        var tip = document.createElement("span"); tip.className = "tip"; tip.setAttribute("aria-hidden", "true");
+        D.tips[p].split("_").forEach(function (part, i) {
+          if (!part) return;
+          if (i % 2) { var u = document.createElement("u"); u.textContent = part; tip.append(u); }
+          else tip.append(document.createTextNode(part));
+        });
+        b.append(tip);
+        b.setAttribute("aria-description", D.tips[p].replace(/_/g, "").replace(/\s*\n\s*/g, " "));
+      }
+      b.addEventListener("click", function () { toggle(p, t.points); });
+      chips.append(b); chipEls.set(p, b);
+    });
+    if (chipsOnly) { parent.append(chips); return; }
+    sect.append(head, chips); parent.append(sect);
+  }
+  var colsEl = $("cols");
+  D.columns.forEach(function (col) {
+    var c = document.createElement("div"); c.className = "col";
+    col.forEach(function (t) { addSection(c, t); });
+    colsEl.append(c);
+  });
+  if (D.more) {
+    $("moreSum").textContent = D.more.label + " (" + D.more.players.length + ")";
+    $("moreNote").textContent = D.more.note;
+    // Alphabetical by last name ("Jr.", "III" and the like ignored) so names are quick to find.
+    var lastName = function (n) { return n.replace(/,?\s+(jr\.?|sr\.?|ii|iii|iv)$/i, "").split(" ").pop(); };
+    var sorted = D.more.players.slice().sort(function (a, b) {
+      return lastName(a).localeCompare(lastName(b)) || a.localeCompare(b);
+    });
+    addSection($("moreChips"), Object.assign({}, D.more, { players: sorted }), true);
+  }
+
+  function total() { var s = 0; selected.forEach(function (v) { s += v; }); return s; }
+
+  function toggle(name, pts) {
+    if (selected.has(name)) selected.delete(name); else selected.set(name, pts);
+    render();
+  }
+
+  function render() {
+    var used = total(), over = used > BUDGET;
+    $("count").textContent = used + "/" + BUDGET;
+    $("count").classList.toggle("over", over);
+    $("bar").classList.toggle("over", over);
+    $("bar").firstElementChild.style.width = Math.min(100, used / BUDGET * 100) + "%";
+    $("overAlert").classList.toggle("show", over);
+    $("overBy").textContent = Math.max(0, used - BUDGET);
+    $("golferCount").textContent = selected.size + (selected.size === 1 ? " golfer" : " golfers");
+    chipEls.forEach(function (el, name) { el.setAttribute("aria-pressed", selected.has(name) ? "true" : "false"); });
+
+    var ul = $("team"); ul.textContent = "";
+    var rows = Array.from(selected.entries()).sort(function (a, b) { return b[1] - a[1] || a[0].localeCompare(b[0]); });
+    rows.forEach(function (r) {
+      var li = document.createElement("li");
+      var s = document.createElement("span"); s.textContent = r[0] + " (" + r[1] + " pt" + (r[1] > 1 ? "s" : "") + ")";
+      var x = document.createElement("button"); x.type = "button"; x.className = "x"; x.textContent = "✕";
+      x.setAttribute("aria-label", "Remove " + r[0]);
+      x.addEventListener("click", function () { selected.delete(r[0]); render(); });
+      li.append(s, x); ul.append(li);
+    });
+    $("teamEmpty").hidden = selected.size > 0;
+    $("submitBtn").disabled = over || submitting;
+    setStatus(over ? "Over 25 points: can't submit." : "", over ? "bad" : "");
+  }
+
+  function setStatus(msg, cls) { var s = $("status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
+
+  // ---- search ----
+  // Case- and accent-insensitive, so "aberg" finds Åberg and "hojgaard" finds Højgaard.
+  function fold(t) {
+    return t.toLowerCase().replace(/ø/g, "o").replace(/æ/g, "ae").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  $("search").addEventListener("input", function () {
+    var q = fold(this.value.trim());
+    var matches = 0;
+    chipEls.forEach(function (el, name) { el.hidden = q && fold(name).indexOf(q) === -1; });
+    document.querySelectorAll(".sect").forEach(function (sect) {
+      var any = Array.from(sect.querySelectorAll(".chip")).some(function (c) { return !c.hidden; });
+      sect.hidden = !any;
+      if (any) matches++;
+    });
+    var more = $("more");
+    var moreAny = Array.from(more.querySelectorAll(".chip")).some(function (c) { return !c.hidden; });
+    more.hidden = !moreAny;
+    if (moreAny) matches++;
+    if (moreAny) more.open = true;   // the list stays unfolded (Tom: easier to scan)
+    var none = q && matches === 0;
+    $("noMatch").hidden = !none;
+    $("noMatchQ").textContent = this.value.trim();
+  });
+  $("noMatchAdd").addEventListener("click", function () {
+    $("writeIn").value = $("search").value.trim();
+    $("search").value = "";
+    $("search").dispatchEvent(new Event("input"));
+    addWriteIn();
+  });
+
+  // ---- write-in ----
+  function addWriteIn() {
+    var inp = $("writeIn"), v = inp.value.trim().replace(/\s+/g, " ");
+    if (!v) return;
+    var known = pointsByName.get(v.toLowerCase());
+    if (known) {
+      // Matches a listed golfer: use the listed value, not 1 point.
+      var exact = Array.from(chipEls.keys()).find(function (k) { return k.toLowerCase() === v.toLowerCase(); });
+      if (!selected.has(exact)) selected.set(exact, known);
+    } else if (!Array.from(selected.keys()).some(function (k) { return k.toLowerCase() === v.toLowerCase(); })) {
+      selected.set(v, 1);
+    }
+    inp.value = ""; render();
+  }
+  $("writeInBtn").addEventListener("click", addWriteIn);
+  $("writeIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addWriteIn(); } });
+
+  $("clearBtn").addEventListener("click", function () { selected.clear(); render(); });
+
+  // ---- validation ----
+  function field(id) { return $(id); }
+  function setErr(id, msg) {
+    var el = document.querySelector('.err[data-for="' + id + '"]');
+    if (el) el.textContent = msg || "";
+    field(id).classList.toggle("invalid", !!msg);
+  }
+  function validate() {
+    var ok = true;
+    var name = field("name").value.trim(), team = field("teamName").value.trim();
+    var phone = field("phone").value.trim(), email = field("email").value.trim();
+    setErr("name", name ? "" : "Name is required."); if (!name) ok = false;
+    setErr("teamName", team ? "" : "Team name is required."); if (!team) ok = false;
+    var digits = phone.replace(/\D/g, "");
+    var pOk = digits.length >= 10 && digits.length <= 15;
+    setErr("phone", pOk ? "" : "Enter a valid phone number."); if (!pOk) ok = false;
+    var eOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    setErr("email", eOk ? "" : "Enter a valid email address."); if (!eOk) ok = false;
+    return ok;
+  }
+  ["name", "teamName", "phone", "email"].forEach(function (id) {
+    field(id).addEventListener("input", function () { if (field(id).classList.contains("invalid")) setErr(id, ""); });
+  });
+
+  // ---- submit flow ----
+  $("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (submitting) return;
+    var used = total();
+    if (used > BUDGET) { render(); return; }
+    if (!validate()) {
+      var bad = document.querySelector("input.invalid"); if (bad) bad.focus();
+      setStatus("Fix the highlighted fields.", "bad"); return;
+    }
+    if (selected.size === 0) { setStatus("Pick at least one golfer.", "bad"); return; }
+    if (used < BUDGET) {
+      $("underUsed").textContent = used;
+      $("underDlg").showModal();
+      return;
+    }
+    send();
+  });
+  $("underBack").addEventListener("click", function () { $("underDlg").close(); });
+  $("underGo").addEventListener("click", function () { $("underDlg").close(); send(); });
+  $("dupBack").addEventListener("click", function () {
+    $("dupDlg").close();
+    $("pickH").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("search").focus({ preventScroll: true });
+  });
+
+  function payload() {
+    return {
+      name: field("name").value.trim(),
+      phone: field("phone").value.trim(),
+      email: field("email").value.trim(),
+      address: field("address").value.trim(),
+      teamName: field("teamName").value.trim(),
+      website: field("website").value,           // honeypot, must stay empty
+      totalPoints: total(),
+      golfers: Array.from(selected.entries()).map(function (r) { return { name: r[0], points: r[1] }; }),
+      pointsVersion: D.provisional ? "provisional" : "final",
+      submittedFrom: location.href
+    };
+  }
+
+  function send() {
+    if (!C.SCRIPT_URL) { setStatus("Not set up yet: add the Apps Script URL in config.js.", "bad"); return; }
+    var body = payload();
+    submitting = true; render(); setStatus("Submitting...", "");
+    fetch(C.SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && res.duplicate) {
+          submitting = false; render();
+          setStatus("That exact lineup is already taken. Change at least one golfer.", "bad");
+          $("dupDlg").showModal();
+          return;
+        }
+        if (!res || !res.ok) throw new Error((res && res.error) || "The server rejected the entry.");
+        showThanks(body);
+      })
+      .catch(function (err) {
+        submitting = false; render();
+        setStatus("Couldn't submit: " + err.message + " Please try again.", "bad");
+      });
+  }
+
+  function showThanks(body) {
+    $("entry").hidden = true;
+    $("provisional").hidden = true;
+    $("thanksName").textContent = body.name;
+    $("thanksTeam").textContent = body.teamName;
+    if (C.VENMO_HANDLE) {
+      var handle = String(C.VENMO_HANDLE).replace(/^@/, "");
+      var fee = Number(C.ENTRY_FEE) || 100;
+      var url = "https://venmo.com/u/" + encodeURIComponent(handle) +
+        "?txn=pay&amount=" + fee + "&note=" + encodeURIComponent("FGT 2027 - " + body.teamName);
+      $("payFee").textContent = fee;
+      $("payHandle").textContent = handle;
+      $("payMemo").textContent = body.teamName;
+      $("payLink").href = url; $("payBtn").href = url;
+      $("payBox").hidden = false;
+    }
+    var ul = $("thanksTeamList");
+    body.golfers.slice().sort(function (a, b) { return b.points - a.points || a.name.localeCompare(b.name); })
+      .forEach(function (g) {
+        var li = document.createElement("li");
+        li.textContent = g.name + " (" + g.points + " pt" + (g.points > 1 ? "s" : "") + ")";
+        ul.append(li);
+      });
+    $("thanks").hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
