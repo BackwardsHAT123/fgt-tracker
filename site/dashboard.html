@@ -458,6 +458,12 @@
         var px = n === 1 ? w / 2 : pad + i * (w - 2 * pad) / (n - 1);
         return px.toFixed(1) + "," + (h - pad - x / max * (h - 2 * pad)).toFixed(1);
       }).join(" ");
+      if (n === 1) {   // a single event: show a dot, since a line needs two points
+        var dot = document.createElementNS(NS, "circle");
+        var xy = pts.split(",");
+        dot.setAttribute("cx", xy[0]); dot.setAttribute("cy", xy[1]); dot.setAttribute("r", "4"); dot.setAttribute("fill", l.color);
+        svg.appendChild(dot); return;
+      }
       var pl = document.createElementNS(NS, "polyline");
       pl.setAttribute("points", pts); pl.setAttribute("fill", "none"); pl.setAttribute("stroke", l.color);
       pl.setAttribute("stroke-width", "2"); pl.setAttribute("vector-effect", "non-scaling-stroke");
