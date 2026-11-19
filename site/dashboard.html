@@ -342,11 +342,35 @@
       document.head.appendChild(s);
       return;
     }
-    if (!C.SCRIPT_URL) { fail("Not set up yet: add the Apps Script URL in config.js."); return; }
+    // Fast path, in three steps, each one replacing the last only if the data actually changed:
+    //  1. this browser's saved copy from the last visit (instant),
+    //  2. the snapshot file published with the site (data/dashboard.json, fast, refreshed after each event),
+    //  3. the live feed from the Google Sheet (slow, 2-4 seconds, but always current).
+    try { var saved = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (saved && saved.ok) apply(saved); } catch (e) {}
+    var pending = 2;
+    function done(okay) { if (!--pending && !D) fail("Could not load the standings right now. Try again in a minute."); }
+    fetch("data/dashboard.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("no snapshot"); return r.json(); })
+      .then(function (j) { if (j && j.ok) apply(j); done(); })
+      .catch(function () { done(); });
+    if (!C.SCRIPT_URL) { done(); return; }
     fetch(C.SCRIPT_URL + "?view=dashboard")
       .then(function (r) { return r.json(); })
-      .then(function (j) { if (!j || !j.ok) throw new Error("bad"); D = j; start(); })
-      .catch(function () { fail("Could not load the standings right now. Try again in a minute."); });
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error("bad");
+        apply(j);
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(j)); } catch (e) {}
+        done();
+      })
+      .catch(function () { done(); });
+  }
+  var CACHE_KEY = "fgt-dashboard-data", lastFp = "";
+  // Compare data without its "generated" time, so an unchanged feed does not redraw the page.
+  function fingerprint(j) { var c = {}; Object.keys(j).forEach(function (k) { if (k !== "generated") c[k] = j[k]; }); return JSON.stringify(c); }
+  function apply(j) {
+    var fp = fingerprint(j);
+    if (fp === lastFp) { D.generated = j.generated || D.generated; footer(); return; }
+    lastFp = fp; D = j; start();
   }
   function fail(msg) { $b("bad", msg); }
   function $b(kind, msg) {
@@ -1278,14 +1302,18 @@
     var view = document.getElementById("view"); clear(view);
     TABS.filter(function (t) { return t[0] === state.tab; })[0][2](view);
   }
+  function footer() {
+    if (D && D.generated) document.getElementById("foot").textContent = "Updated " + new Date(D.generated).toLocaleString() + ". Earnings are official PGA Tour prize money.";
+  }
   function start() {
     M = build();
     document.getElementById("theme").onclick = toggleTheme;
+    clear(document.getElementById("banners"));   // start() can run again when fresher data arrives
     if (D.demo) $b("demo", "DEMO DATA: 40 made-up teams, and real Austin Championship money (the other two events are invented).");
     var t = C.TITLE || "2027 PGA Fantasy Golf Tour";
     document.getElementById("title").textContent = t.replace(/PGA Fantasy Golf Tour/i, "Fantasy Golf Tour") + " Tracker";
     if (!D.closed) $b("info", "Entries are still open, so team lineups are hidden. They appear once entries close.");
-    if (D.generated) document.getElementById("foot").textContent = "Updated " + new Date(D.generated).toLocaleString() + ". Earnings are official PGA Tour prize money.";
+    footer();
     draw();
   }
   paintToggle();
