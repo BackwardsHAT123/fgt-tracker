@@ -17,8 +17,12 @@ const events = [
 const results = [];
 events.forEach(e => e.pay.forEach(([g, f, m]) => results.push({ event: e.event, date: e.date, golfer: g, finish: f, earnings: m })));
 
-const teamNames = ['Demo Birdies', 'Demo Eagles', 'Demo Bogeys', 'Demo Mulligans', 'Demo Sandbaggers', 'Demo Fairway Finders',
-  'Demo Green Jackets', 'Demo Slice Girls', 'Demo Chip Shots', 'Demo Long Drivers', 'Demo Back Nine', 'Demo Hole In Won'];
+const teamNames = ['Birdies', 'Eagles', 'Bogeys', 'Mulligans', 'Sandbaggers', 'Fairway Finders', 'Green Jackets', 'Slice Girls',
+  'Chip Shots', 'Long Drivers', 'Back Nine', 'Hole In Won', 'Grip It And Rip It', 'Shanks A Lot', 'Tee Time Titans', 'Putt Pirates',
+  'Wedge Wizards', 'Bunker Busters', 'Dogleg Dynasty', 'Albatross Alley', 'Divot Diggers', 'Lip Outs', 'Pin Seekers', 'Iron Maidens',
+  'Gimme Gang', 'Clubhouse Heroes', 'Rough Riders', 'Ace Ventura', 'Par Tee Animals', 'Driving Miss Daisy', 'Fore Play',
+  'Course Correction', 'Hook Line Sinker', 'Ball Hawks', 'Range Rats', 'Frog Hair', 'Stimp Meters', 'Flagstick Five', 'Yips Club',
+  'Sunday Red'].map(n => 'Demo ' + n);
 const lineups = [];
 teamNames.forEach(t => shuffle(names).slice(0, 8).forEach(g => lineups.push({ team: t, golfer: g, points: 1 + Math.floor(rnd() * 6) })));
 
@@ -38,10 +42,10 @@ events.forEach(e => {
 const standings = teamNames.map(t => ({
   team: t, earnings: eventScores.filter(x => x.team === t).reduce((s, x) => s + x.earnings, 0),
   wins: eventScores.filter(x => x.team === t).reduce((s, x) => s + x.share, 0)
-})).sort((a, b) => b.earnings - a.earnings).map((x, i) => Object.assign(x, { rank: i + 1, paid: i < 3 }));
+})).sort((a, b) => b.earnings - a.earnings).map((x, i) => Object.assign(x, { rank: i + 1, paid: false }));
 
 const data = {
-  ok: true, demo: true, generated: new Date().toISOString(), closed: true, paidSpots: 3,
+  ok: true, demo: true, generated: new Date().toISOString(), closed: true, paidSpots: 0,
   standings, schedule: [], eventScores, results, golfers: [], lineups
 };
 fs.writeFileSync(__dirname + '/../site/dashboard-demo.js',
