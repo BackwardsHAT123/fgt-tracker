@@ -68,3 +68,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Counts for FGT: Tour Championship = No, TBD (Additional Event, Feb 18-21) = TBD, others Yes. Same-weekend pairs (separate events): Genesis + TBD (Feb 21), Truist + Myrtle Beach (May 16), Scottish Open + ISCO (Jul 11), Open + Corales (Jul 18). Zurich Classic is a team event; prize money split per golfer needs checking.
 - Re-run later when purses post: re-scrape, fill `purse`, resend the schedule JSON.
 - Tournament names used in results should match the Schedule's event names (the Austin results used the long official name).
+
+## 2026-11-18 (night): Zurich Classic rule
+
+- Tom: for the Zurich Classic, pgatour.com reports each team's winnings and each golfer gets half of their team's earnings. Handled at scrape time (halve before sending), no code change. Schedule note for Zurich updated in the local JSON only; the Sheet's note updates the next time the schedule is resent (when purses post).
