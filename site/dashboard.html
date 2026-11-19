@@ -175,6 +175,8 @@
   .tp .pc { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3); text-align: center; }
   .tp .pc .nm { font-weight: 600; font-size: 14px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tp .pc .am { color: var(--green); font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .tp .pcut { grid-column: 1 / -1; margin: var(--space-2) 0; padding-top: 6px; }
+  .tp .pc.bubble { opacity: .55; }
   .tp .pc svg { width: 120px; height: 120px; display: block; margin: 0 auto; }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
@@ -514,7 +516,9 @@
   function leaderboard(view) {
     var box = el("div", "lb");
     box.appendChild(el("h3", null, "Leaderboard through " + M.events.length + " event" + (M.events.length === 1 ? "" : "s")));
-    if (D.paidSpots) box.appendChild(el("div", "sub", "Top " + D.paidSpots + " teams at the end of the season earn a payout."));
+    var pc = paidCount();
+    box.appendChild(el("div", "sub", "Top " + pc.n + " teams at the end of the season earn a payout" +
+      (pc.placeholder ? " (placeholder: about " + ASSUMED_TEAMS + " teams x 17.5%, until the paid spots are set)." : ".")));
     var f = el("div", "find"); var inp = el("input"); inp.type = "search"; inp.placeholder = "Highlight a team";
     inp.value = state.find;
     inp.oninput = function () { state.find = inp.value; paintRows(); };
@@ -525,13 +529,13 @@
       clear(list);
       var q = key(state.find).trim();
       M.teams.forEach(function (t, i) {
-        var r = el("div", "row" + (t.paid ? " paid" : "") + (q && key(t.team).indexOf(q) >= 0 ? " hl" : ""));
+        var r = el("div", "row" + (i < pc.n ? " paid" : "") + (q && key(t.team).indexOf(q) >= 0 ? " hl" : ""));
         r.appendChild(el("div", "rk", "#" + (t.rank || i + 1)));
         var tr = el("div", "track");
         var fl = el("div", "fill"); fl.style.width = Math.max(1, Math.round(t.earnings / max * 100)) + "%";
         tr.appendChild(fl); tr.appendChild(el("div", "nm", t.team)); tr.appendChild(el("div", "am", money(t.earnings)));
         r.appendChild(tr); list.appendChild(r);
-        if (D.paidSpots && t.rank === D.paidSpots) list.appendChild(el("div", "cut", "payout line"));
+        if (i === pc.n - 1 && M.teams.length > pc.n) list.appendChild(el("div", "cut", "Payout line: top " + pc.n + " paid"));
       });
       if (!M.teams.length) list.appendChild(el("div", "note", "No teams yet."));
     }
@@ -643,9 +647,10 @@
       : "The teams currently in a payout spot, and which golfers their money comes from."));
     if (!M.events.length) { box.appendChild(el("div", "note", "No results yet.")); view.appendChild(box); return; }
     if (!D.closed) { box.appendChild(lineupsNote()); view.appendChild(box); return; }
-    var grid = el("div", "pies");
-    M.teams.slice(0, pc.n).forEach(function (t, i) {
-      var c = el("div", "pc");
+    var grid = el("div", "pies"), BUBBLE = 4;
+    M.teams.slice(0, pc.n + BUBBLE).forEach(function (t, i) {
+      if (i === pc.n) grid.appendChild(el("div", "cut pcut", "Payout line: top " + pc.n + " paid. Next teams on the bubble:"));
+      var c = el("div", "pc" + (i >= pc.n ? " bubble" : ""));
       c.appendChild(el("div", "nm", "#" + (t.rank || i + 1) + ". " + t.team));
       c.appendChild(el("div", "am", money(t.earnings)));
       c.appendChild(pie(golferBars(t.team, null)));

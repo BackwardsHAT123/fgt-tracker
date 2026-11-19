@@ -133,3 +133,5 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Added "Top N Teams": one pie per paid team (rank, team, season money), slices = each golfer's share of the team's money, coloured by point level, hover shows golfer, money, points and share. Hidden until entries close. N = Settings B2; until Tom sets it, a placeholder of 17.5% of an assumed 215 teams (Tom: "assume 215 teams") = 38. Constants `ASSUMED_TEAMS`, `PAID_SHARE` in `site/dashboard.html`. The Leaderboard payout line still appears only once B2 is set.
 
 - Demo expanded to 40 fake teams (Tom) with paid spots unset, so the Top Teams tab shows the 38-team placeholder. The demo Leaderboard no longer shows a payout line (that needs paid spots set).
+
+- Payout line (Tom): the Leaderboard now shades the top N as paid and draws "Payout line: top N paid" after the Nth team, and Top Teams draws the same line after the last paid pie and shows the next 4 teams below it, faded, as "on the bubble". N comes from `paidCount()` (Settings B2, else the 38 placeholder), so both tabs show it now. Rows are shaded by position, not the Sheet's Paid Spot column.
