@@ -120,3 +120,5 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Tom asked for the TAH design on most of the dashboard (fonts, headings, buttons, etc.), keeping his point palette and the tracker's green/purple/blue, plus a light/dark toggle top right. Done in `site/dashboard.html` using the same tokens as `index.html`: Outfit, pill tabs (selected = green), pill toggle button, rounded inputs, hairline cards, no shadows, dark default with light via the toggle (choice saved in localStorage). The green/purple/blue and the money-shaded point-level chart have dark-mode variants (in dark, more money = more vivid; low = dim). Chart colours are set when drawn, so toggling redraws.
 - Changed from the Tableau look: title no longer all caps, the selected team in Weekly Results is green instead of orange (TAH keeps orange for primary buttons only), footer is a hairline card. Backup of the pre-TAH page was kept in the scratchpad only.
 - jsdom check of toggle and charts; look to be confirmed in a real browser.
+
+- How Many Times Picked: golfer-name label background lowered from 78% to 35% surface colour so more of the point-level bar shows through (Tom).
