@@ -88,3 +88,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-18 (night): dashboard column alignment
 
 - Tom (looks OK) asked that the three Tracker columns line up so the first golfer in each starts at the same height. Each column is now header row (40px, picker beside the title) + a fixed 214px top block (card, plus trend line where used) + bar rows of a fixed 34px. Checked structure in jsdom only; Tom to confirm the alignment visually in a real browser.
+
+## 2026-11-18 (night): points-level charts and footer
+
+- Tom asked for the "What point level is the $ coming from?" charts under each Tracker column plus a footer bar ("Designed & maintained by Tom Hewett | Questions or errors? Let me know at FGT_MT@outlook.com", email taken from Tom's screenshot). Charts: stacked columns, x = point level 0-7, one segment per golfer, per column (leader season, weekly winner for the chosen event, selected team season). Hidden with the lineups until entries close. Demo lineup points are now random 1-6 so the chart has some shape. jsdom check only; Tom to eyeball.

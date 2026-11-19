@@ -20,7 +20,7 @@ events.forEach(e => e.pay.forEach(([g, f, m]) => results.push({ event: e.event, 
 const teamNames = ['Demo Birdies', 'Demo Eagles', 'Demo Bogeys', 'Demo Mulligans', 'Demo Sandbaggers', 'Demo Fairway Finders',
   'Demo Green Jackets', 'Demo Slice Girls', 'Demo Chip Shots', 'Demo Long Drivers', 'Demo Back Nine', 'Demo Hole In Won'];
 const lineups = [];
-teamNames.forEach(t => shuffle(names).slice(0, 8).forEach(g => lineups.push({ team: t, golfer: g, points: 1 })));
+teamNames.forEach(t => shuffle(names).slice(0, 8).forEach(g => lineups.push({ team: t, golfer: g, points: 1 + Math.floor(rnd() * 6) })));
 
 const book = {}; // event -> team -> money
 const earn = (ev, g) => (events.find(e => e.event === ev).pay.find(p => p[0] === g) || [0, 0, 0])[2];
