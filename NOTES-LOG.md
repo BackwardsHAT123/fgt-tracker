@@ -157,3 +157,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - Tom pasted the latest Code.gs, redeployed a New version and ran Set up tabs. Live `?view=dashboard` feed checked: 2 teams, 64 Austin result rows, 36-event schedule, 267 golfers, lineups hidden (entries not closed), paid spots 0. Privacy scan of the response: no emails, no phone-like numbers, no Entry IDs; standings carry only rank, team, earnings, wins, paid.
 - Real dashboard (no `?demo`) loads in Chrome with the two test teams. Fixed: trend lines were invisible with only one event (a line needs two points); now a dot shows.
+
+## 2026-11-18 (night): full-field results script
+
+- `tools/pull-results.js`: reads pgatour.com's past-results page data (`__NEXT_DATA__`: the `tournament` and `pastResults` queries) instead of copying page text. Writes every golfer (finish, earnings; cuts, W/D and amateurs at $0). Stops if the event is not COMPLETED or the past results are for another tournament id/season. `--name` sets the stored name, `--halve` for the Zurich Classic.
+- Tested on the Austin Championship: 120 golfers, 64 with money, 50 cut, 5 W/D, winner Chad Ramey $1,080,000; money rows identical to the hand-built file except cents (pgatour.com data has e.g. $16,345.71 where the page showed $16,345). RSM Classic correctly refused (NOT_STARTED). Not yet used for a real post.
