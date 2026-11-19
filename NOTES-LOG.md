@@ -127,3 +127,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - Added: stat cards (Teams entered, Different golfers picked, Golfers picked only once; the "most teams from one owner" stat dropped per Tom), and "Ownership %" for the top 25 most-picked golfers: golfer cell in the point-level colour, picked / teams, and a heat bar (pale gold = fewer picks, deep red = most) with the percentage. Hidden until entries close. Shares a `pickCounts()` helper with How Many Times Picked. Demo lineups give a golfer random points per team, so the demo can show the same golfer at different levels; real data will not.
 - Still to build: Top (paid) Teams pies, Team Performance, Past Finishes.
+
+## 2026-11-18 (night): Top Teams (pies) tab
+
+- Added "Top N Teams": one pie per paid team (rank, team, season money), slices = each golfer's share of the team's money, coloured by point level, hover shows golfer, money, points and share. Hidden until entries close. N = Settings B2; until Tom sets it, a placeholder of 17.5% of an assumed 215 teams (Tom: "assume 215 teams") = 38. Constants `ASSUMED_TEAMS`, `PAID_SHARE` in `site/dashboard.html`. The Leaderboard payout line still appears only once B2 is set.

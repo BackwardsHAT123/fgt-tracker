@@ -100,7 +100,7 @@
   .pchart { display: block; width: 100%; height: auto; }
 
   /* Leaderboard */
-  .lb h3, .wk h3, .hp h3, .wl h3, .la h3 { margin: 6px 0 4px; font-size: 24px; line-height: 30px; font-weight: 600; }
+  .lb h3, .wk h3, .hp h3, .wl h3, .la h3, .tp h3 { margin: 6px 0 4px; font-size: 24px; line-height: 30px; font-weight: 600; }
   .lb .sub, .hp .sub { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
   .lb .find { margin: 6px 0 12px; }
   .lb .find input { width: 260px; max-width: 100%; }
@@ -169,6 +169,13 @@
   .la .ofill { height: 20px; border-radius: 4px; min-width: 2px; }
   .la .opct { font-weight: 600; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   @media (max-width: 600px) { .la .orow { grid-template-columns: 26px minmax(120px, 1fr) 64px 1fr; gap: 6px; font-size: 13px; } }
+  /* Top (paid) Teams */
+  .tp .sub { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+  .tp .pies { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--space-4); margin-top: var(--space-3); }
+  .tp .pc { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3); text-align: center; }
+  .tp .pc .nm { font-weight: 600; font-size: 14px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tp .pc .am { color: var(--green); font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .tp .pc svg { width: 120px; height: 120px; display: block; margin: 0 auto; }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
@@ -597,6 +604,58 @@
     view.appendChild(box);
   }
 
+  // Number of paid teams: Settings B2 once Tom sets it. Until then a placeholder: 17.5% of an assumed 215 teams (Tom's estimate).
+  var ASSUMED_TEAMS = 215, PAID_SHARE = 0.175;
+  function paidCount() {
+    if (D.paidSpots) return { n: D.paidSpots, placeholder: false };
+    return { n: Math.round(ASSUMED_TEAMS * PAID_SHARE), placeholder: true };
+  }
+  function pie(items) {
+    var NS = "http://www.w3.org/2000/svg", R = 56, C = 60;
+    var svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 120 120");
+    var total = items.reduce(function (s, i) { return s + i.value; }, 0);
+    function add(tag, attrs, tip) {
+      var n = document.createElementNS(NS, tag);
+      Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+      if (tip) { var t = document.createElementNS(NS, "title"); t.textContent = tip; n.appendChild(t); }
+      svg.appendChild(n); return n;
+    }
+    if (!total) { add("circle", { cx: C, cy: C, r: R, fill: "none", stroke: tc().seg, "stroke-width": "1" }); return svg; }
+    var a = -Math.PI / 2;
+    items.filter(function (i) { return i.value > 0; }).forEach(function (i) {
+      var tip = i.label + ": " + money(i.value) + " (" + i.points + " pt, " + Math.round(i.value / total * 100) + "%)";
+      var fill = PT[i.points] || "#ddd";
+      if (i.value >= total) { add("circle", { cx: C, cy: C, r: R, fill: fill, stroke: "#fff", "stroke-width": "1" }, tip); return; }
+      var b = a + i.value / total * 2 * Math.PI, large = b - a > Math.PI ? 1 : 0;
+      var d = "M" + C + "," + C + " L" + (C + R * Math.cos(a)).toFixed(2) + "," + (C + R * Math.sin(a)).toFixed(2) +
+        " A" + R + "," + R + " 0 " + large + " 1 " + (C + R * Math.cos(b)).toFixed(2) + "," + (C + R * Math.sin(b)).toFixed(2) + " Z";
+      add("path", { d: d, fill: fill, stroke: theme() === "dark" ? "#1c1a17" : "#ffffff", "stroke-width": "1" }, tip);
+      a = b;
+    });
+    return svg;
+  }
+
+  function topTeams(view) {
+    var pc = paidCount(), box = el("div", "tp");
+    box.appendChild(el("h3", null, "Top " + pc.n + " Teams"));
+    box.appendChild(el("div", "sub", pc.placeholder
+      ? "Paid spots aren't set yet. Placeholder: about " + ASSUMED_TEAMS + " teams, top 17.5% = " + pc.n + " teams."
+      : "The teams currently in a payout spot, and which golfers their money comes from."));
+    if (!M.events.length) { box.appendChild(el("div", "note", "No results yet.")); view.appendChild(box); return; }
+    if (!D.closed) { box.appendChild(lineupsNote()); view.appendChild(box); return; }
+    var grid = el("div", "pies");
+    M.teams.slice(0, pc.n).forEach(function (t, i) {
+      var c = el("div", "pc");
+      c.appendChild(el("div", "nm", "#" + (t.rank || i + 1) + ". " + t.team));
+      c.appendChild(el("div", "am", money(t.earnings)));
+      c.appendChild(pie(golferBars(t.team, null)));
+      grid.appendChild(c);
+    });
+    box.appendChild(grid);
+    box.appendChild(legend());
+    view.appendChild(box);
+  }
+
   // How many teams picked each golfer, most-picked first.
   function pickCounts() {
     var by = {};
@@ -679,7 +738,7 @@
   }
 
   var TABS = [["tracker", "Tracker", tracker], ["weekly", "Weekly Results", weekly],
-              ["leaderboard", "Leaderboard", leaderboard], ["winners", "Winner List", winners],
+              ["leaderboard", "Leaderboard", leaderboard], ["top", "Top Teams", topTeams], ["winners", "Winner List", winners],
               ["picked", "How Many Times Picked?", picked],
               ["lineups", "Lineup Analysis", lineupAnalysis]];
   function draw() {
