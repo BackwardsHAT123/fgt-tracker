@@ -105,3 +105,5 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - 2026-11-18: deploy of commit a1118ae failed with the known transient "No artifacts named github-pages" error. The push itself was fine (local and origin/main identical). Re-ran with `gh run rerun`; it succeeded. No code change.
 
 - Tom sent the exact palette hex values (point levels 1-6: #adbcb6, #96d0ff, #57c8c6, #ff57ff, #fbb457, #c55657). Replaced my eyeballed estimates in `PT` in `site/dashboard.html` and in CLAUDE.md.
+
+- Tom (looking at the live page): the palette colours are right but he expected more saturation. Added `SAT` = 1.35 in `site/dashboard.html`, which raises HSL saturation of his base hex values (levels 2 and 4 are already fully saturated, so they do not change; 1 barely changes because it is a grey). Tunable in one place.

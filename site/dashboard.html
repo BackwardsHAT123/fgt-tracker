@@ -217,7 +217,24 @@
   }
 
   // Point-level colours (Tom's palette): golfers worth 1-6 points.
-  var PT = { 1: "#adbcb6", 2: "#96d0ff", 3: "#57c8c6", 4: "#ff57ff", 5: "#fbb457", 6: "#c55657" };
+  // Tom's base hex values, with the saturation raised by SAT (1 = exactly his hex; he asked for a bit more punch).
+  var SAT = 1.35;
+  function boost(hex, k) {
+    var r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, sat = 0, d = mx - mn;
+    if (d) {
+      sat = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h /= 6;
+    }
+    sat = Math.min(1, sat * k);
+    function f(p, q, t) { t = t < 0 ? t + 1 : t > 1 ? t - 1 : t; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
+    var q = l < 0.5 ? l * (1 + sat) : l + sat - l * sat, p = 2 * l - q;
+    var rgb = sat === 0 ? [l, l, l] : [f(p, q, h + 1 / 3), f(p, q, h), f(p, q, h - 1 / 3)];
+    return "#" + rgb.map(function (v) { var x = Math.round(v * 255).toString(16); return x.length < 2 ? "0" + x : x; }).join("");
+  }
+  var BASE = { 1: "#adbcb6", 2: "#96d0ff", 3: "#57c8c6", 4: "#ff57ff", 5: "#fbb457", 6: "#c55657" };
+  var PT = {}; Object.keys(BASE).forEach(function (k) { PT[k] = boost(BASE[k], SAT); });
   function legend() {
     var l = el("div", "legend"); l.appendChild(el("span", null, "Points"));
     for (var p = 1; p <= 6; p++) {

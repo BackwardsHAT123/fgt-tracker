@@ -38,7 +38,7 @@ Keep this file under ~15 KB. Dated entries, review results and feature write-ups
 ## Conventions
 
 - Styling follows Tom's TAH design system (https://claude.ai/artifact/AayV39mvihjogAmAvqwfVY): dark only, Outfit font, pill buttons and chips, hairline cards, no shadows, green for selected golfers, orange only on primary buttons.
-- Dashboard point-level colours (Tom's palette, `PT` in `site/dashboard.html`): 1 #adbcb6, 2 #96d0ff, 3 #57c8c6, 4 #ff57ff, 5 #fbb457, 6 #c55657. Use them anywhere golfers are coloured by point level (Weekly Results golfer bars now; How Many Times Picked, Past Finishes and Lineup Analysis later). These are Tom's exact values.
+- Dashboard point-level colours (Tom's palette, `PT` in `site/dashboard.html`): 1 #adbcb6, 2 #96d0ff, 3 #57c8c6, 4 #ff57ff, 5 #fbb457, 6 #c55657. Use them anywhere golfers are coloured by point level (Weekly Results golfer bars now; How Many Times Picked, Past Finishes and Lineup Analysis later). These are Tom's exact base values; the page raises saturation by `SAT` = 1.35 (Tom asked for a bit more punch; set SAT to 1 for his exact hex).
 - Commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 - Stage only the files changed for the task. Never commit the rules `.docx`/`.pdf`, `.bench/`, `.claude/`, `FGT Logo.png` (1.8 MB original), or any CSV/export of the Sheet (contains players' contact info).
 - Entries (names, phones, emails, addresses) live only in the Google Sheet. Keep the rules `.docx` out of the repo.
