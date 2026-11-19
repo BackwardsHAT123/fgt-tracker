@@ -404,7 +404,7 @@
       var k = key(i.label), n = M.pickN[k] || 0;
       return [i.label,
         { parts: [["- is a "], [String(i.points || "?"), "b"], [" pointer and picked on "], [String(n), "b"], [" team" + (n === 1 ? "" : "s") + "."]] },
-        { parts: [["- made "], [money((M.golferEvent[eventName] || {})[k] || 0), "g"], [" this week, bringing the season total to "],
+        { parts: [["- made "], [money((M.golferEvent[eventName] || {})[k] || 0), "g"], [" this week, bringing his total to "],
                   [money(M.golferSeason[k] || 0), "b"], ["."]] },
         { gap: true, parts: [[team, "b"], [" earned a total of "], [money(teamWeek), "b"], [" this week."]] }];
     };
