@@ -109,3 +109,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Tom (looking at the live page): the palette colours are right but he expected more saturation. Added `SAT` = 1.35 in `site/dashboard.html`, which raises HSL saturation of his base hex values (levels 2 and 4 are already fully saturated, so they do not change; 1 barely changes because it is a grey). Tunable in one place.
 
 - Tom confirmed the Tracker changes (column alignment, point-level charts, footer) look good on the live page.
+
+## 2026-11-18 (night): How Many Times Picked? tab
+
+- Added to `site/dashboard.html`: golfers ranked by how many teams picked them, in columns of 25 (#1-25, #26-50, ...), bar length by pick count and colour by point level (Tom's palette, with the saturation boost), a "Highlight golfer" search and the Points legend. Hidden until entries close, since pick counts reveal lineups. Tom confirmed the Tracker changes earlier. jsdom check only; Tom to eyeball.
+- Still to build: Top (paid) Teams pies, Team Performance, Past Finishes, Lineup Analysis.

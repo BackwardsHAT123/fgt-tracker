@@ -107,6 +107,17 @@
   .wl .wr:nth-child(even) { background: rgba(0,0,0,.025); }
   .wl .wr .ev { font-weight: 700; }
   .wl .wr .amt { color: var(--muted); font-size: 12.5px; }
+  .hp h3 { margin: 6px 0 4px; font-size: 24px; }
+  .hp .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
+  .hp .ctl { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin: 6px 0 12px; }
+  .hp .ctl input { font: inherit; padding: 4px 8px; border: 1px solid var(--line); width: 220px; max-width: 100%; }
+  .hp .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+  .hp .gh { font-size: 12px; color: var(--muted); text-align: center; border-bottom: 1px solid var(--line); padding: 2px 0 4px; margin-bottom: 4px; }
+  .hp .hrow { position: relative; height: 26px; border-bottom: 1px solid #f0f2f4; }
+  .hp .hfill { position: absolute; left: 0; top: 2px; bottom: 2px; border: 1px solid rgba(0,0,0,.2); }
+  .hp .hname { position: absolute; left: 6px; top: 5px; max-width: calc(100% - 40px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+  .hp .hn { position: absolute; right: 2px; top: 5px; font-weight: 700; font-size: 12px; background: rgba(255,255,255,.8); padding: 0 3px; }
+  .hp .hrow.hl { outline: 2px solid #ffc83d; z-index: 1; }
   .foot { color: var(--muted); font-size: 12px; margin-top: 18px; }
 </style>
 </head>
@@ -511,8 +522,47 @@
     view.appendChild(box);
   }
 
+  function picked(view) {
+    var box = el("div", "hp");
+    box.appendChild(el("h3", null, "How many times was each golfer picked?"));
+    if (!D.closed) { box.appendChild(lineupsNote()); view.appendChild(box); return; }
+    var by = {};
+    D.lineups.forEach(function (l) {
+      var k = key(l.golfer), g = by[k] || (by[k] = { name: l.golfer, points: l.points, n: 0 });
+      g.n++;
+    });
+    var list = Object.keys(by).map(function (k) { return by[k]; })
+      .sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
+    box.appendChild(el("div", "sub", M.teams.length + " teams entered, " + list.length + " different golfers picked."));
+    var ctl = el("div", "ctl"), inp = el("input"); inp.type = "search"; inp.placeholder = "Highlight golfer"; inp.value = state.hFind || "";
+    ctl.appendChild(inp); ctl.appendChild(legend()); box.appendChild(ctl);
+    var grid = el("div", "grid"); box.appendChild(grid);
+    var max = list.length ? list[0].n : 1;
+    function paint() {
+      clear(grid);
+      var q = key(state.hFind || "").trim();
+      for (var i = 0; i < list.length; i += 25) {
+        var colEl = el("div"), chunk = list.slice(i, i + 25);
+        colEl.appendChild(el("div", "gh", "#" + (i + 1) + " - " + (i + chunk.length)));
+        chunk.forEach(function (g) {
+          var r = el("div", "hrow" + (q && key(g.name).indexOf(q) >= 0 ? " hl" : ""));
+          var f = el("div", "hfill"); f.style.width = Math.max(4, Math.round(g.n / max * 100)) + "%";
+          f.style.background = PT[g.points] || "#ddd";
+          r.appendChild(f); r.appendChild(el("div", "hname", g.name)); r.appendChild(el("div", "hn", String(g.n)));
+          colEl.appendChild(r);
+        });
+        grid.appendChild(colEl);
+      }
+      if (!list.length) grid.appendChild(el("div", "note", "No lineups yet."));
+    }
+    inp.oninput = function () { state.hFind = inp.value; paint(); };
+    paint();
+    view.appendChild(box);
+  }
+
   var TABS = [["tracker", "Tracker", tracker], ["weekly", "Weekly Results", weekly],
-              ["leaderboard", "Leaderboard", leaderboard], ["winners", "Winner List", winners]];
+              ["leaderboard", "Leaderboard", leaderboard], ["winners", "Winner List", winners],
+              ["picked", "How Many Times Picked?", picked]];
   function draw() {
     var nav = document.getElementById("nav"); clear(nav);
     TABS.forEach(function (t) {
