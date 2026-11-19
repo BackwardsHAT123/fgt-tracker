@@ -7,7 +7,7 @@ Keep this file under ~15 KB. Dated entries, review results and feature write-ups
 ## What it is
 
 - Public entry page (team picker): https://fgt-mt.com/team-picker.html; https://fgt-mt.com/ forwards there. Dashboard: https://fgt-mt.com/dashboard.html. Hosted on GitHub Pages (repo https://github.com/BackwardsHAT123/fgt-tracker, public, branch `main`) with the custom domain set in repo Settings > Pages (no CNAME file; HTTPS enforced). Old backwardshat123.github.io/fgt-tracker/... links forward to fgt-mt.com.
-- Domains: fgt-mt.com and fgt-mt.net, both registered and managed at Cloudflare (Tom's account). fgt-mt.com DNS: 4 A + 4 AAAA records to GitHub Pages (185.199.108-111.153, 2606:50c0:8000-8003::153) and CNAME www -> backwardshat123.github.io, all "DNS only" (grey cloud; orange breaks GitHub's certificate). fgt-mt.net is meant to forward to fgt-mt.com via a Cloudflare redirect rule (proxied placeholder records); not set up yet.
+- Domains: fgt-mt.com and fgt-mt.net, both registered and managed at Cloudflare (Tom's account). fgt-mt.com DNS: 4 A + 4 AAAA records to GitHub Pages (185.199.108-111.153, 2606:50c0:8000-8003::153) and CNAME www -> backwardshat123.github.io, all "DNS only" (grey cloud; orange breaks GitHub's certificate). fgt-mt.net forwards everything to https://fgt-mt.com (same path and query, 301) via a Cloudflare redirect rule; its two placeholder records (A @ 192.0.2.1, CNAME www) are Proxied (orange) on purpose.
 - Players enter name, phone, email, team name (address optional) and pick golfers within a 25-point budget. Entry fee $100, paid by Venmo (handle in `site/config.js`).
 - Submissions go to a Google Sheet through a Google Apps Script web app.
 

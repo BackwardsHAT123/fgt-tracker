@@ -195,3 +195,5 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Checked: https://fgt-mt.com/team-picker.html and /dashboard.html load; www forwards to the bare domain; old github.io links 301 to fgt-mt.com. My Mac's DNS cache still held the earlier Cloudflare-proxy addresses for a few minutes (a 404 on the bare domain via a Cloudflare IP); asking GitHub's IP directly returned the forwarding page.
 - Domain verification on GitHub (protects against takeover) shows "unverified"; optional, offered to Tom.
 - fgt-mt.net: no records yet; Tom will add 2 proxied placeholder records and a redirect rule later.
+- fgt-mt.net set up by Tom (proxied placeholder records + redirect rule). Tested: http/https, bare and www, all 301 to the same path on https://fgt-mt.com, query string kept.
+- Public DNS for fgt-mt.com is correct (Cloudflare name servers and 1.1.1.1 return GitHub's addresses), but this Mac's local resolver still returned the old Cloudflare-proxy addresses after ~30 minutes, so the bare domain showed a Cloudflare 404 here. Local cache only; fix on a Mac with `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder` or by waiting.
