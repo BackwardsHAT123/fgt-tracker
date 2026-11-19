@@ -240,6 +240,22 @@
   .tpf .panel { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3); }
   .tpf .panel h5 { margin: 0 0 var(--space-2); font-size: 17px; font-weight: 600; }
   .tpf .grey { --c: var(--ink); --c-bar: color-mix(in srgb, var(--muted) 55%, transparent); }
+  /* Past Finishes */
+  .pfn h3 { margin: 6px 0 2px; font-size: 24px; line-height: 30px; font-weight: 600; }
+  .pfn .sub { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+  .pfn .ctl { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin: 6px 0 12px; }
+  .pfn .ctl input { width: 240px; max-width: 100%; }
+  .pfn .scroll { overflow: auto; max-height: 75vh; border: 1px solid var(--hair); border-radius: var(--radius-md); }
+  .pfn table { border-collapse: separate; border-spacing: 0; font-size: 13px; }
+  .pfn th, .pfn td { padding: 3px 6px; border-bottom: 1px solid var(--hair); white-space: nowrap; background: var(--surface); }
+  .pfn thead th { position: sticky; top: 0; z-index: 2; color: var(--muted); font-weight: 500; text-align: center; }
+  .pfn .g { position: sticky; left: 0; z-index: 1; font-weight: 600; text-align: left; border-right: 1px solid var(--hair); }
+  .pfn thead .g { z-index: 3; }
+  .pfn .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pfn td.fc { text-align: center; min-width: 34px; font-size: 12px; font-weight: 600; padding: 3px 2px; border-left: 1px solid var(--surface); cursor: default; }
+  .pfn tr.hl td { box-shadow: inset 0 2px 0 var(--accent-text), inset 0 -2px 0 var(--accent-text); }
+  .pfn .key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); align-items: center; }
+  .pfn .key i { display: inline-block; width: 22px; height: 14px; vertical-align: -3px; margin-right: 4px; border-radius: 3px; }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
@@ -992,6 +1008,79 @@
     grid.appendChild(p1); grid.appendChild(p2); box.appendChild(grid);
   }
 
+  // ---- Past Finishes ----
+  // Finish colours: purple, darker = better. Missed cuts and withdrawals are grey.
+  function finishStyle(f) {
+    var F = String(f || "").toUpperCase();
+    if (!F) return null;
+    if (MISSED[F]) return { bg: theme() === "dark" ? "#3a3733" : "#e3dfd8", fg: tc().axis, txt: F === "W/D" || F === "WD" ? "WD" : F };
+    var p = parseInt(F.replace(/^T/, ""), 10);
+    if (isNaN(p)) return { bg: "transparent", fg: tc().axis, txt: F };
+    if (p === 1) return { bg: "#4b0a7d", fg: "#ffffff", txt: F };
+    if (p <= 5) return { bg: "#7a3fb0", fg: "#ffffff", txt: F };
+    if (p <= 10) return { bg: "#a77bd0", fg: "#121310", txt: F };
+    if (p <= 25) return { bg: "#cdb6e6", fg: "#121310", txt: F };
+    return { bg: "#ebe1f5", fg: "#121310", txt: F };
+  }
+  function pastFinishes(view) {
+    var box = el("div", "pfn");
+    box.appendChild(el("h3", null, "Past Finishes"));
+    box.appendChild(el("div", "sub", "Only FGT-season events are included. Hover a finish for details."));
+    if (!M.events.length) { box.appendChild(el("div", "note", "No results yet.")); view.appendChild(box); return; }
+    var pts = {}; D.golfers.forEach(function (g) { pts[key(g.golfer)] = g.points; });
+    D.lineups.forEach(function (l) { if (pts[key(l.golfer)] == null) pts[key(l.golfer)] = l.points; });
+    // Golfers on the points list, or picked, who played at least one event; most money first.
+    var keys = {};
+    Object.keys(M.finish).forEach(function (ev) { Object.keys(M.finish[ev]).forEach(function (k) { if (pts[k] != null) keys[k] = 1; }); });
+    var rows = Object.keys(keys).map(function (k) { return { k: k, name: M.names[k] || k, pts: pts[k], money: M.golferSeason[k] || 0 }; })
+      .sort(function (a, b) { return b.money - a.money || a.name.localeCompare(b.name); });
+
+    var ctl = el("div", "ctl"), inp = el("input"); inp.type = "search"; inp.placeholder = "Highlight golfer"; inp.value = state.pfFind || "";
+    ctl.appendChild(inp);
+    var keyEl = el("div", "key");
+    [["1", "Win"], ["T3", "2-5"], ["T8", "6-10"], ["T18", "11-25"], ["T40", "26+"], ["CUT", "Missed cut / WD"]].forEach(function (x) {
+      var st = finishStyle(x[0]), sp = el("span"), sw = el("i"); sw.style.background = st.bg; sp.appendChild(sw); sp.appendChild(document.createTextNode(x[1])); keyEl.appendChild(sp);
+    });
+    ctl.appendChild(keyEl); box.appendChild(ctl);
+
+    var sc = el("div", "scroll"), tbl = el("table"), thead = el("thead"), hr = el("tr");
+    hr.appendChild(el("th", "g", "Golfer")); hr.appendChild(el("th", null, "Points")); hr.appendChild(el("th", null, "Total Earnings"));
+    M.events.forEach(function (e, i) { var th = el("th", null, String(i + 1)); th.title = e.name; hr.appendChild(th); });
+    thead.appendChild(hr); tbl.appendChild(thead);
+    var tb = el("tbody"), trs = [];
+    rows.forEach(function (r, ri) {
+      var tr = el("tr"); tr.appendChild(el("td", "g", r.name)); tr.appendChild(el("td", "num", String(r.pts)));
+      tr.appendChild(el("td", "num", money(r.money)));
+      M.events.forEach(function (e, ei) {
+        var st = finishStyle((M.finish[e.name] || {})[r.k]), td = el("td", "fc", st ? st.txt : "");
+        if (st) { td.style.background = st.bg; td.style.color = st.fg; td.setAttribute("data-r", ri); td.setAttribute("data-e", ei); }
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr); trs.push(tr);
+    });
+    tbl.appendChild(tb); sc.appendChild(tbl); box.appendChild(sc);
+    if (!rows.length) box.appendChild(el("div", "note", "No golfers from the points list have results yet."));
+
+    // One listener for the whole grid (hundreds of cells).
+    tbl.addEventListener("mouseover", function (ev) {
+      var td = ev.target.closest && ev.target.closest("td.fc[data-r]"); if (!td) { hideTip(); return; }
+      var r = rows[+td.getAttribute("data-r")], e = M.events[+td.getAttribute("data-e")];
+      showTip([r.name, ["Event", (+td.getAttribute("data-e") + 1) + ". " + e.name], ["Finish", (M.finish[e.name] || {})[r.k] || "-"],
+        ["Earned", money((M.golferEvent[e.name] || {})[r.k] || 0)], ["Points", String(r.pts)]], ev.clientX, ev.clientY);
+    });
+    tbl.addEventListener("mousemove", function (ev) { if (tipEl && tipEl.style.display === "block") placeTip(ev.clientX, ev.clientY); });
+    tbl.addEventListener("mouseleave", hideTip);
+    tbl.addEventListener("click", function (ev) { var td = ev.target.closest && ev.target.closest("td.fc[data-r]"); if (td) { ev.stopPropagation(); td.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, clientX: ev.clientX, clientY: ev.clientY })); } });
+    function paint() {
+      var q = key(state.pfFind || "").trim(), first = null;
+      trs.forEach(function (tr, i) { var on = q && key(rows[i].name).indexOf(q) >= 0; tr.classList.toggle("hl", !!on); if (on && !first) first = tr; });
+      if (first && first.scrollIntoView) first.scrollIntoView({ block: "nearest" });
+    }
+    inp.oninput = function () { state.pfFind = inp.value; paint(); };
+    paint();
+    view.appendChild(box);
+  }
+
   // How many teams picked each golfer, most-picked first.
   function pickCounts() {
     var by = {};
@@ -1075,7 +1164,7 @@
 
   var TABS = [["tracker", "Tracker", tracker], ["weekly", "Weekly Results", weekly],
               ["leaderboard", "Leaderboard", leaderboard], ["top", "Top Teams", topTeams], ["perf", "Team Performance", teamPerformance], ["winners", "Winner List", winners],
-              ["picked", "How Many Times Picked?", picked],
+              ["picked", "How Many Times Picked?", picked], ["finishes", "Past Finishes", pastFinishes],
               ["lineups", "Lineup Analysis", lineupAnalysis]];
   function draw() {
     hideTip();

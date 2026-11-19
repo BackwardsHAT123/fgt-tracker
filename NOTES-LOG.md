@@ -170,3 +170,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Stats view: Total Earnings golfer bars (grey until strokes gained groups exist) and a placeholder for the DataGolf panels (SG Total trend, Long vs Short Game, Recent Performance).
 - Made-the-cut uses finishes in Tournaments: CUT, W/D, WD, DQ, DNS, MC count as missed. Needs full-field results (pull-results.js). Lineup parts hidden until entries close.
 - Demo data now built from Austin's full field (`tools/make-demo-data.js /tmp/claude-501/fgt/austin-full.json`), so cuts appear.
+
+## 2026-11-18 (night): Past Finishes tab
+
+- Added: a grid of golfers (on the points list or picked, with at least one result), most season money first, columns Golfer / Points / Total Earnings then one column per event. Each finish cell is coloured purple by position (win darkest; 2-5, 6-10, 11-25, 26+ lighter), missed cut and WD grey. Hover shows event, finish, money and points (one listener for the whole grid). Highlight-golfer search. Sticky header and golfer column, scrolls inside its box. Not hidden before entries close (no lineup data). Demo now carries the real points list.
