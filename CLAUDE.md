@@ -6,14 +6,14 @@ Keep this file under ~15 KB. Dated entries, review results and feature write-ups
 
 ## What it is
 
-- Public entry page (team picker): https://fgt-mt.com/team-picker.html; https://fgt-mt.com/ forwards there. Dashboard: https://fgt-mt.com/dashboard.html. Hosted on GitHub Pages (repo https://github.com/BackwardsHAT123/fgt-tracker, public, branch `main`) with the custom domain set in repo Settings > Pages (no CNAME file; HTTPS enforced). Old backwardshat123.github.io/fgt-tracker/... links forward to fgt-mt.com.
+- Landing page: https://fgt-mt.com/ (logo plus two big buttons: Team Picker, 2027 Tracker). Entry page (team picker): https://fgt-mt.com/team-picker.html. Dashboard: https://fgt-mt.com/dashboard.html. Hosted on GitHub Pages (repo https://github.com/BackwardsHAT123/fgt-tracker, public, branch `main`) with the custom domain set in repo Settings > Pages (no CNAME file; HTTPS enforced). Old backwardshat123.github.io/fgt-tracker/... links forward to fgt-mt.com.
 - Domains: fgt-mt.com and fgt-mt.net, both registered and managed at Cloudflare (Tom's account). fgt-mt.com DNS: 4 A + 4 AAAA records to GitHub Pages (185.199.108-111.153, 2606:50c0:8000-8003::153) and CNAME www -> backwardshat123.github.io, all "DNS only" (grey cloud; orange breaks GitHub's certificate). Plus TXT `_github-pages-challenge-BackwardsHAT123` (GitHub domain verification; keep it forever, deleting it removes the takeover protection). fgt-mt.net forwards everything to https://fgt-mt.com (same path and query, 301) via a Cloudflare redirect rule; its two placeholder records (A @ 192.0.2.1, CNAME www) are Proxied (orange) on purpose.
 - Players enter name, phone, email, team name (address optional) and pick golfers within a 25-point budget. Entry fee $100, paid by Venmo (handle in `site/config.js`).
 - Submissions go to a Google Sheet through a Google Apps Script web app.
 
 ## Map
 
-- `site/team-picker.html`: the whole entry page (HTML, CSS, JS, no build step). The "More 1-pointers" list is open by default, alphabetical by last name, in 4 columns (3 on tablets, 2 on phones). `site/index.html` is only a redirect to it, so old links keep working.
+- `site/team-picker.html`: the whole entry page (HTML, CSS, JS, no build step). The "More 1-pointers" list is open by default, alphabetical by last name, in 4 columns (3 on tablets, 2 on phones). `site/index.html` is the landing page (`logo-480.jpg` is a 480px copy of the original logo; title and deadline come from `config.js`).
 - `site/players.js`: golfer point tiers and page layout (`window.FGT_DATA`). The file you edit most.
 - `site/config.js`: `SCRIPT_URL`, `VENMO_HANDLE`, `ENTRY_FEE`, `DEADLINE_TEXT`.
 - `apps-script/Code.gs`: server side. Validates, recomputes points, rejects duplicate lineups, appends to the "Entries" tab.

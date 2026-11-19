@@ -3,14 +3,79 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FGT Team Entry</title>
-<!-- The team picker now lives at team-picker.html. This page forwards old links there. -->
-<meta http-equiv="refresh" content="0; url=team-picker.html">
-<link rel="canonical" href="team-picker.html">
-<script>location.replace("team-picker.html" + location.search + location.hash);</script>
-<style>body { background: #262524; color: #f2eee8; font: 16px/24px system-ui, sans-serif; padding: 24px; } a { color: #ed7437; }</style>
+<title>Fantasy Golf Tour</title>
+<meta name="description" content="The PGA Fantasy Golf Tour: pick your team and follow the 2027 season.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" type="image/png" href="favicon.png">
+<script>
+  /* Same theme choice as the dashboard (dark by default, TAH design system). */
+  (function () {
+    var t = "dark";
+    try { var v = localStorage.getItem("fgt-theme"); if (v === "light" || v === "dark") t = v; } catch (e) {}
+    document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+<style>
+  /* TAH design system tokens (same as team-picker.html and dashboard.html). */
+  :root {
+    color-scheme: dark;
+    --surface: #262524; --raised: #1c1a17; --ink: #f2eee8; --muted: #b3b2ae;
+    --hair: #3a3733; --border: #8a877d;
+    --accent: #ed7437; --on-accent: #121310; --accent-text: #ed7437;
+    --sans: "Outfit", "Avenir Next", system-ui, sans-serif;
+    --radius-md: 12px; --radius-pill: 999px;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --surface: #f2eee8; --raised: #fbf9f5; --ink: #121310; --muted: #5a574e;
+    --hair: #d9d3c8; --border: #8d887b; --accent-text: #a8420f;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--surface); color: var(--ink); font: 400 16px/24px var(--sans);
+    display: flex; flex-direction: column; }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 40px 16px; gap: 28px; }
+  .logo { width: 240px; height: 240px; max-width: 70vw; max-height: 70vw; border-radius: 24px; display: block; }
+  h1 { margin: 0; font-size: 44px; line-height: 50px; font-weight: 700; letter-spacing: -0.5px; }
+  .sub { margin: 6px 0 0; color: var(--muted); font-size: 18px; }
+  .buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 380px; }
+  .big { display: flex; align-items: center; justify-content: center; min-height: 72px; padding: 14px 28px;
+    border-radius: var(--radius-pill); font: 600 26px/32px var(--sans); text-decoration: none; }
+  .big.primary { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); }
+  .big.secondary { background: transparent; color: var(--ink); border: 2px solid var(--border); }
+  .big.secondary:hover { border-color: var(--ink); }
+  .big.primary:hover { filter: brightness(1.06); }
+  .big:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 3px; }
+  footer { text-align: center; color: var(--muted); font-size: 14px; padding: 16px; }
+  footer b { color: var(--ink); font-weight: 600; }
+  @media (max-width: 600px) { h1 { font-size: 32px; line-height: 38px; } .big { font-size: 22px; min-height: 64px; } }
+</style>
 </head>
 <body>
-<p>The team picker has moved. <a href="team-picker.html">Go to the team picker</a>.</p>
+<main>
+  <img class="logo" src="logo-480.jpg" width="240" height="240" alt="Fantasy Golf Tour logo">
+  <div>
+    <h1 id="title">PGA Fantasy Golf Tour</h1>
+    <p class="sub" id="deadline"></p>
+  </div>
+  <nav class="buttons" aria-label="Main">
+    <a class="big primary" href="team-picker.html">Team Picker</a>
+    <a class="big secondary" href="dashboard.html">2027 Tracker</a>
+  </nav>
+</main>
+<footer>Questions? <b>FGT_MT@outlook.com</b></footer>
+<script src="config.js"></script>
+<script>
+  // Title and entry deadline come from config.js, so they match the team picker.
+  (function () {
+    var C = window.FGT_CONFIG || {};
+    if (C.TITLE) document.getElementById("title").textContent = C.TITLE;
+    if (C.DEADLINE_TEXT) document.getElementById("deadline").textContent = C.DEADLINE_TEXT;
+  })();
+</script>
 </body>
 </html>

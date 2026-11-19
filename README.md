@@ -23,7 +23,7 @@ Edit `site/players.js` and set `provisional: false` once the FedExCup Fall finis
 2. **Add the script.** In the Sheet, Extensions > Apps Script. Replace the contents with `apps-script/Code.gs` and save.
 3. **Deploy.** Deploy > New deployment > type "Web app". Execute as: **Me**. Who has access: **Anyone**. Authorize when asked, then copy the Web App URL (ends in `/exec`).
 4. **Point the page at it.** Paste that URL into `SCRIPT_URL` in `site/config.js`, commit, push.
-5. **Turn on GitHub Pages.** Repo Settings > Pages > Source: **GitHub Actions**. The workflow in `.github/workflows/pages.yml` then publishes `site/` on every push to `main`. The site uses the custom domain fgt-mt.com (set in Settings > Pages; DNS at Cloudflare): the team picker is `https://fgt-mt.com/team-picker.html` (the bare domain forwards there) and the dashboard `https://fgt-mt.com/dashboard.html`. Without a custom domain it would live at `https://<account>.github.io/fgt-tracker/`.
+5. **Turn on GitHub Pages.** Repo Settings > Pages > Source: **GitHub Actions**. The workflow in `.github/workflows/pages.yml` then publishes `site/` on every push to `main`. The site uses the custom domain fgt-mt.com (set in Settings > Pages; DNS at Cloudflare): the landing page is `https://fgt-mt.com/`, the team picker `https://fgt-mt.com/team-picker.html` and the dashboard `https://fgt-mt.com/dashboard.html`. Without a custom domain it would live at `https://<account>.github.io/fgt-tracker/`.
 6. **Test.** Submit a fake team and confirm a row appears in the `Entries` tab. Delete the test row.
 
 After editing `Code.gs` later, use Deploy > Manage deployments > edit > New version so the live URL picks up the change.

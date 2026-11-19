@@ -198,3 +198,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - fgt-mt.net set up by Tom (proxied placeholder records + redirect rule). Tested: http/https, bare and www, all 301 to the same path on https://fgt-mt.com, query string kept.
 - Public DNS for fgt-mt.com is correct (Cloudflare name servers and 1.1.1.1 return GitHub's addresses), but this Mac's local resolver still returned the old Cloudflare-proxy addresses after ~30 minutes, so the bare domain showed a Cloudflare 404 here. Local cache only; fix on a Mac with `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder` or by waiting.
 - GitHub domain verification done: Tom added fgt-mt.com under his account's Settings > Pages, put the TXT record `_github-pages-challenge-BackwardsHAT123` in Cloudflare (seen on Cloudflare, 1.1.1.1 and 8.8.8.8), clicked Verify. The Pages API now reports `protected_domain_state: verified`. The bare domain also loads (200) from this Mac now that its cache cleared.
+
+## 2026-11-19: landing page
+
+- Tom asked for a main landing page on fgt-mt.com with the FGT logo and two large buttons, Team Picker and 2027 Tracker. `site/index.html` (which had been a redirect to team-picker.html) is now that page: TAH style, logo, title and deadline from `config.js`, Team Picker as the orange primary button, 2027 Tracker as the outlined secondary, contact email in the footer, follows the dashboard's saved light/dark choice. `site/logo-480.jpg` (46 KB) made from the 1024px original with Pillow; the original stays out of the repo.
+- Side effect: the bare domain no longer jumps straight to the team picker; people land here first.
