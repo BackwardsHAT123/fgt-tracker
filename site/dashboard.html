@@ -175,8 +175,11 @@
   .tp .pc { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3); text-align: center; }
   .tp .pc .nm { font-weight: 600; font-size: 14px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tp .pc .am { color: var(--green); font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-  .tp .pcut { grid-column: 1 / -1; margin: var(--space-2) 0; padding-top: 6px; }
-  .tp .pc.bubble { opacity: .55; }
+  .tp .pc { position: relative; }
+  .tp .pc.bubble { opacity: .45; }
+  .tp .pc.first-out::before { content: ""; position: absolute; left: -10px; top: -4px; bottom: -4px; border-left: 2px dashed var(--green); }
+  .tp .pc.below::after { content: ""; position: absolute; left: -8px; right: -8px; top: -10px; border-top: 2px dashed var(--green); }
+  .tp .key { color: var(--green); font-size: 14px; margin-top: var(--space-3); }
   .tp .pc svg { width: 120px; height: 120px; display: block; margin: 0 auto; }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
@@ -647,18 +650,36 @@
       : "The teams currently in a payout spot, and which golfers their money comes from."));
     if (!M.events.length) { box.appendChild(el("div", "note", "No results yet.")); view.appendChild(box); return; }
     if (!D.closed) { box.appendChild(lineupsNote()); view.appendChild(box); return; }
-    var grid = el("div", "pies"), BUBBLE = 4;
-    M.teams.slice(0, pc.n + BUBBLE).forEach(function (t, i) {
-      if (i === pc.n) grid.appendChild(el("div", "cut pcut", "Payout line: top " + pc.n + " paid. Next teams on the bubble:"));
+    // Teams just outside the money fill out the last row of pies; how many depends on how many pies fit across.
+    var grid = el("div", "pies"), MAXB = 12, cards = [];
+    M.teams.slice(0, pc.n + MAXB).forEach(function (t, i) {
       var c = el("div", "pc" + (i >= pc.n ? " bubble" : ""));
+      c.title = i >= pc.n ? "Just outside the money" : "";
+      cards.push(c);
       c.appendChild(el("div", "nm", "#" + (t.rank || i + 1) + ". " + t.team));
       c.appendChild(el("div", "am", money(t.earnings)));
       c.appendChild(pie(golferBars(t.team, null)));
       grid.appendChild(c);
     });
     box.appendChild(grid);
+    box.appendChild(el("div", "key", "Dashed line = payout line (top " + pc.n + " paid). Faded teams are just outside the money."));
     box.appendChild(legend());
     view.appendChild(box);
+    function fit() {
+      var colsDef = getComputedStyle(grid).gridTemplateColumns || "";
+      var cols = /^[\d.]+px( [\d.]+px)*$/.test(colsDef.trim()) ? colsDef.trim().split(" ").length : 6;
+      var rem = pc.n % cols, show = rem ? cols - rem : cols;
+      cards.forEach(function (c, i) {
+        c.classList.remove("first-out", "below");
+        if (i < pc.n) return;
+        var on = i < pc.n + show;
+        c.style.display = on ? "" : "none";
+        if (on && rem && i === pc.n) c.classList.add("first-out");
+        if (on && !rem) c.classList.add("below");
+      });
+    }
+    fit();
+    window.onresize = function () { if (state.tab === "top") fit(); };
   }
 
   // How many teams picked each golfer, most-picked first.
