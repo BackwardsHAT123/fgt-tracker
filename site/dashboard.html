@@ -181,11 +181,15 @@
   .tp .pc.below::after { content: ""; position: absolute; left: -8px; right: -8px; top: -10px; border-top: 2px dashed var(--green); }
   .tp .key { color: var(--green); font-size: 14px; margin-top: var(--space-3); }
   .tp .pc svg { width: 120px; height: 120px; display: block; margin: 0 auto; }
-  .ftip { position: fixed; z-index: 50; display: none; pointer-events: none; max-width: 260px;
+  .ftip { position: fixed; z-index: 50; display: none; pointer-events: none; max-width: 400px;
     background: var(--raised); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius-md);
     padding: 8px 12px; font-size: 14px; line-height: 20px; }
   .ftip .t1 { font-weight: 700; margin-bottom: 2px; }
   .ftip .tl { color: var(--muted); }
+  .ftip .ln { color: var(--muted); }
+  .ftip .b { font-weight: 700; color: var(--ink); }
+  .ftip .g { font-weight: 700; color: var(--success); font-size: 16px; }
+  .ftip .gap { margin-top: 8px; }
   .bars .bar[data-tip] { cursor: default; }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
@@ -306,12 +310,14 @@
       (golferEvent[r.event] = golferEvent[r.event] || {})[g] = (golferEvent[r.event][g] || 0) + r.earnings;
       golferSeason[g] = (golferSeason[g] || 0) + r.earnings;
     });
+    var pickN = {};     // golfer(lower) -> number of teams that picked them
+    D.lineups.forEach(function (l) { var k = key(l.golfer); pickN[k] = (pickN[k] || 0) + 1; });
     var names = {};     // lowercase -> display
     D.results.forEach(function (r) { names[key(r.golfer)] = r.golfer; });
     D.lineups.forEach(function (l) { names[key(l.golfer)] = l.golfer; });
 
     return { events: events, perTeam: perTeam, perEvent: perEvent, teams: teams, lineup: lineup,
-             golferEvent: golferEvent, golferSeason: golferSeason, names: names, pts: pts };
+             golferEvent: golferEvent, golferSeason: golferSeason, names: names, pts: pts, pickN: pickN };
   }
   function series(team) { return M.events.map(function (e) { return (M.perTeam[team] || {})[e.name] || 0; }); }
   function golferBars(team, eventName) {
@@ -361,6 +367,11 @@
     clear(tipEl);
     rows.forEach(function (r, i) {
       if (i === 0) { tipEl.appendChild(el("div", "t1", r)); return; }
+      if (r && r.parts) {
+        var line = el("div", "ln" + (r.gap ? " gap" : ""));
+        r.parts.forEach(function (p) { line.appendChild(p[1] ? el("span", p[1], p[0]) : document.createTextNode(p[0])); });
+        tipEl.appendChild(line); return;
+      }
       var d = el("div"); d.appendChild(el("span", "tl", r[0] + ": ")); d.appendChild(document.createTextNode(r[1])); tipEl.appendChild(d);
     });
     tipEl.style.display = "block"; placeTip(x, y);
@@ -383,6 +394,19 @@
         ["Season earnings", money(M.golferSeason[k] || 0)]];
       if (eventName) rows.push([eventName, money((M.golferEvent[eventName] || {})[k] || 0)]);
       return rows;
+    };
+  }
+
+  // Weekly Results popup (Tom's template): points and picks, money this week and season total, team's week total.
+  function weeklyTip(team, eventName) {
+    var teamWeek = ((M.perEvent[eventName] || []).filter(function (r) { return r.team === team; })[0] || {}).earnings || 0;
+    return function (i) {
+      var k = key(i.label), n = M.pickN[k] || 0;
+      return [i.label,
+        { parts: [["- is a "], [String(i.points || "?"), "b"], [" pointer and picked on "], [String(n), "b"], [" team" + (n === 1 ? "" : "s") + "."]] },
+        { parts: [["- made "], [money((M.golferEvent[eventName] || {})[k] || 0), "g"], [" this week, bringing the season total to "],
+                  [money(M.golferSeason[k] || 0), "b"], ["."]] },
+        { gap: true, parts: [[team, "b"], [" earned a total of "], [money(teamWeek), "b"], [" this week."]] }];
     };
   }
 
@@ -634,7 +658,7 @@
     if (!D.closed) right.appendChild(lineupsNote());
     else if (state.wTeam) {
       var gb = golferBars(state.wTeam, ev);
-      right.appendChild(gb.length ? bars(gb, true) : el("div", "note", "No lineup found for this team."));
+      right.appendChild(gb.length ? bars(gb, true, weeklyTip(state.wTeam, ev)) : el("div", "note", "No lineup found for this team."));
       if (gb.length) right.appendChild(legend());
     }
     split.appendChild(left); split.appendChild(right); box.appendChild(split);

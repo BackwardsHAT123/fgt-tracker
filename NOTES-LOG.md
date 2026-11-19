@@ -140,3 +140,5 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - Tracker golfer popups (Tom): hovering (or tapping on a phone) a golfer's bar shows a popup. Left column: name, season earnings, points. Middle and right columns: the same plus the money at the event chosen in the Weekly Winner picker. One shared floating popup (`showTip`/`attachTip`), hidden on mouse-out, scroll, tapping elsewhere or redraw.
 - Popup order changed (Tom): name, Points, Season earnings, then the selected-event money.
+
+- Weekly Results golfer popup (Tom's Tableau template): name; "- is a N pointer and picked on N teams."; "- made $X this week, bringing the season total to $Y." (this week's money in green); then "<Team> earned a total of $Z this week." Template said "his total"; I wrote "the season total" to avoid assuming pronouns. Popups support bold/green text parts now; pick counts per golfer are in the model (`M.pickN`).
