@@ -203,3 +203,4 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - Tom asked for a main landing page on fgt-mt.com with the FGT logo and two large buttons, Team Picker and 2027 Tracker. `site/index.html` (which had been a redirect to team-picker.html) is now that page: TAH style, logo, title and deadline from `config.js`, Team Picker as the orange primary button, 2027 Tracker as the outlined secondary, contact email in the footer, follows the dashboard's saved light/dark choice. `site/logo-480.jpg` (46 KB) made from the 1024px original with Pillow; the original stays out of the repo.
 - Side effect: the bare domain no longer jumps straight to the team picker; people land here first.
+- Tom: landing page looks fine on his phone. The dashboard needs phone work; Tom wants to wait on that for now (open item).

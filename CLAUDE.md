@@ -58,6 +58,7 @@ Keep this file under ~15 KB. Dated entries, review results and feature write-ups
 - **DataGolf:** Tom has a DataGolf subscription with API access; it is the source for strokes gained, DG Rank and OWGR on the Team Performance tab (credit "courtesy of DataGolf" on the page). The key lives only in `~/.config/fgt/datagolf.key` (chmod 600). Never print it, commit it, put it in the Sheet, the page, a URL in logs, or chat. Load 2026 season stats too (Tom: yes), so Recent Performance has history in January.
 - **SG quadrant colours (Team Performance):** Elite (long + short game both positive, upper right) = blue; Longknockers who can't putt (long +, short -, upper left) = orange; Shortknockers who can putt (long -, short +, lower right) = grey; Bad (both -, lower left) = red. The Total Earnings golfer bars use the same colours.
 - **Open:** the duplicate-lineup version of `Code.gs` (commit 67633b1) must be redeployed by Tom (Deploy > Manage deployments > edit > New version) or the live script keeps saving duplicates. Not confirmed whether he did.
+- **Open:** the dashboard needs work to look right on phones; Tom said to wait on it for now.
 - **Open:** `DEADLINE_TEXT` in `config.js` and `DEADLINE` in `Code.gs` are unset until Tom picks a date.
 - **Open:** I suggested adding `*.pdf`, `*.docx` and `.bench/` to `.gitignore`; Tom has not answered.
 - **Open:** no live test entry has been confirmed; I never submit entries from the live page.
