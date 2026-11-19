@@ -72,3 +72,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-18 (night): Zurich Classic rule
 
 - Tom: for the Zurich Classic, pgatour.com reports each team's winnings and each golfer gets half of their team's earnings. Handled at scrape time (halve before sending), no code change. Schedule note for Zurich updated in the local JSON only; the Sheet's note updates the next time the schedule is resent (when purses post).
+
+## 2026-11-18 (night): dashboard plan
+
+- Tom wants a public web dashboard in this repo, using his Tableau Public dashboard as the template (option b: I build the page). Privacy rule from Tom: team names only, no user-identifiable info. The Standings tab's "Name" column must never go into the feed. Waiting on the dashboard link from Tom before designing anything.
