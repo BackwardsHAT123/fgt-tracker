@@ -181,6 +181,12 @@
   .tp .pc.below::after { content: ""; position: absolute; left: -8px; right: -8px; top: -10px; border-top: 2px dashed var(--green); }
   .tp .key { color: var(--green); font-size: 14px; margin-top: var(--space-3); }
   .tp .pc svg { width: 120px; height: 120px; display: block; margin: 0 auto; }
+  .ftip { position: fixed; z-index: 50; display: none; pointer-events: none; max-width: 260px;
+    background: var(--raised); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 8px 12px; font-size: 14px; line-height: 20px; }
+  .ftip .t1 { font-weight: 700; margin-bottom: 2px; }
+  .ftip .tl { color: var(--muted); }
+  .bars .bar[data-tip] { cursor: default; }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
@@ -342,8 +348,46 @@
     return l;
   }
 
+  // ---- hover / tap popup ----
+  var tipEl = null;
+  function placeTip(x, y) {
+    var w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    var left = Math.max(8, Math.min(x + 14, window.innerWidth - w - 8));
+    var top = y + 16; if (top + h > window.innerHeight - 8) top = y - h - 10;
+    tipEl.style.left = left + "px"; tipEl.style.top = Math.max(8, top) + "px";
+  }
+  function showTip(rows, x, y) {
+    if (!tipEl) { tipEl = el("div", "ftip"); document.body.appendChild(tipEl); }
+    clear(tipEl);
+    rows.forEach(function (r, i) {
+      if (i === 0) { tipEl.appendChild(el("div", "t1", r)); return; }
+      var d = el("div"); d.appendChild(el("span", "tl", r[0] + ": ")); d.appendChild(document.createTextNode(r[1])); tipEl.appendChild(d);
+    });
+    tipEl.style.display = "block"; placeTip(x, y);
+  }
+  function hideTip() { if (tipEl) tipEl.style.display = "none"; }
+  function attachTip(node, rowsFn) {
+    node.setAttribute("data-tip", "1");
+    node.addEventListener("mouseenter", function (e) { showTip(rowsFn(), e.clientX, e.clientY); });
+    node.addEventListener("mousemove", function (e) { if (tipEl) placeTip(e.clientX, e.clientY); });
+    node.addEventListener("mouseleave", hideTip);
+    node.addEventListener("click", function (e) { e.stopPropagation(); showTip(rowsFn(), e.clientX, e.clientY); });  // phones: tap
+  }
+  document.addEventListener("click", hideTip);
+  window.addEventListener("scroll", hideTip, { passive: true });
+  // Popup rows for a golfer: name, season earnings, points, and (when given) money at the selected event.
+  function golferTip(eventName) {
+    return function (i) {
+      var k = key(i.label), rows = [i.label,
+        ["Season earnings", money(M.golferSeason[k] || 0)],
+        ["Points", String(i.points || "-")]];
+      if (eventName) rows.push([eventName, money((M.golferEvent[eventName] || {})[k] || 0)]);
+      return rows;
+    };
+  }
+
   // ---- drawing blocks ----
-  function bars(items, byPoints) {
+  function bars(items, byPoints, tip) {
     var box = el("div", "bars");
     var max = items.reduce(function (m, i) { return Math.max(m, i.value); }, 0) || 1;
     items.forEach(function (i) {
@@ -354,6 +398,7 @@
       if (byPoints && PT[i.points]) f.style.background = PT[i.points];
       t.appendChild(f); t.appendChild(el("div", "val", money(i.value)));
       row.appendChild(t); box.appendChild(row);
+      if (tip) attachTip(row, function () { return tip(i); });
     });
     return box;
   }
@@ -461,7 +506,7 @@
     t1.appendChild(k1);
     if (leader && hasEvents) t1.appendChild(spark([{ v: series(leader.team), color: tc().leader }]));
     c1.appendChild(t1);
-    if (leader && hasEvents) { c1.appendChild(D.closed ? bars(golferBars(leader.team, null)) : lineupsNote()); c1.appendChild(pointsBlock("green", leader.team, null)); }
+    if (leader && hasEvents) { c1.appendChild(D.closed ? bars(golferBars(leader.team, null), false, golferTip(null)) : lineupsNote()); c1.appendChild(pointsBlock("green", leader.team, null)); }
     wrap.appendChild(c1);
 
     // weekly winner
@@ -483,7 +528,7 @@
       } else k2.appendChild(el("div", "small", "No winner yet for this event."));
     } else k2.appendChild(el("div", "small", "Waiting on the first event."));
     t2.appendChild(k2); c2.appendChild(t2);
-    if (top.length) { c2.appendChild(D.closed ? bars(golferBars(top[0].team, state.event)) : lineupsNote()); c2.appendChild(pointsBlock("purple", top[0].team, state.event)); }
+    if (top.length) { c2.appendChild(D.closed ? bars(golferBars(top[0].team, state.event), false, golferTip(state.event)) : lineupsNote()); c2.appendChild(pointsBlock("purple", top[0].team, state.event)); }
     wrap.appendChild(c2);
 
     // user selection
@@ -511,7 +556,7 @@
       t3.appendChild(spark([{ v: series(leader.team), color: tc().other }, { v: series(state.team), color: tc().you }]));
     }
     c3.appendChild(t3);
-    if (M.teams.length && hasEvents) { c3.appendChild(D.closed ? bars(golferBars(state.team, null)) : lineupsNote()); c3.appendChild(pointsBlock("blue", state.team, null)); }
+    if (M.teams.length && hasEvents) { c3.appendChild(D.closed ? bars(golferBars(state.team, null), false, golferTip(state.event)) : lineupsNote()); c3.appendChild(pointsBlock("blue", state.team, null)); }
     wrap.appendChild(c3);
     view.appendChild(wrap);
   }
@@ -768,6 +813,7 @@
               ["picked", "How Many Times Picked?", picked],
               ["lineups", "Lineup Analysis", lineupAnalysis]];
   function draw() {
+    hideTip();
     var nav = document.getElementById("nav"); clear(nav);
     TABS.forEach(function (t) {
       var b = el("button", state.tab === t[0] ? "on" : "", t[1]);
