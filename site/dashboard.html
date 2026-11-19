@@ -81,6 +81,30 @@
   .pchart { display: block; width: 100%; height: auto; }
   .footbar { background: #fbfaf0; text-align: center; padding: 10px 8px; margin-top: 18px; font-size: 13.5px; color: #444; text-transform: uppercase; }
   .footbar b { color: #222; }
+  .teal .fill { background: #3bb3b3; } .teal .val { color: #1b8a8a; }
+  .wk h3 { margin: 6px 0 2px; font-size: 22px; }
+  .wk .hint { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .wk .ctl { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin: 8px 0 12px; }
+  .wk .ctl label { font-size: 12px; color: var(--muted); display: block; }
+  .wk .ctl input { font: inherit; padding: 4px 8px; border: 1px solid var(--line); width: 220px; max-width: 100%; }
+  .wk .ctl .picker { max-width: 100%; }
+  .wk .split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 860px) { .wk .split { grid-template-columns: 1fr; } }
+  .wk .side-h { font-weight: 800; font-size: 15px; padding: 6px 0; border-bottom: 2px solid var(--ink); margin-bottom: 4px; }
+  .wk .list { max-height: 560px; overflow-y: auto; }
+  .wk .wrow { display: grid; grid-template-columns: 30px 1fr; align-items: center; cursor: pointer; border-bottom: 1px solid #eef0f2; }
+  .wk .wrow .rk { padding: 4px 4px; font-weight: 700; font-size: 12px; }
+  .wk .wrow .track { position: relative; height: 24px; }
+  .wk .wrow .fill { position: absolute; left: 0; top: 2px; bottom: 2px; background: #c9cdd1; }
+  .wk .wrow.sel .fill { background: var(--gold); }
+  .wk .wrow.hl .nm { background: #ffe9a8; }
+  .wk .wrow .nm { position: absolute; left: 6px; top: 3px; font-weight: 700; font-size: 12.5px; white-space: nowrap; max-width: 62%; overflow: hidden; text-overflow: ellipsis; }
+  .wk .wrow .am { position: absolute; right: 4px; top: 4px; font-size: 12px; background: rgba(255,255,255,.75); padding: 0 3px; }
+  .wl h3 { margin: 6px 0 8px; font-size: 22px; }
+  .wl .wr { display: grid; grid-template-columns: minmax(180px, 38%) 1fr auto; gap: 12px; padding: 5px 6px; border-bottom: 1px solid #eef0f2; }
+  .wl .wr:nth-child(even) { background: rgba(0,0,0,.025); }
+  .wl .wr .ev { font-weight: 700; }
+  .wl .wr .amt { color: var(--muted); font-size: 12.5px; }
   .foot { color: var(--muted); font-size: 12px; margin-top: 18px; }
 </style>
 </head>
@@ -392,7 +416,72 @@
     view.appendChild(box);
   }
 
-  var TABS = [["tracker", "Tracker", tracker], ["leaderboard", "Leaderboard", leaderboard]];
+  function weekly(view) {
+    var box = el("div", "wk");
+    if (!M.events.length) { box.appendChild(el("div", "note", "No results yet. Weekly results appear after the first event.")); view.appendChild(box); return; }
+    if (!state.wEvent) state.wEvent = M.events[M.events.length - 1].name;
+    var ev = state.wEvent;
+    box.appendChild(el("h3", null, "Team performance at " + ev));
+    box.appendChild(el("div", "hint", "If your team had no one in this week's event, your team will not show up in the list."));
+
+    var rows = (M.perEvent[ev] || []).filter(function (r) { return r.earnings > 0; })
+      .sort(function (a, b) { return b.earnings - a.earnings; });
+    if (!state.wTeam || !rows.some(function (r) { return r.team === state.wTeam; })) state.wTeam = rows.length ? rows[0].team : null;
+
+    var ctl = el("div", "ctl");
+    var c1 = el("div"); c1.appendChild(el("label", null, "Select tournament"));
+    c1.appendChild(picker(M.events.map(function (e) { return { label: e.name, value: e.name }; }), ev, function (v) { state.wEvent = v; draw(); }));
+    var c2 = el("div"); c2.appendChild(el("label", null, "Highlight team"));
+    var inp = el("input"); inp.type = "search"; inp.placeholder = "Team name"; inp.value = state.wFind || "";
+    c2.appendChild(inp); ctl.appendChild(c1); ctl.appendChild(c2); box.appendChild(ctl);
+
+    var split = el("div", "split"), left = el("div"), right = el("div", "teal");
+    left.appendChild(el("div", "side-h", "Click a team to see its golfers on the right"));
+    var list = el("div", "list"); left.appendChild(list);
+    var max = rows.length ? rows[0].earnings : 1;
+    function paint() {
+      clear(list);
+      var q = key(state.wFind || "").trim();
+      rows.forEach(function (r, i) {
+        var d = el("div", "wrow" + (r.team === state.wTeam ? " sel" : "") + (q && key(r.team).indexOf(q) >= 0 ? " hl" : ""));
+        d.appendChild(el("div", "rk", String(i + 1)));
+        var t = el("div", "track"), f = el("div", "fill"); f.style.width = Math.max(1, Math.round(r.earnings / max * 100)) + "%";
+        t.appendChild(f); t.appendChild(el("div", "nm", r.team)); t.appendChild(el("div", "am", money(r.earnings)));
+        d.appendChild(t);
+        d.onclick = function () { state.wTeam = r.team; draw(); };
+        list.appendChild(d);
+      });
+      if (!rows.length) list.appendChild(el("div", "note", "No team earned money at this event."));
+    }
+    inp.oninput = function () { state.wFind = inp.value; paint(); };
+    paint();
+    right.appendChild(el("div", "side-h", state.wTeam ? state.wTeam + " golfer performance" : "Golfer performance"));
+    if (!D.closed) right.appendChild(lineupsNote());
+    else if (state.wTeam) {
+      var gb = golferBars(state.wTeam, ev);
+      right.appendChild(gb.length ? bars(gb) : el("div", "note", "No lineup found for this team."));
+    }
+    split.appendChild(left); split.appendChild(right); box.appendChild(split);
+    view.appendChild(box);
+  }
+
+  function winners(view) {
+    var box = el("div", "wl");
+    box.appendChild(el("h3", null, "Winners"));
+    if (!M.events.length) box.appendChild(el("div", "note", "No results yet."));
+    M.events.forEach(function (e, i) {
+      var top = (M.perEvent[e.name] || []).filter(function (r) { return r.rank === 1 && r.earnings > 0; });
+      var row = el("div", "wr");
+      row.appendChild(el("div", "ev", (i + 1) + ". " + e.name));
+      row.appendChild(el("div", null, top.length ? top.map(function (t) { return t.team; }).join(" & ") + (top.length > 1 ? " (split)" : "") : "-"));
+      row.appendChild(el("div", "amt", top.length ? money(top[0].earnings) : ""));
+      box.appendChild(row);
+    });
+    view.appendChild(box);
+  }
+
+  var TABS = [["tracker", "Tracker", tracker], ["weekly", "Weekly Results", weekly],
+              ["leaderboard", "Leaderboard", leaderboard], ["winners", "Winner List", winners]];
   function draw() {
     var nav = document.getElementById("nav"); clear(nav);
     TABS.forEach(function (t) {
