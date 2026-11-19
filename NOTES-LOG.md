@@ -187,3 +187,4 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Tom: give the team picker its own page address and unfold the "More 1-pointers" list, in 4 columns so older players can scan it. Moved `site/index.html` to `site/team-picker.html` (git mv); the new `site/index.html` just forwards to it (meta refresh plus JS, keeping any query string), so old links and bookmarks still work.
 - More list: open on load and stays open after searching; newspaper-style columns (4 desktop, 3 under 900px, 2 under 600px); alphabetical by last name (suffixes like Jr. ignored) on the page only, so `players.js` order is untouched. My idea, not asked for, to make names easier to find.
 - jsdom check: list open, 123 names, sorted, search and picking still work. Weekly Ranking chart popups for every team line also confirmed live in Chrome.
+- Tom confirmed the team picker (team-picker.html, open 1-pointer list in columns) looks good on his phone.
