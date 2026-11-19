@@ -174,3 +174,9 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-18 (night): Past Finishes tab
 
 - Added: a grid of golfers (on the points list or picked, with at least one result), most season money first, columns Golfer / Points / Total Earnings then one column per event. Each finish cell is coloured purple by position (win darkest; 2-5, 6-10, 11-25, 26+ lighter), missed cut and WD grey. Hover shows event, finish, money and points (one listener for the whole grid). Highlight-golfer search. Sticky header and golfer column, scrolls inside its box. Not hidden before entries close (no lineup data). Demo now carries the real points list.
+
+## 2026-11-19: Team Performance popups (Tom's templates)
+
+- Earnings trend: hover an event for "N of the N golfers on <Team> who played in the <Event> made the cut and the team earned a total of $X" (before entries close: "At the <Event>, <Team> earned a total of $X", since cut counts need lineups). "the" is skipped when the event name already starts with "The".
+- Made-the-cut columns: "made / in" (made in red), "golfers made the cut at the <Event>.", the team's money there in green, then the team's golfer table (points, season earnings bar in point colours). Table shared with the pie popup (`golferTable`).
+- Weekly ranking chart: hover an event for team name, "Rank this week: N", "made $X at the <Event>, to bring total to $Y". Hover strips are per event for the chosen team.

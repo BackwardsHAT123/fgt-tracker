@@ -192,6 +192,17 @@
   .ftip .gap { margin-top: 8px; }
   .bars .bar[data-tip] { cursor: default; }
   .ftip.wide { max-width: 470px; width: max-content; }
+  .ftip .sent { color: var(--muted); font-size: 15px; line-height: 22px; max-width: 420px; }
+  .ftip .sent b { color: var(--ink); } .ftip .sent .o { color: var(--accent-text); font-weight: 700; }
+  .ftip .mch { text-align: center; margin-bottom: 8px; }
+  .ftip .rk { text-align: center; }
+  .ftip .rk .tn { font-size: 24px; line-height: 30px; font-weight: 700; }
+  .ftip .rk .rl { color: var(--muted); } .ftip .rk .rl b { color: var(--ink); font-size: 20px; }
+  .ftip .rk .ln2 { margin-top: 8px; font-weight: 600; } .ftip .rk .ln2 .g2 { color: var(--success); }
+  .ftip .mch .frac { font-size: 28px; line-height: 34px; font-weight: 700; color: var(--muted); }
+  .ftip .mch .frac .m { color: var(--danger); }
+  .ftip .mch .big { margin-top: 6px; }
+  .ftip .big { color: var(--success); font-weight: 700; font-size: 20px; line-height: 28px; }
   .ptip .tn { font-size: 22px; line-height: 28px; font-weight: 700; }
   .ptip .tt { color: var(--muted); font-size: 16px; }
   .ptip .tt b, .ptip .kv .gv { color: var(--success); font-weight: 700; }
@@ -776,16 +787,38 @@
     kv.appendChild(el("div", null, "Points:")); kv.appendChild(el("div", "pv", String(cur.points || "-")));
     kv.appendChild(el("div", null, "Total Golfer Earnings:")); kv.appendChild(el("div", "gv", money(cur.value)));
     box.appendChild(kv);
+    golferTable(box, items, cur.label);
+    return box;
+  }
+  // Table of a team's golfers: name, points, season earnings bar in the point colour. Optional row to bold.
+  function golferTable(box, items, onLabel) {
     var h = el("div", "gr h"); ["Golfer", "Points", "Total Earnings"].forEach(function (x, j) { h.appendChild(el("div", j === 1 ? "pt" : null, x)); });
     box.appendChild(h);
     var max = items.reduce(function (m, i) { return Math.max(m, i.value); }, 0) || 1;
     items.forEach(function (i) {
-      var r = el("div", "gr" + (i.label === cur.label ? " on" : ""));
+      var r = el("div", "gr" + (onLabel && i.label === onLabel ? " on" : ""));
       r.appendChild(el("div", null, i.label)); r.appendChild(el("div", "pt", String(i.points || "-")));
       var g = el("div", "gbar"), bar = el("i"); bar.style.width = Math.max(1, Math.round(i.value / max * 100)) + "%";
       bar.style.background = PT[i.points] || "#ddd"; g.appendChild(bar); g.appendChild(el("span", null, money(i.value)));
       r.appendChild(g); box.appendChild(r);
     });
+  }
+  function attachNodeTip(node, makeNode) {
+    node.addEventListener("mouseenter", function (e) { showTipNode(makeNode(), e.clientX, e.clientY); });
+    node.addEventListener("mousemove", function (e) { if (tipEl) placeTip(e.clientX, e.clientY); });
+    node.addEventListener("mouseleave", hideTip);
+    node.addEventListener("click", function (e) { e.stopPropagation(); showTipNode(makeNode(), e.clientX, e.clientY); });
+  }
+  // Made-the-cut column popup (Tom's template): made / in field, the event, the team's money there, its golfers.
+  function cutTip(team, c) {
+    var box = el("div", "ptip"), hd = el("div", "mch"), fr = el("div", "frac");
+    fr.appendChild(el("span", "m", String(c.made))); fr.appendChild(document.createTextNode(" / " + c.inF)); hd.appendChild(fr);
+    var s = el("div", "sent"), the = /^the /i.test(c.e.name) ? "" : "the ";
+    s.appendChild(document.createTextNode("golfer" + (c.inF === 1 ? "" : "s") + " made the cut at " + the));
+    s.appendChild(el("b", null, c.e.name)); s.appendChild(document.createTextNode("."));
+    hd.appendChild(s); hd.appendChild(el("div", "big", money((M.perTeam[team] || {})[c.e.name] || 0)));
+    box.appendChild(hd);
+    golferTable(box, golferBars(team, null), null);
     return box;
   }
   function pie(items, team, teamTotal) {
@@ -884,13 +917,49 @@
     });
     return out;
   }
+  // For one team: per event, how many of its golfers played and how many made the cut.
+  function cutCounts(team) {
+    var golfers = (M.lineup[team] || []).map(key);
+    return M.events.map(function (e) {
+      var f = M.finish[e.name] || {}, inF = 0, made = 0;
+      golfers.forEach(function (g) { if (f[g] != null) { inF++; if (!MISSED[f[g].toUpperCase()]) made++; } });
+      return { e: e, inF: inF, made: made };
+    });
+  }
+  // Popup for a point on the earnings trend (Tom's wording).
+  function trendTip(team, i) {
+    var e = M.events[i], earned = (M.perTeam[team] || {})[e.name] || 0, box = el("div");
+    var s = el("div", "sent"), the = /^the /i.test(e.name) ? "" : "the ";
+    if (D.closed) {
+      var c = cutCounts(team)[i];
+      s.appendChild(el("span", "o", String(c.made))); s.appendChild(document.createTextNode(" of the "));
+      s.appendChild(el("b", null, String(c.inF))); s.appendChild(document.createTextNode(" golfer" + (c.inF === 1 ? "" : "s") + " on "));
+      s.appendChild(el("b", null, team)); s.appendChild(document.createTextNode(" who played in " + the));
+      s.appendChild(el("b", null, e.name)); s.appendChild(document.createTextNode(" made the cut and the team earned a total of"));
+    } else {
+      s.appendChild(document.createTextNode("At " + the)); s.appendChild(el("b", null, e.name));
+      s.appendChild(document.createTextNode(", ")); s.appendChild(el("b", null, team)); s.appendChild(document.createTextNode(" earned a total of"));
+    }
+    box.appendChild(s); box.appendChild(el("div", "big", money(earned)));
+    return box;
+  }
+  // Weekly ranking popup (Tom's template): team, rank after this event, money there and running total.
+  function rankTip(team, i, rank) {
+    var box = el("div", "rk"), e = M.events[i], v = series(team), total = 0;
+    for (var j = 0; j <= i; j++) total += v[j];
+    box.appendChild(el("div", "tn", team));
+    var rl = el("div", "rl", "Rank this week: "); rl.appendChild(el("b", null, String(rank))); box.appendChild(rl);
+    var l2 = el("div", "ln2", "made " + money(v[i]) + " at " + (/^the /i.test(e.name) ? "" : "the ") + e.name + ", to bring total to ");
+    l2.appendChild(el("span", "g2", money(total))); box.appendChild(l2);
+    return box;
+  }
   function svgEl(svg, tag, attrs, text) {
     var n = document.createElementNS("http://www.w3.org/2000/svg", tag);
     Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
     if (text != null) n.textContent = text;
     svg.appendChild(n); return n;
   }
-  function trendChart(vals) {
+  function trendChart(vals, team) {
     var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"), W = 600, H = 130, L = 10, R = 10, T = 18, B = 22;
     svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("preserveAspectRatio", "none");
     var n = vals.length, max = Math.max.apply(null, vals.concat([1]));
@@ -899,6 +968,15 @@
     if (n > 1) svgEl(svg, "polyline", { points: vals.map(function (v, i) { return x(i).toFixed(1) + "," + y(v).toFixed(1); }).join(" "),
       fill: "none", stroke: tc().leader, "stroke-width": "2.5", "vector-effect": "non-scaling-stroke" });
     if (n === 1) svgEl(svg, "circle", { cx: x(0), cy: y(vals[0]), r: 4, fill: tc().leader });   // one event: a dot
+    // Invisible hover strips, one per event, for the popup.
+    if (team) vals.forEach(function (v, i) {
+      var x0 = i === 0 ? 0 : (x(i - 1) + x(i)) / 2, x1 = i === n - 1 ? W : (x(i) + x(i + 1)) / 2;
+      var r = svgEl(svg, "rect", { x: x0, y: 0, width: Math.max(1, x1 - x0), height: H, fill: "transparent" });
+      r.addEventListener("mouseenter", function (ev) { showTipNode(trendTip(team, i), ev.clientX, ev.clientY); });
+      r.addEventListener("mousemove", function (ev) { if (tipEl) placeTip(ev.clientX, ev.clientY); });
+      r.addEventListener("mouseleave", hideTip);
+      r.addEventListener("click", function (ev) { ev.stopPropagation(); showTipNode(trendTip(team, i), ev.clientX, ev.clientY); });
+    });
     return svg;
   }
   function trendLabels(vals) {   // x-axis numbers and the best week, as HTML so text does not stretch
@@ -934,7 +1012,7 @@
     k1.appendChild(el("div", "num", "#" + (me && me.rank ? me.rank : "-"))); k1.appendChild(el("div", "lbl", "of " + M.teams.length));
     var k2 = el("div", "kc"); k2.appendChild(el("div", "money", money(me ? me.earnings : 0)));
     k2.appendChild(el("div", "lbl", "Total through " + M.events.length + " event" + (M.events.length === 1 ? "" : "s")));
-    var tr = el("div", "trend"), vals = series(team); tr.appendChild(trendChart(vals)); tr.appendChild(trendLabels(vals));
+    var tr = el("div", "trend"), vals = series(team); tr.appendChild(trendChart(vals, team)); tr.appendChild(trendLabels(vals));
     cards.appendChild(k1); cards.appendChild(k2); cards.appendChild(tr); box.appendChild(cards);
 
     if (!M.events.length) { box.appendChild(el("div", "note", "No results yet.")); view.appendChild(box); return; }
@@ -949,12 +1027,7 @@
     box.appendChild(h);
     if (!D.closed) box.appendChild(lineupsNote());
     else {
-      var golfers = (M.lineup[team] || []).map(key);
-      var counts = M.events.map(function (e) {
-        var f = M.finish[e.name] || {}, inF = 0, made = 0;
-        golfers.forEach(function (g) { if (f[g] != null) { inF++; if (!MISSED[f[g].toUpperCase()]) made++; } });
-        return { e: e, inF: inF, made: made };
-      });
+      var counts = cutCounts(team);
       var max = Math.max.apply(null, counts.map(function (c) { return c.inF; }).concat([1]));
       var mc = el("div", "mc"), xs = el("div", "mcx");
       counts.forEach(function (c, i) {
@@ -964,7 +1037,7 @@
         if (c.inF > c.made) { var a = el("div", "in"); a.style.height = ((c.inF - c.made) * unit) + "px"; st.appendChild(a); }
         if (c.made) { var b = el("div", "made"); b.style.height = (c.made * unit) + "px"; st.appendChild(b); }
         col.appendChild(st);
-        attachTip(col, function () { return [c.e.name, ["In the field", String(c.inF)], ["Made the cut", String(c.made)]]; });
+        attachNodeTip(col, function () { return cutTip(team, c); });
         mc.appendChild(col); xs.appendChild(el("div", null, String(i + 1)));
       });
       box.appendChild(mc); box.appendChild(xs);
@@ -995,6 +1068,12 @@
       svgEl(svg, "text", { x: x(0) - 6, y: y(mine[0]) + 16, "text-anchor": "end", "font-size": "14", "font-weight": "700", fill: "#ed7437" }, String(mine[0]));
       svgEl(svg, "text", { x: x(n - 1) + 6, y: y(mine[n - 1]) + 5, "font-size": "14", "font-weight": "700", fill: "#ed7437" }, String(mine[n - 1]));
     }
+    // Invisible hover strips, one per event, for the popup.
+    M.events.forEach(function (e, i) {
+      var x0 = i === 0 ? 0 : (x(i - 1) + x(i)) / 2, x1 = i === n - 1 ? W : (x(i) + x(i + 1)) / 2;
+      var r = svgEl(svg, "rect", { x: x0, y: 0, width: Math.max(1, x1 - x0), height: H, fill: "transparent" });
+      attachNodeTip(r, function () { return rankTip(team, i, mine[i]); });
+    });
     var wr = el("div", "wr"); wr.appendChild(svg); box.appendChild(wr);
     box.appendChild(el("div", "cap", "Orange: " + team + ". Grey: every other team. Green band: the payout spots (top " + pc.n + ")."));
   }
