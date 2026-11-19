@@ -395,7 +395,9 @@
     });
     tipEl.style.display = "block"; placeTip(x, y);
   }
-  function hideTip() { if (tipEl) tipEl.style.display = "none"; }
+  var outlineEl = null;   // hover outline on a pie slice
+  function clearOutline() { if (outlineEl && outlineEl.parentNode) outlineEl.parentNode.removeChild(outlineEl); outlineEl = null; }
+  function hideTip() { if (tipEl) tipEl.style.display = "none"; clearOutline(); }
   function attachTip(node, rowsFn) {
     node.setAttribute("data-tip", "1");
     node.addEventListener("mouseenter", function (e) { showTip(rowsFn(), e.clientX, e.clientY); });
@@ -737,18 +739,23 @@
       Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
       svg.appendChild(n);
       if (item) {
+        // The outline is a separate copy drawn on top (moving the slice itself confuses the browser's hover tracking).
         var show = function (e) {
-          n.setAttribute("stroke", hl); n.setAttribute("stroke-width", "2.5"); svg.appendChild(n);   // bring to front, outline
+          clearOutline();
+          var o = n.cloneNode(false);
+          o.setAttribute("fill", "none"); o.setAttribute("stroke", hl); o.setAttribute("stroke-width", "2.5");
+          o.style.pointerEvents = "none"; svg.appendChild(o); outlineEl = o;
           showTipNode(pieTip(team, teamTotal, items, item), e.clientX, e.clientY);
         };
         n.style.cursor = "default";
         n.addEventListener("mouseenter", show);
         n.addEventListener("mousemove", function (e) { if (tipEl) placeTip(e.clientX, e.clientY); });
-        n.addEventListener("mouseleave", function () { n.setAttribute("stroke", edge); n.setAttribute("stroke-width", "1"); hideTip(); });
+        n.addEventListener("mouseleave", hideTip);
         n.addEventListener("click", function (e) { e.stopPropagation(); show(e); });
       }
       return n;
     }
+    svg.addEventListener("mouseleave", hideTip);
     if (!total) { add("circle", { cx: C, cy: C, r: R, fill: "none", stroke: tc().seg, "stroke-width": "1" }); return svg; }
     var a = -Math.PI / 2;
     items.filter(function (i) { return i.value > 0; }).forEach(function (i) {

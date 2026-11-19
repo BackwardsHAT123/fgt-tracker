@@ -145,3 +145,4 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Tom chose "bringing his total to" for the Weekly Results popup (PGA Tour only), matching his template.
 
 - Top Teams pie slice popup (Tom's Tableau template): team name, "Team Total" (green), then Golfer / Points / Total Golfer Earnings for the hovered slice, then a table of all the team's golfers (points, season earnings bar in point colour), hovered golfer's row bold. The hovered slice gets a thick outline. Tap works on phones. `showTipNode` added for custom popup content.
+- Fix (Tom): pie slice outline stayed after hovering. Cause: the slice was moved to the front on hover, which stops the browser firing the mouse-out event. The outline is now a separate copy drawn on top and removed on mouse-out, leaving the pie, scroll, tapping elsewhere, or hovering another slice.
