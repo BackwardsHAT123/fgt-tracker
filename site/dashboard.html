@@ -230,8 +230,19 @@
     s.onchange = function () { onchange(s.value); };
     return s;
   }
-  // Stacked columns: x = point level 0-7, height = money from golfers at that level, one segment per golfer.
-  function pointChart(items, shades) {
+  // Stacked columns: x = point level 0-7, one equal-height segment per golfer. Column height = how many golfers
+  // are at that level. Darker colour = more money earned by that golfer (scaled to the biggest earner in the chart).
+  var SCALE = { green: ["#e6f3e6", "#2a6b2e"], purple: ["#ece2f4", "#4b0a7d"], blue: ["#e3eefb", "#1f6fd6"] };
+  function mix(c1, c2, t) {
+    function h(c, i) { return parseInt(c.slice(1 + i * 2, 3 + i * 2), 16); }
+    var out = "#";
+    for (var i = 0; i < 3; i++) {
+      var v = Math.round(h(c1, i) + (h(c2, i) - h(c1, i)) * t).toString(16);
+      out += v.length < 2 ? "0" + v : v;
+    }
+    return out;
+  }
+  function pointChart(items, cls) {
     var NS = "http://www.w3.org/2000/svg", W = 320, H = 150, L = 8, R = 8, T = 8, B = 24;
     var svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "pchart");
@@ -241,20 +252,22 @@
       if (text != null) n.textContent = text;
       svg.appendChild(n); return n;
     }
-    var by = {}, max = 0;
-    items.forEach(function (i) { (by[i.points] = by[i.points] || []).push(i); });
-    Object.keys(by).forEach(function (k) {
-      var t = by[k].reduce(function (s, i) { return s + i.value; }, 0); if (t > max) max = t;
+    var by = {}, maxCount = 1, maxMoney = 0;
+    items.forEach(function (i) {
+      (by[i.points] = by[i.points] || []).push(i);
+      if (i.value > maxMoney) maxMoney = i.value;
     });
-    max = max || 1;
+    Object.keys(by).forEach(function (k) { if (by[k].length > maxCount) maxCount = by[k].length; });
     var plotW = W - L - R, step = plotW / 8, bw = step * 0.9, base = H - B;
+    var unit = Math.min((base - T) / maxCount, 22);
+    var sc = SCALE[cls];
     Object.keys(by).forEach(function (k) {
-      var x = L + (Number(k) + 0.5) * step - bw / 2, y = base, segs = by[k].slice().sort(function (a, b) { return b.value - a.value; });
-      segs.forEach(function (g, i) {
-        var h = g.value / max * (base - T); if (h <= 0) return;
-        y -= h;
-        var r = mk("rect", { x: x.toFixed(1), y: y.toFixed(1), width: bw.toFixed(1), height: h.toFixed(1),
-          fill: shades[i % shades.length], stroke: "#7a7a7a", "stroke-width": "0.6" });
+      var x = L + (Number(k) + 0.5) * step - bw / 2, y = base;
+      by[k].slice().sort(function (a, b) { return b.value - a.value; }).forEach(function (g) {
+        y -= unit;
+        var t = maxMoney > 0 && g.value > 0 ? Math.sqrt(g.value / maxMoney) : 0;
+        var r = mk("rect", { x: x.toFixed(1), y: y.toFixed(1), width: bw.toFixed(1), height: unit.toFixed(1),
+          fill: g.value > 0 ? mix(sc[0], sc[1], t) : "#f2f2f2", stroke: "#8a8a8a", "stroke-width": "0.6" });
         var tt = document.createElementNS(NS, "title"); tt.textContent = g.label + ": " + money(g.value) + " (" + g.points + " pt)"; r.appendChild(tt);
       });
     });
@@ -264,12 +277,11 @@
     }
     return svg;
   }
-  var SHADES = { green: ["#9ccc9c", "#b9ddb9", "#7fb87f", "#d3ebd3"], purple: ["#9b63c4", "#c3a3dc", "#7c3aa8", "#e3d5ef"], blue: ["#6fa8ec", "#a9ccf4", "#4a8fe6", "#d3e5fa"] };
   function pointsBlock(cls, team, eventName) {
     var box = el("div");
     box.appendChild(el("div", "qhd", "What point level is the $ coming from?"));
     if (!D.closed || !team) box.appendChild(lineupsNote());
-    else box.appendChild(pointChart(golferBars(team, eventName), SHADES[cls]));
+    else box.appendChild(pointChart(golferBars(team, eventName), cls));
     return box;
   }
   function lineupsNote() {

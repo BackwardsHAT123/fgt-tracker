@@ -92,3 +92,5 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-18 (night): points-level charts and footer
 
 - Tom asked for the "What point level is the $ coming from?" charts under each Tracker column plus a footer bar ("Designed & maintained by Tom Hewett | Questions or errors? Let me know at FGT_MT@outlook.com", email taken from Tom's screenshot). Charts: stacked columns, x = point level 0-7, one segment per golfer, per column (leader season, weekly winner for the chosen event, selected team season). Hidden with the lineups until entries close. Demo lineup points are now random 1-6 so the chart has some shape. jsdom check only; Tom to eyeball.
+
+- Point-level chart revised (Tom): every golfer segment is the same height (column height = number of golfers at that level), and colour depth shows money earned (darker = more, scaled per chart to its biggest earner, square-root scale so mid earners stay distinguishable; $0 golfers light grey). jsdom check only.
