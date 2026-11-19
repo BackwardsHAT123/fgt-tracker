@@ -1068,12 +1068,34 @@
       svgEl(svg, "text", { x: x(0) - 6, y: y(mine[0]) + 16, "text-anchor": "end", "font-size": "14", "font-weight": "700", fill: "#ed7437" }, String(mine[0]));
       svgEl(svg, "text", { x: x(n - 1) + 6, y: y(mine[n - 1]) + 5, "font-size": "14", "font-weight": "700", fill: "#ed7437" }, String(mine[n - 1]));
     }
-    // Invisible hover strips, one per event, for the popup.
-    M.events.forEach(function (e, i) {
-      var x0 = i === 0 ? 0 : (x(i - 1) + x(i)) / 2, x1 = i === n - 1 ? W : (x(i) + x(i + 1)) / 2;
-      var r = svgEl(svg, "rect", { x: x0, y: 0, width: Math.max(1, x1 - x0), height: H, fill: "transparent" });
-      attachNodeTip(r, function () { return rankTip(team, i, mine[i]); });
-    });
+    // Hover anywhere: find the nearest event (x) and the team line nearest the pointer (y), highlight it, show its popup.
+    var hit = svgEl(svg, "rect", { x: 0, y: 0, width: W, height: H, fill: "transparent" }), last = "";
+    function pick(ev) {
+      var m = svg.getScreenCTM && svg.getScreenCTM(); if (!m) return null;
+      var pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; pt = pt.matrixTransform(m.inverse());
+      var i = 0; for (var k = 1; k < n; k++) if (Math.abs(x(k) - pt.x) < Math.abs(x(i) - pt.x)) i = k;
+      var want = 1 + (pt.y - T) / Math.max(1, H - T - B) * Math.max(1, N - 1), best = team, bd = Infinity;
+      M.teams.forEach(function (t) {
+        var d = Math.abs(hist[t.team][i] - want) - (t.team === team ? 0.5 : 0);   // the chosen team wins near-ties
+        if (d < bd) { bd = d; best = t.team; }
+      });
+      return { i: i, team: best };
+    }
+    function show(ev) {
+      var p = pick(ev); if (!p) return;
+      var id = p.team + "|" + p.i;
+      if (id !== last) {
+        last = id; clearOutline();
+        if (p.team !== team && n > 1) {
+          outlineEl = svgEl(svg, "polyline", { points: hist[p.team].map(function (r, j) { return x(j).toFixed(1) + "," + y(r).toFixed(1); }).join(" "),
+            fill: "none", stroke: theme() === "dark" ? "#f2eee8" : "#121310", "stroke-width": "2.5", "pointer-events": "none" });
+        }
+        showTipNode(rankTip(p.team, p.i, hist[p.team][p.i]), ev.clientX, ev.clientY);
+      } else if (tipEl) placeTip(ev.clientX, ev.clientY);
+    }
+    hit.addEventListener("mousemove", show);
+    hit.addEventListener("mouseleave", function () { last = ""; hideTip(); });
+    hit.addEventListener("click", function (ev) { ev.stopPropagation(); last = ""; show(ev); });
     var wr = el("div", "wr"); wr.appendChild(svg); box.appendChild(wr);
     box.appendChild(el("div", "cap", "Orange: " + team + ". Grey: every other team. Green band: the payout spots (top " + pc.n + ")."));
   }
