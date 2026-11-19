@@ -38,22 +38,25 @@
   .banner.bad { background: #fde8e8; border: 1px solid #f0b4b4; }
   .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
   @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } h1 { font-size: 24px; } }
-  .col h2 { text-align: center; font-size: 15px; letter-spacing: 1px; font-weight: 500; margin: 6px 0; text-transform: uppercase; }
+  .hd { height: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .hd h2 { font-size: 15px; letter-spacing: 1px; font-weight: 500; margin: 0; text-transform: uppercase; }
   .green h2 { color: var(--green); } .purple h2 { color: var(--purple); } .blue h2 { color: var(--blue); }
-  .card { padding: 14px 10px; text-align: center; min-height: 104px; }
+  .top { height: 214px; display: flex; flex-direction: column; margin-bottom: 4px; border-bottom: 1px solid var(--ink); }
+  .card { padding: 14px 10px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
   .green .card { background: var(--green-tint); } .purple .card { background: var(--purple-tint); } .blue .card { background: var(--blue-tint); }
   .card .team { font-size: 20px; font-weight: 800; }
   .green .team { color: var(--green-dark); } .purple .team { color: var(--purple); } .blue .team { color: var(--blue); }
   .card .small { font-size: 12px; color: var(--muted); }
   .card .big { font-size: 20px; font-weight: 800; color: var(--green); }
-  .picker { display: block; margin: 0 auto 6px; max-width: 100%; font: inherit; padding: 3px 6px; }
-  .spark { display: block; width: 100%; height: 56px; margin: 0; }
-  .bars { margin-top: 6px; }
-  .bar { display: grid; grid-template-columns: 38% 1fr; align-items: center; gap: 8px; padding: 3px 4px; font-size: 12.5px; }
+  .picker { max-width: 55%; font: inherit; font-size: 13px; padding: 2px 4px; }
+  .spark { display: block; width: 100%; height: 56px; margin: 0; flex: none; }
+  .cap { flex: none; text-align: center; font-size: 12px; color: var(--muted); padding: 2px 0; }
+  .bars { margin-top: 0; }
+  .bar { display: grid; grid-template-columns: 38% 1fr; align-items: center; gap: 8px; height: 34px; padding: 0 4px; font-size: 12.5px; }
   .bar:nth-child(odd) { background: rgba(0,0,0,.025); }
   .bar .lab { text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bar .track { display: flex; align-items: center; gap: 6px; }
-  .bar .fill { height: 18px; min-width: 2px; }
+  .bar .fill { height: 24px; min-width: 2px; }
   .bar .val { font-weight: 700; font-size: 12px; white-space: nowrap; }
   .green .fill { background: var(--green-bar); } .green .val { color: var(--green); }
   .purple .fill { background: var(--purple-bar); } .purple .val { color: var(--purple); }
@@ -222,71 +225,77 @@
   }
 
   // ---- tabs ----
+  function hd(title, pick) {
+    var h = el("div", "hd"); h.appendChild(el("h2", null, title));
+    if (pick) h.appendChild(pick);
+    return h;
+  }
   function tracker(view) {
     var wrap = el("div", "cols");
-    var leader = M.teams[0];
+    var leader = M.teams[0], hasEvents = M.events.length > 0;
 
     // overall leader
-    var c1 = el("div", "col green"); c1.appendChild(el("h2", null, "Overall Leader"));
-    var k1 = el("div", "card");
-    if (leader && M.events.length) {
+    var c1 = el("div", "col green"); c1.appendChild(hd("Overall Leader"));
+    var t1 = el("div", "top"), k1 = el("div", "card");
+    if (leader && hasEvents) {
       k1.appendChild(el("div", "team", leader.team));
       k1.appendChild(el("div", "small", "in the lead with"));
       k1.appendChild(el("div", "big", money(leader.earnings)));
     } else k1.appendChild(el("div", "small", "No results yet. The first event will show here."));
-    c1.appendChild(k1);
-    if (leader && M.events.length) {
-      c1.appendChild(spark([{ v: series(leader.team), color: "#2f7d32" }]));
-      c1.appendChild(D.closed ? bars(golferBars(leader.team, null)) : lineupsNote());
-    }
+    t1.appendChild(k1);
+    if (leader && hasEvents) t1.appendChild(spark([{ v: series(leader.team), color: "#2f7d32" }]));
+    c1.appendChild(t1);
+    if (leader && hasEvents) c1.appendChild(D.closed ? bars(golferBars(leader.team, null)) : lineupsNote());
     wrap.appendChild(c1);
 
     // weekly winner
-    var c2 = el("div", "col purple"); c2.appendChild(el("h2", null, "Weekly Winner"));
-    if (M.events.length) {
+    var c2 = el("div", "col purple"), pick2 = null, top = [];
+    if (hasEvents) {
       if (!state.event) state.event = M.events[M.events.length - 1].name;
-      c2.appendChild(picker(M.events.map(function (e) { return { label: e.name, value: e.name }; }), state.event,
-        function (v) { state.event = v; draw(); }));
-      var rows = (M.perEvent[state.event] || []).slice().sort(function (a, b) { return b.earnings - a.earnings; });
-      var top = rows.filter(function (r) { return r.rank === 1 && r.earnings > 0; });
-      var k2 = el("div", "card");
+      pick2 = picker(M.events.map(function (e) { return { label: e.name, value: e.name }; }), state.event,
+        function (v) { state.event = v; draw(); });
+    }
+    c2.appendChild(hd("Weekly Winner", pick2));
+    var t2 = el("div", "top"), k2 = el("div", "card");
+    if (hasEvents) {
+      var rows = M.perEvent[state.event] || [];
+      top = rows.filter(function (r) { return r.rank === 1 && r.earnings > 0; });
       if (top.length) {
         k2.appendChild(el("div", "team", top.map(function (t) { return t.team; }).join(" & ")));
         k2.appendChild(el("div", "small", (top.length > 1 ? "split the pot at " : "won at ") + state.event));
         k2.appendChild(el("div", "big", "with " + money(top[0].earnings)));
       } else k2.appendChild(el("div", "small", "No winner yet for this event."));
-      c2.appendChild(k2);
-      if (top.length) {
-        if (D.closed) c2.appendChild(bars(golferBars(top[0].team, state.event)));
-        else c2.appendChild(lineupsNote());
-      }
-    } else c2.appendChild(el("div", "card")).appendChild(el("div", "small", "Waiting on the first event."));
+    } else k2.appendChild(el("div", "small", "Waiting on the first event."));
+    t2.appendChild(k2); c2.appendChild(t2);
+    if (top.length) c2.appendChild(D.closed ? bars(golferBars(top[0].team, state.event)) : lineupsNote());
     wrap.appendChild(c2);
 
     // user selection
-    var c3 = el("div", "col blue"); c3.appendChild(el("h2", null, "Your Team"));
+    var c3 = el("div", "col blue"), pick3 = null;
     if (M.teams.length) {
-      if (!state.team || !M.perTeam[state.team] && !M.teams.some(function (t) { return t.team === state.team; })) state.team = M.teams[0].team;
-      c3.appendChild(picker(M.teams.slice().sort(function (a, b) { return a.team.localeCompare(b.team); })
-        .map(function (t) { return { label: t.team, value: t.team }; }), state.team, function (v) { state.team = v; draw(); }));
-      var k3 = el("div", "card");
-      k3.appendChild(el("div", "team", state.team));
+      if (!state.team || !M.teams.some(function (t) { return t.team === state.team; })) state.team = M.teams[0].team;
+      pick3 = picker(M.teams.slice().sort(function (a, b) { return a.team.localeCompare(b.team); })
+        .map(function (t) { return { label: t.team, value: t.team }; }), state.team, function (v) { state.team = v; draw(); });
+    }
+    c3.appendChild(hd("Your Team", pick3));
+    var t3 = el("div", "top"), k3 = el("div", "card");
+    if (M.teams.length) {
       var me = M.teams.filter(function (t) { return t.team === state.team; })[0];
-      if (M.events.length) {
+      k3.appendChild(el("div", "team", state.team));
+      if (hasEvents) {
         var last = M.events[M.events.length - 1].name;
         k3.appendChild(el("div", "small", "season total, rank " + (me && me.rank ? "#" + me.rank : "-") + " of " + M.teams.length));
         k3.appendChild(el("div", "big", money(me ? me.earnings : 0)));
         k3.appendChild(el("div", "small", "last event (" + last + "): " + money((M.perTeam[state.team] || {})[last] || 0)));
       } else k3.appendChild(el("div", "small", "No results yet."));
-      c3.appendChild(k3);
-      if (M.events.length) {
-        c3.appendChild(spark([
-          { v: series(leader.team), color: "#9aa5b1" }, { v: series(state.team), color: "#2a8be8" }
-        ]));
-        c3.appendChild(el("div", "small note", "Your team (blue) vs the overall leader (grey), by event"));
-        c3.appendChild(D.closed ? bars(golferBars(state.team, null)) : lineupsNote());
-      }
     }
+    t3.appendChild(k3);
+    if (M.teams.length && hasEvents) {
+      t3.appendChild(el("div", "cap", "Your team (blue) vs the overall leader (grey), by event"));
+      t3.appendChild(spark([{ v: series(leader.team), color: "#9aa5b1" }, { v: series(state.team), color: "#2a8be8" }]));
+    }
+    c3.appendChild(t3);
+    if (M.teams.length && hasEvents) c3.appendChild(D.closed ? bars(golferBars(state.team, null)) : lineupsNote());
     wrap.appendChild(c3);
     view.appendChild(wrap);
   }
