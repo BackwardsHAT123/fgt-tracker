@@ -162,3 +162,11 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - `tools/pull-results.js`: reads pgatour.com's past-results page data (`__NEXT_DATA__`: the `tournament` and `pastResults` queries) instead of copying page text. Writes every golfer (finish, earnings; cuts, W/D and amateurs at $0). Stops if the event is not COMPLETED or the past results are for another tournament id/season. `--name` sets the stored name, `--halve` for the Zurich Classic.
 - Tested on the Austin Championship: 120 golfers, 64 with money, 50 cut, 5 W/D, winner Chad Ramey $1,080,000; money rows identical to the hand-built file except cents (pgatour.com data has e.g. $16,345.71 where the page showed $16,345). RSM Classic correctly refused (NOT_STARTED). Not yet used for a real post.
+
+## 2026-11-18 (night): Team Performance tab
+
+- Built from Tom's two Tableau screens. Shared header: "<Team> Performance", a Weekly Performance / Stats switch, team picker; cards for current ranking (#N of N) and season total (through N events); weekly earnings trend.
+- Weekly view: "How many golfers were in each tournament... and how many made the cut?" (grey = in the field, orange = made the cut, "made / in" label, hover shows the event); "Weekly Ranking" chart of season rank after each event, the chosen team in orange with start/end rank, every other team in grey, green band for the payout spots.
+- Stats view: Total Earnings golfer bars (grey until strokes gained groups exist) and a placeholder for the DataGolf panels (SG Total trend, Long vs Short Game, Recent Performance).
+- Made-the-cut uses finishes in Tournaments: CUT, W/D, WD, DQ, DNS, MC count as missed. Needs full-field results (pull-results.js). Lineup parts hidden until entries close.
+- Demo data now built from Austin's full field (`tools/make-demo-data.js /tmp/claude-501/fgt/austin-full.json`), so cuts appear.

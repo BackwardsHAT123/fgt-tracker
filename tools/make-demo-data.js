@@ -1,5 +1,5 @@
 // Makes site/dashboard-demo.js: FAKE teams plus the real Austin Championship money, for previewing the dashboard.
-// Usage: node tools/make-demo-data.js /path/to/austin-championship.json
+// Usage: node tools/make-demo-data.js /path/to/austin-full.json   (full field from tools/pull-results.js)
 // Demo events 2 and 3 are the Austin money reshuffled among golfers. All numbers except event 1 are invented.
 const fs = require('fs');
 const austin = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
@@ -7,12 +7,13 @@ let seed = 7;
 const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
+// Use the full field (cuts and withdrawals too) so the made-the-cut chart has something to show.
 const names = austin.rows.map(r => r.golfer);
-const money = austin.rows.map(r => r.earnings);
+const slots = austin.rows.map(r => [r.finish, r.earnings]);   // finish + money pairs, reshuffled for the invented events
 const events = [
   { event: 'Austin Championship', date: '2026-11-15', pay: austin.rows.map(r => [r.golfer, r.finish, r.earnings]) },
-  { event: 'Demo Event 2', date: '2026-11-22', pay: shuffle(names).map((n, i) => [n, 'T' + (i + 1), money[i]]) },
-  { event: 'Demo Event 3', date: '2026-11-29', pay: shuffle(names).map((n, i) => [n, 'T' + (i + 1), money[i]]) }
+  { event: 'Demo Event 2', date: '2026-11-22', pay: shuffle(names).map((n, i) => [n, slots[i][0], slots[i][1]]) },
+  { event: 'Demo Event 3', date: '2026-11-29', pay: shuffle(names).map((n, i) => [n, slots[i][0], slots[i][1]]) }
 ];
 const results = [];
 events.forEach(e => e.pay.forEach(([g, f, m]) => results.push({ event: e.event, date: e.date, golfer: g, finish: f, earnings: m })));

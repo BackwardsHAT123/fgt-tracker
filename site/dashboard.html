@@ -205,6 +205,41 @@
   .ptip .gbar { position: relative; height: 18px; }
   .ptip .gbar i { position: absolute; left: 0; top: 1px; bottom: 1px; border: 1px solid rgba(0,0,0,.3); border-radius: 3px; }
   .ptip .gbar span { position: absolute; right: 4px; top: 0; }
+  /* Team Performance */
+  .tpf .phd { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3);
+    background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); }
+  .tpf .phd h3 { margin: 0; font-size: 28px; line-height: 34px; font-weight: 500; }
+  .tpf .phd h3 b { font-weight: 700; }
+  .tpf .phd .ctl { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+  .tpf .seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-pill); overflow: hidden; }
+  .tpf .seg button { font: 500 15px/20px var(--sans); background: transparent; color: var(--ink); border: 0; padding: 7px 16px; cursor: pointer; }
+  .tpf .seg button.on { background: var(--success); color: var(--on-success); font-weight: 600; }
+  .tpf .picker { max-width: 240px; }
+  .tpf .cards { display: grid; grid-template-columns: 180px 280px 1fr; gap: var(--space-4); margin: var(--space-4) 0; }
+  @media (max-width: 860px) { .tpf .cards { grid-template-columns: 1fr 1fr; } .tpf .cards .trend { grid-column: 1 / -1; } }
+  .tpf .kc { background: var(--green-tint); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3); text-align: center; display: flex; flex-direction: column; justify-content: center; }
+  .tpf .kc .lbl { color: var(--muted); font-size: 15px; }
+  .tpf .kc .num { font-size: 44px; line-height: 50px; font-weight: 700; }
+  .tpf .kc .money { font-size: 36px; line-height: 44px; font-weight: 700; color: var(--green); }
+  .tpf .trend { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); }
+  .tpf .trend svg { display: block; width: 100%; height: 130px; }
+  .tpf h4 { text-align: center; font-size: 18px; line-height: 24px; font-weight: 600; margin: var(--space-5) 0 var(--space-2); }
+  .tpf h4 .inf { color: var(--muted); } .tpf h4 .cutw { color: var(--accent-text); }
+  .tpf .mc { display: flex; align-items: stretch; height: 230px; border-bottom: 1px solid var(--border); }
+  .tpf .mc .ev { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding: 0 2px; }
+  .tpf .mc .ev:nth-child(even) { background: var(--blue-tint); }
+  .tpf .mc .lab { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px; font-weight: 600; color: var(--danger); margin-bottom: 4px; white-space: nowrap; }
+  .tpf .mc .stack { width: 78%; max-width: 34px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .tpf .mc .in { background: color-mix(in srgb, var(--muted) 45%, transparent); border: 1px solid var(--border); border-bottom: 0; }
+  .tpf .mc .made { background: var(--accent); border: 1px solid var(--border); }
+  .tpf .mcx { display: flex; } .tpf .mcx div { flex: 1 1 0; min-width: 0; text-align: center; font-size: 12px; color: var(--muted); padding-top: 3px; }
+  .tpf .mcx div:nth-child(even) { background: var(--blue-tint); }
+  .tpf .wr svg { display: block; width: 100%; height: auto; }
+  .tpf .sgph { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  @media (max-width: 860px) { .tpf .sgph { grid-template-columns: 1fr; } }
+  .tpf .panel { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3); }
+  .tpf .panel h5 { margin: 0 0 var(--space-2); font-size: 17px; font-weight: 600; }
+  .tpf .grey { --c: var(--ink); --c-bar: color-mix(in srgb, var(--muted) 55%, transparent); }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
@@ -324,6 +359,8 @@
       (golferEvent[r.event] = golferEvent[r.event] || {})[g] = (golferEvent[r.event][g] || 0) + r.earnings;
       golferSeason[g] = (golferSeason[g] || 0) + r.earnings;
     });
+    var finish = {};    // event -> golfer(lower) -> finish ("1", "T22", "CUT", "W/D", ...)
+    D.results.forEach(function (r) { (finish[r.event] = finish[r.event] || {})[key(r.golfer)] = String(r.finish || ""); });
     var pickN = {};     // golfer(lower) -> number of teams that picked them
     D.lineups.forEach(function (l) { var k = key(l.golfer); pickN[k] = (pickN[k] || 0) + 1; });
     var names = {};     // lowercase -> display
@@ -331,7 +368,7 @@
     D.lineups.forEach(function (l) { names[key(l.golfer)] = l.golfer; });
 
     return { events: events, perTeam: perTeam, perEvent: perEvent, teams: teams, lineup: lineup,
-             golferEvent: golferEvent, golferSeason: golferSeason, names: names, pts: pts, pickN: pickN };
+             golferEvent: golferEvent, golferSeason: golferSeason, names: names, pts: pts, pickN: pickN, finish: finish };
   }
   function series(team) { return M.events.map(function (e) { return (M.perTeam[team] || {})[e.name] || 0; }); }
   function golferBars(team, eventName) {
@@ -816,6 +853,145 @@
     window.onresize = function () { if (state.tab === "top") fit(); };
   }
 
+  // ---- Team Performance ----
+  var MISSED = { "CUT": 1, "W/D": 1, "WD": 1, "DQ": 1, "DNS": 1, "MC": 1 };
+  // Season rank after each event, for every team (1 = most money so far).
+  function rankHistory() {
+    var cum = {}, out = {};
+    M.teams.forEach(function (t) { cum[t.team] = 0; out[t.team] = []; });
+    M.events.forEach(function (e) {
+      M.teams.forEach(function (t) { cum[t.team] += (M.perTeam[t.team] || {})[e.name] || 0; });
+      var vals = M.teams.map(function (t) { return cum[t.team]; });
+      M.teams.forEach(function (t) {
+        var me = cum[t.team]; out[t.team].push(1 + vals.filter(function (v) { return v > me; }).length);
+      });
+    });
+    return out;
+  }
+  function svgEl(svg, tag, attrs, text) {
+    var n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+    if (text != null) n.textContent = text;
+    svg.appendChild(n); return n;
+  }
+  function trendChart(vals) {
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"), W = 600, H = 130, L = 10, R = 10, T = 18, B = 22;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("preserveAspectRatio", "none");
+    var n = vals.length, max = Math.max.apply(null, vals.concat([1]));
+    var x = function (i) { return n === 1 ? W / 2 : L + i * (W - L - R) / (n - 1); }, y = function (v) { return H - B - v / max * (H - T - B); };
+    svgEl(svg, "line", { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: tc().axis, "stroke-width": "1", "vector-effect": "non-scaling-stroke" });
+    if (n > 1) svgEl(svg, "polyline", { points: vals.map(function (v, i) { return x(i).toFixed(1) + "," + y(v).toFixed(1); }).join(" "),
+      fill: "none", stroke: tc().leader, "stroke-width": "2.5", "vector-effect": "non-scaling-stroke" });
+    if (n === 1) svgEl(svg, "circle", { cx: x(0), cy: y(vals[0]), r: 4, fill: tc().leader });   // one event: a dot
+    return svg;
+  }
+  function trendLabels(vals) {   // x-axis numbers and the best week, as HTML so text does not stretch
+    var w = el("div"); w.style.cssText = "display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:0 4px";
+    var n = vals.length, best = vals.indexOf(Math.max.apply(null, vals.concat([0])));
+    w.appendChild(el("span", null, n ? "Event 1" : ""));
+    if (n) w.appendChild(el("span", null, "Best: event " + (best + 1) + " (" + money(vals[best] || 0) + ")"));
+    w.appendChild(el("span", null, n ? "Event " + n : ""));
+    return w;
+  }
+
+  function teamPerformance(view) {
+    var box = el("div", "tpf");
+    if (!M.teams.length) { box.appendChild(el("div", "note", "No teams yet.")); view.appendChild(box); return; }
+    if (!state.pTeam || !M.teams.some(function (t) { return t.team === state.pTeam; })) state.pTeam = state.team || M.teams[0].team;
+    if (!state.pView) state.pView = "weekly";
+    var team = state.pTeam, me = M.teams.filter(function (t) { return t.team === team; })[0];
+
+    var hd = el("div", "phd"), h = el("h3"); h.appendChild(el("b", null, team)); h.appendChild(document.createTextNode(" Performance"));
+    hd.appendChild(h);
+    var ctl = el("div", "ctl"), seg = el("div", "seg");
+    [["weekly", "Weekly Performance"], ["stats", "Stats"]].forEach(function (v) {
+      var b = el("button", state.pView === v[0] ? "on" : "", v[1]); b.type = "button";
+      b.onclick = function () { state.pView = v[0]; draw(); }; seg.appendChild(b);
+    });
+    ctl.appendChild(seg);
+    ctl.appendChild(picker(M.teams.slice().sort(function (a, b) { return a.team.localeCompare(b.team); })
+      .map(function (t) { return { label: t.team, value: t.team }; }), team, function (v) { state.pTeam = v; draw(); }));
+    hd.appendChild(ctl); box.appendChild(hd);
+
+    var cards = el("div", "cards");
+    var k1 = el("div", "kc"); k1.appendChild(el("div", "lbl", "current ranking:"));
+    k1.appendChild(el("div", "num", "#" + (me && me.rank ? me.rank : "-"))); k1.appendChild(el("div", "lbl", "of " + M.teams.length));
+    var k2 = el("div", "kc"); k2.appendChild(el("div", "money", money(me ? me.earnings : 0)));
+    k2.appendChild(el("div", "lbl", "Total through " + M.events.length + " event" + (M.events.length === 1 ? "" : "s")));
+    var tr = el("div", "trend"), vals = series(team); tr.appendChild(trendChart(vals)); tr.appendChild(trendLabels(vals));
+    cards.appendChild(k1); cards.appendChild(k2); cards.appendChild(tr); box.appendChild(cards);
+
+    if (!M.events.length) { box.appendChild(el("div", "note", "No results yet.")); view.appendChild(box); return; }
+    if (state.pView === "weekly") perfWeekly(box, team); else perfStats(box, team);
+    view.appendChild(box);
+  }
+
+  function perfWeekly(box, team) {
+    var h = el("h4"); h.appendChild(document.createTextNode("How many golfers were "));
+    h.appendChild(el("span", "inf", "in each tournament")); h.appendChild(document.createTextNode("...and how many "));
+    h.appendChild(el("span", "cutw", "made the cut")); h.appendChild(document.createTextNode("?"));
+    box.appendChild(h);
+    if (!D.closed) box.appendChild(lineupsNote());
+    else {
+      var golfers = (M.lineup[team] || []).map(key);
+      var counts = M.events.map(function (e) {
+        var f = M.finish[e.name] || {}, inF = 0, made = 0;
+        golfers.forEach(function (g) { if (f[g] != null) { inF++; if (!MISSED[f[g].toUpperCase()]) made++; } });
+        return { e: e, inF: inF, made: made };
+      });
+      var max = Math.max.apply(null, counts.map(function (c) { return c.inF; }).concat([1]));
+      var mc = el("div", "mc"), xs = el("div", "mcx");
+      counts.forEach(function (c, i) {
+        var col = el("div", "ev");
+        col.appendChild(el("div", "lab", c.made + " / " + c.inF));
+        var st = el("div", "stack"), unit = 170 / max;
+        if (c.inF > c.made) { var a = el("div", "in"); a.style.height = ((c.inF - c.made) * unit) + "px"; st.appendChild(a); }
+        if (c.made) { var b = el("div", "made"); b.style.height = (c.made * unit) + "px"; st.appendChild(b); }
+        col.appendChild(st);
+        attachTip(col, function () { return [c.e.name, ["In the field", String(c.inF)], ["Made the cut", String(c.made)]]; });
+        mc.appendChild(col); xs.appendChild(el("div", null, String(i + 1)));
+      });
+      box.appendChild(mc); box.appendChild(xs);
+    }
+
+    box.appendChild(el("h4", null, "Weekly Ranking"));
+    var hist = rankHistory(), n = M.events.length, N = M.teams.length, pc = paidCount();
+    var W = 1000, H = 380, L = 44, R = 30, T = 14, B = 26;
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    var x = function (i) { return n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1); };
+    var y = function (r) { return T + (r - 1) / Math.max(1, N - 1) * (H - T - B); };
+    svgEl(svg, "rect", { x: L, y: y(1) - 4, width: W - L - R, height: Math.max(0, y(Math.min(pc.n, N)) - y(1)) + 8,
+      fill: theme() === "dark" ? "#243026" : "#e5eedf" });
+    var step = N <= 50 ? 10 : 50;
+    [1].concat(Array.apply(null, Array(Math.floor(N / step))).map(function (_, i) { return (i + 1) * step; })).forEach(function (r) {
+      svgEl(svg, "text", { x: L - 8, y: y(r) + 4, "text-anchor": "end", "font-size": "12", fill: tc().axis }, String(r));
+    });
+    M.events.forEach(function (e, i) { svgEl(svg, "text", { x: x(i), y: H - 6, "text-anchor": "middle", "font-size": "12", fill: tc().axis }, String(i + 1)); });
+    function line(rs, color, w, op) {
+      if (n > 1) svgEl(svg, "polyline", { points: rs.map(function (r, i) { return x(i).toFixed(1) + "," + y(r).toFixed(1); }).join(" "),
+        fill: "none", stroke: color, "stroke-width": w, opacity: op });
+    }
+    M.teams.forEach(function (t) { if (t.team !== team) line(hist[t.team], tc().other, 1, 0.45); });
+    var mine = hist[team] || [];
+    line(mine, "#ed7437", 3.5, 1);
+    mine.forEach(function (r, i) { svgEl(svg, "circle", { cx: x(i), cy: y(r), r: 4, fill: "#ed7437" }); });
+    if (mine.length) {
+      svgEl(svg, "text", { x: x(0) - 6, y: y(mine[0]) + 16, "text-anchor": "end", "font-size": "14", "font-weight": "700", fill: "#ed7437" }, String(mine[0]));
+      svgEl(svg, "text", { x: x(n - 1) + 6, y: y(mine[n - 1]) + 5, "font-size": "14", "font-weight": "700", fill: "#ed7437" }, String(mine[n - 1]));
+    }
+    var wr = el("div", "wr"); wr.appendChild(svg); box.appendChild(wr);
+    box.appendChild(el("div", "cap", "Orange: " + team + ". Grey: every other team. Green band: the payout spots (top " + pc.n + ")."));
+  }
+
+  function perfStats(box, team) {
+    var grid = el("div", "sgph");
+    var p1 = el("div", "panel grey"); p1.appendChild(el("h5", null, "Total Earnings this season"));
+    if (!D.closed) p1.appendChild(lineupsNote()); else p1.appendChild(bars(golferBars(team, null), false, golferTip(null)));
+    var p2 = el("div", "panel"); p2.appendChild(el("h5", null, "Strokes gained"));
+    p2.appendChild(el("div", "note", "Strokes Gained Total trend, Long Game vs Short Game, and Recent Performance arrive once the DataGolf stats are connected. The earnings bars will then take the colour of each golfer's strokes gained group."));
+    grid.appendChild(p1); grid.appendChild(p2); box.appendChild(grid);
+  }
+
   // How many teams picked each golfer, most-picked first.
   function pickCounts() {
     var by = {};
@@ -898,7 +1074,7 @@
   }
 
   var TABS = [["tracker", "Tracker", tracker], ["weekly", "Weekly Results", weekly],
-              ["leaderboard", "Leaderboard", leaderboard], ["top", "Top Teams", topTeams], ["winners", "Winner List", winners],
+              ["leaderboard", "Leaderboard", leaderboard], ["top", "Top Teams", topTeams], ["perf", "Team Performance", teamPerformance], ["winners", "Winner List", winners],
               ["picked", "How Many Times Picked?", picked],
               ["lineups", "Lineup Analysis", lineupAnalysis]];
   function draw() {
