@@ -375,12 +375,12 @@
   }
   document.addEventListener("click", hideTip);
   window.addEventListener("scroll", hideTip, { passive: true });
-  // Popup rows for a golfer: name, season earnings, points, and (when given) money at the selected event.
+  // Popup rows for a golfer: name, points, season earnings, and (when given) money at the selected event.
   function golferTip(eventName) {
     return function (i) {
       var k = key(i.label), rows = [i.label,
-        ["Season earnings", money(M.golferSeason[k] || 0)],
-        ["Points", String(i.points || "-")]];
+        ["Points", String(i.points || "-")],
+        ["Season earnings", money(M.golferSeason[k] || 0)]];
       if (eventName) rows.push([eventName, money((M.golferEvent[eventName] || {})[k] || 0)]);
       return rows;
     };
