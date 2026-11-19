@@ -188,3 +188,10 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - More list: open on load and stays open after searching; newspaper-style columns (4 desktop, 3 under 900px, 2 under 600px); alphabetical by last name (suffixes like Jr. ignored) on the page only, so `players.js` order is untouched. My idea, not asked for, to make names easier to find.
 - jsdom check: list open, 123 names, sorted, search and picking still work. Weekly Ranking chart popups for every team line also confirmed live in Chrome.
 - Tom confirmed the team picker (team-picker.html, open 1-pointer list in columns) looks good on his phone.
+
+## 2026-11-19: custom domain fgt-mt.com
+
+- Tom bought fgt-mt.com and fgt-mt.net at Cloudflare. He added the GitHub Pages DNS records for fgt-mt.com; they were first Proxied (orange), which returned Cloudflare's addresses, so he switched them to DNS only. Once Cloudflare's name servers and 1.1.1.1/8.8.8.8 all returned GitHub's addresses, I set the Pages custom domain with `gh api -X PUT repos/BackwardsHAT123/fgt-tracker/pages -f cname=fgt-mt.com`. GitHub approved the certificate within a minute (covers fgt-mt.com and www, expires 2027-02-17, auto-renews), and I set `https_enforced=true`.
+- Checked: https://fgt-mt.com/team-picker.html and /dashboard.html load; www forwards to the bare domain; old github.io links 301 to fgt-mt.com. My Mac's DNS cache still held the earlier Cloudflare-proxy addresses for a few minutes (a 404 on the bare domain via a Cloudflare IP); asking GitHub's IP directly returned the forwarding page.
+- Domain verification on GitHub (protects against takeover) shows "unverified"; optional, offered to Tom.
+- fgt-mt.net: no records yet; Tom will add 2 proxied placeholder records and a redirect rule later.
