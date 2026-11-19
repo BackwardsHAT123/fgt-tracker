@@ -151,6 +151,24 @@
   .hp .hn { position: absolute; right: 2px; top: 3px; font-weight: 600; font-size: 13px; padding: 0 4px; background: color-mix(in srgb, var(--surface) 75%, transparent); border-radius: 4px; }
   .hp .hrow.hl { outline: 2px solid var(--accent-text); z-index: 1; }
 
+  /* Lineup Analysis */
+  .la h4 { margin: var(--space-5) 0 var(--space-2); font-size: 18px; line-height: 24px; font-weight: 600; }
+  .la h4 span { color: var(--muted); font-weight: 400; }
+  .la .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); margin-top: var(--space-3); }
+  @media (max-width: 700px) { .la .stats { grid-template-columns: 1fr; } }
+  .la .stat { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .la .stat .lbl { color: var(--muted); font-size: 15px; }
+  .la .stat .num { font-size: 34px; line-height: 40px; font-weight: 700; }
+  .la .ot { border-top: 1px solid var(--border); }
+  .la .orow { display: grid; grid-template-columns: 34px minmax(150px, 1.3fr) 90px 1.7fr; gap: 10px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--hair); font-size: 14px; }
+  .la .orow.head { color: var(--muted); font-size: 13px; border-bottom: 1px solid var(--border); }
+  .la .orow .rk { font-weight: 600; text-align: right; }
+  .la .gcell { color: #121310; font-weight: 600; text-align: center; padding: 3px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid rgba(0,0,0,.2); }
+  .la .picks { text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .la .otrack { display: flex; align-items: center; gap: 8px; }
+  .la .ofill { height: 20px; border-radius: 4px; min-width: 2px; }
+  .la .opct { font-weight: 600; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  @media (max-width: 600px) { .la .orow { grid-template-columns: 26px minmax(120px, 1fr) 64px 1fr; gap: 6px; font-size: 13px; } }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
@@ -579,17 +597,60 @@
     view.appendChild(box);
   }
 
-  function picked(view) {
-    var box = el("div", "hp");
-    box.appendChild(el("h3", null, "How many times was each golfer picked?"));
-    if (!D.closed) { box.appendChild(lineupsNote()); view.appendChild(box); return; }
+  // How many teams picked each golfer, most-picked first.
+  function pickCounts() {
     var by = {};
     D.lineups.forEach(function (l) {
       var k = key(l.golfer), g = by[k] || (by[k] = { name: l.golfer, points: l.points, n: 0 });
       g.n++;
     });
-    var list = Object.keys(by).map(function (k) { return by[k]; })
+    return Object.keys(by).map(function (k) { return by[k]; })
       .sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
+  }
+
+  function lineupAnalysis(view) {
+    var box = el("div", "la");
+    box.appendChild(el("h3", null, "Lineup Analysis"));
+    if (!D.closed) { box.appendChild(lineupsNote()); view.appendChild(box); return; }
+    var list = pickCounts();
+    var teamSet = {}; D.lineups.forEach(function (l) { teamSet[l.team] = 1; });
+    var nTeams = Object.keys(teamSet).length || M.teams.length;
+    var once = list.filter(function (g) { return g.n === 1; }).length;
+
+    var stats = el("div", "stats");
+    [["Teams entered", nTeams], ["Different golfers picked", list.length], ["Golfers picked only once", once]].forEach(function (x) {
+      var c = el("div", "stat"); c.appendChild(el("div", "lbl", x[0])); c.appendChild(el("div", "num", String(x[1]))); stats.appendChild(c);
+    });
+    box.appendChild(stats);
+
+    var h = el("h4", null, "Ownership % "); h.appendChild(el("span", null, "Top 25 most picked golfers")); box.appendChild(h);
+    var t = el("div", "ot");
+    var head = el("div", "orow head");
+    ["", "Golfer (pts)", "Picked / teams", "Ownership %"].forEach(function (x) { head.appendChild(el("div", null, x)); });
+    t.appendChild(head);
+    var top = list.slice(0, 25), max = top.length ? top[0].n : 1;
+    top.forEach(function (g, i) {
+      var r = el("div", "orow");
+      r.appendChild(el("div", "rk", String(i + 1)));
+      var gc = el("div", "gcell", g.name + " (" + g.points + " pts)"); gc.style.background = PT[g.points] || "#ddd"; r.appendChild(gc);
+      r.appendChild(el("div", "picks", g.n + " / " + nTeams));
+      var pct = nTeams ? g.n / nTeams : 0;
+      var tr = el("div", "otrack"), f = el("div", "ofill");
+      f.style.width = Math.max(1, Math.round(pct * 88)) + "%";
+      f.style.background = mix("#f6e3a1", "#9b1239", max ? g.n / max : 0);   // heat: pale gold = few picks, deep red = most
+      tr.appendChild(f); tr.appendChild(el("div", "opct", (pct * 100).toFixed(1) + "%")); r.appendChild(tr);
+      t.appendChild(r);
+    });
+    if (!top.length) t.appendChild(el("div", "note", "No lineups yet."));
+    box.appendChild(t);
+    view.appendChild(box);
+  }
+
+  function picked(view) {
+    var box = el("div", "hp");
+    box.appendChild(el("h3", null, "How many times was each golfer picked?"));
+    if (!D.closed) { box.appendChild(lineupsNote()); view.appendChild(box); return; }
+    var list = pickCounts();
     box.appendChild(el("div", "sub", M.teams.length + " teams entered, " + list.length + " different golfers picked."));
     var ctl = el("div", "ctl"), inp = el("input"); inp.type = "search"; inp.placeholder = "Highlight golfer"; inp.value = state.hFind || "";
     ctl.appendChild(inp); ctl.appendChild(legend()); box.appendChild(ctl);
@@ -619,7 +680,8 @@
 
   var TABS = [["tracker", "Tracker", tracker], ["weekly", "Weekly Results", weekly],
               ["leaderboard", "Leaderboard", leaderboard], ["winners", "Winner List", winners],
-              ["picked", "How Many Times Picked?", picked]];
+              ["picked", "How Many Times Picked?", picked],
+              ["lineups", "Lineup Analysis", lineupAnalysis]];
   function draw() {
     var nav = document.getElementById("nav"); clear(nav);
     TABS.forEach(function (t) {

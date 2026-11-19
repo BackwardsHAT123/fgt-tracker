@@ -122,3 +122,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - jsdom check of toggle and charts; look to be confirmed in a real browser.
 
 - How Many Times Picked: golfer-name label background lowered from 78% to 35% surface colour so more of the point-level bar shows through (Tom).
+
+## 2026-11-18 (night): Lineup Analysis tab
+
+- Added: stat cards (Teams entered, Different golfers picked, Golfers picked only once; the "most teams from one owner" stat dropped per Tom), and "Ownership %" for the top 25 most-picked golfers: golfer cell in the point-level colour, picked / teams, and a heat bar (pale gold = fewer picks, deep red = most) with the percentage. Hidden until entries close. Shares a `pickCounts()` helper with How Many Times Picked. Demo lineups give a golfer random points per team, so the demo can show the same golfer at different levels; real data will not.
+- Still to build: Top (paid) Teams pies, Team Performance, Past Finishes.
