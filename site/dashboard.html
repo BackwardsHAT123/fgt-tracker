@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FGT Tracker</title>
+<link rel="icon" href="favicon.png">
+<style>
+  :root {
+    --ink: #1f2933;
+    --muted: #6b7785;
+    --line: #d9dee3;
+    --bg: #ffffff;
+    --green: #2f7d32;
+    --green-dark: #1b5e20;
+    --green-bar: #7cc27e;
+    --green-tint: #f1f6ea;
+    --purple: #5b1a8b;
+    --purple-bar: #8e4fc0;
+    --purple-tint: #f4f0f8;
+    --blue: #2a8be8;
+    --blue-bar: #6fb2f2;
+    --blue-tint: #eef4fb;
+    --gold: #f28e2b;
+    --sans: "Tableau Book", "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 48px; }
+  h1 { font-size: 34px; letter-spacing: .5px; margin: 18px 0 6px; text-transform: uppercase; font-weight: 800; }
+  .rule { border-top: 2px solid var(--ink); margin-bottom: 10px; }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+  nav button { background: none; border: 0; padding: 8px 14px; font: inherit; cursor: pointer; color: var(--muted); border-bottom: 3px solid transparent; }
+  nav button.on { color: var(--ink); border-bottom-color: var(--green); font-weight: 700; }
+  .banner { padding: 8px 12px; margin-bottom: 12px; font-size: 13px; border-radius: 3px; }
+  .banner.demo { background: #fff4d6; border: 1px solid #f0c85a; }
+  .banner.info { background: var(--blue-tint); border: 1px solid #c8dcf2; }
+  .banner.bad { background: #fde8e8; border: 1px solid #f0b4b4; }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } h1 { font-size: 24px; } }
+  .col h2 { text-align: center; font-size: 15px; letter-spacing: 1px; font-weight: 500; margin: 6px 0; text-transform: uppercase; }
+  .green h2 { color: var(--green); } .purple h2 { color: var(--purple); } .blue h2 { color: var(--blue); }
+  .card { padding: 14px 10px; text-align: center; min-height: 104px; }
+  .green .card { background: var(--green-tint); } .purple .card { background: var(--purple-tint); } .blue .card { background: var(--blue-tint); }
+  .card .team { font-size: 20px; font-weight: 800; }
+  .green .team { color: var(--green-dark); } .purple .team { color: var(--purple); } .blue .team { color: var(--blue); }
+  .card .small { font-size: 12px; color: var(--muted); }
+  .card .big { font-size: 20px; font-weight: 800; color: var(--green); }
+  .picker { display: block; margin: 0 auto 6px; max-width: 100%; font: inherit; padding: 3px 6px; }
+  .spark { display: block; width: 100%; height: 56px; margin: 0; }
+  .bars { margin-top: 6px; }
+  .bar { display: grid; grid-template-columns: 38% 1fr; align-items: center; gap: 8px; padding: 3px 4px; font-size: 12.5px; }
+  .bar:nth-child(odd) { background: rgba(0,0,0,.025); }
+  .bar .lab { text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar .track { display: flex; align-items: center; gap: 6px; }
+  .bar .fill { height: 18px; min-width: 2px; }
+  .bar .val { font-weight: 700; font-size: 12px; white-space: nowrap; }
+  .green .fill { background: var(--green-bar); } .green .val { color: var(--green); }
+  .purple .fill { background: var(--purple-bar); } .purple .val { color: var(--purple); }
+  .blue .fill { background: var(--blue-bar); } .blue .val { color: var(--blue); }
+  .note { text-align: center; color: var(--muted); font-size: 12.5px; padding: 18px 8px; }
+  /* Leaderboard */
+  .lb h3 { margin: 6px 0 0; font-size: 20px; }
+  .lb .sub { color: var(--green); font-size: 12.5px; margin-bottom: 8px; }
+  .lb .find { margin: 6px 0 10px; }
+  .lb .find input { font: inherit; padding: 5px 8px; width: 260px; max-width: 100%; border: 1px solid var(--line); }
+  .row { display: grid; grid-template-columns: 54px 1fr; align-items: center; border-bottom: 1px solid #eef0f2; }
+  .row .rk { font-weight: 700; padding: 4px 6px; }
+  .row .track { position: relative; height: 24px; }
+  .row .fill { position: absolute; left: 0; top: 2px; bottom: 2px; background: #a9dcab; }
+  .row.paid .fill { background: var(--green-bar); }
+  .row .nm { position: absolute; left: 6px; top: 3px; font-weight: 700; font-size: 12.5px; white-space: nowrap; max-width: 70%; overflow: hidden; text-overflow: ellipsis; }
+  .row .am { position: absolute; right: 4px; top: 4px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.7); padding: 0 3px; }
+  .row.hl .nm { background: #ffe9a8; }
+  .cut { border-top: 2px dashed var(--green); margin: 6px 0; color: var(--green); font-size: 12px; text-align: center; }
+  .foot { color: var(--muted); font-size: 12px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">2027 Fantasy Golf Tour Tracker</h1>
+  <div class="rule"></div>
+  <div id="banners"></div>
+  <nav id="nav"></nav>
+  <main id="view"></main>
+  <div class="foot" id="foot"></div>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  "use strict";
+  var C = window.FGT_CONFIG || {};
+  var params = new URLSearchParams(location.search);
+  var demo = params.get("demo");
+  var D = null;                       // raw feed
+  var M = null;                       // derived model
+  var state = { tab: "tracker", event: null, team: null, find: "" };
+
+  // ---- helpers (all text goes in via textContent, so team names can never inject HTML) ----
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function money(n) { return "$" + Math.round(n).toLocaleString("en-US"); }
+  function key(s) { return String(s).toLowerCase(); }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+
+  // ---- load ----
+  function load() {
+    if (demo) {
+      var s = document.createElement("script");
+      s.src = "dashboard-demo.js";
+      s.onload = function () {
+        D = JSON.parse(JSON.stringify(window.FGT_DEMO));
+        if (demo === "pre") { D.closed = false; D.lineups = []; }   // preview the "entries still open" state
+        start();
+      };
+      s.onerror = function () { fail("Demo data file not found."); };
+      document.head.appendChild(s);
+      return;
+    }
+    if (!C.SCRIPT_URL) { fail("Not set up yet: add the Apps Script URL in config.js."); return; }
+    fetch(C.SCRIPT_URL + "?view=dashboard")
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (!j || !j.ok) throw new Error("bad"); D = j; start(); })
+      .catch(function () { fail("Could not load the standings right now. Try again in a minute."); });
+  }
+  function fail(msg) { $b("bad", msg); }
+  function $b(kind, msg) {
+    var b = el("div", "banner " + kind, msg);
+    document.getElementById("banners").appendChild(b);
+  }
+
+  // ---- model ----
+  function build() {
+    var ev = {};
+    D.results.forEach(function (r) {
+      var e = ev[r.event] || (ev[r.event] = { name: r.event, date: r.date || "" });
+      if (r.date && (!e.date || r.date < e.date)) e.date = r.date;
+    });
+    D.eventScores.forEach(function (r) { if (!ev[r.event]) ev[r.event] = { name: r.event, date: "" }; });
+    var events = Object.keys(ev).map(function (k) { return ev[k]; })
+      .sort(function (a, b) { return (a.date || "~") < (b.date || "~") ? -1 : (a.date || "~") > (b.date || "~") ? 1 : a.name < b.name ? -1 : 1; });
+
+    var perTeam = {};   // team -> event -> earnings
+    var perEvent = {};  // event -> [rows]
+    D.eventScores.forEach(function (r) {
+      (perTeam[r.team] = perTeam[r.team] || {})[r.event] = r.earnings;
+      (perEvent[r.event] = perEvent[r.event] || []).push(r);
+    });
+    var teams = D.standings.slice().sort(function (a, b) { return (a.rank || 9999) - (b.rank || 9999) || b.earnings - a.earnings; });
+
+    var lineup = {};    // team -> [golfer]
+    D.lineups.forEach(function (l) { (lineup[l.team] = lineup[l.team] || []).push(l.golfer); });
+    var golferEvent = {}; // event -> golfer(lower) -> earnings
+    var golferSeason = {};
+    D.results.forEach(function (r) {
+      var g = key(r.golfer);
+      (golferEvent[r.event] = golferEvent[r.event] || {})[g] = (golferEvent[r.event][g] || 0) + r.earnings;
+      golferSeason[g] = (golferSeason[g] || 0) + r.earnings;
+    });
+    var names = {};     // lowercase -> display
+    D.results.forEach(function (r) { names[key(r.golfer)] = r.golfer; });
+    D.lineups.forEach(function (l) { names[key(l.golfer)] = l.golfer; });
+
+    return { events: events, perTeam: perTeam, perEvent: perEvent, teams: teams, lineup: lineup,
+             golferEvent: golferEvent, golferSeason: golferSeason, names: names };
+  }
+  function series(team) { return M.events.map(function (e) { return (M.perTeam[team] || {})[e.name] || 0; }); }
+  function golferBars(team, eventName) {
+    var list = M.lineup[team] || [];
+    var src = eventName ? (M.golferEvent[eventName] || {}) : M.golferSeason;
+    return list.map(function (g) { return { label: M.names[key(g)] || g, value: src[key(g)] || 0 }; })
+      .sort(function (a, b) { return b.value - a.value; });
+  }
+
+  // ---- drawing blocks ----
+  function bars(items) {
+    var box = el("div", "bars");
+    var max = items.reduce(function (m, i) { return Math.max(m, i.value); }, 0) || 1;
+    items.forEach(function (i) {
+      var row = el("div", "bar");
+      row.appendChild(el("div", "lab", i.label));
+      var t = el("div", "track");
+      var f = el("div", "fill"); f.style.width = Math.max(1, Math.round(i.value / max * 70)) + "%";
+      t.appendChild(f); t.appendChild(el("div", "val", money(i.value)));
+      row.appendChild(t); box.appendChild(row);
+    });
+    return box;
+  }
+  function spark(lines) {
+    var NS = "http://www.w3.org/2000/svg", w = 300, h = 56, pad = 4;
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + w + " " + h); svg.setAttribute("preserveAspectRatio", "none"); svg.setAttribute("class", "spark");
+    var max = 1; lines.forEach(function (l) { l.v.forEach(function (x) { if (x > max) max = x; }); });
+    lines.forEach(function (l) {
+      var n = l.v.length; if (n < 1) return;
+      var pts = l.v.map(function (x, i) {
+        var px = n === 1 ? w / 2 : pad + i * (w - 2 * pad) / (n - 1);
+        return px.toFixed(1) + "," + (h - pad - x / max * (h - 2 * pad)).toFixed(1);
+      }).join(" ");
+      var pl = document.createElementNS(NS, "polyline");
+      pl.setAttribute("points", pts); pl.setAttribute("fill", "none"); pl.setAttribute("stroke", l.color);
+      pl.setAttribute("stroke-width", "2"); pl.setAttribute("vector-effect", "non-scaling-stroke");
+      svg.appendChild(pl);
+    });
+    return svg;
+  }
+  function picker(options, current, onchange) {
+    var s = el("select", "picker");
+    options.forEach(function (o) {
+      var op = el("option", null, o.label); op.value = o.value; if (o.value === current) op.selected = true; s.appendChild(op);
+    });
+    s.onchange = function () { onchange(s.value); };
+    return s;
+  }
+  function lineupsNote() {
+    return el("div", "note", "Lineups will show once all entries are closed.");
+  }
+
+  // ---- tabs ----
+  function tracker(view) {
+    var wrap = el("div", "cols");
+    var leader = M.teams[0];
+
+    // overall leader
+    var c1 = el("div", "col green"); c1.appendChild(el("h2", null, "Overall Leader"));
+    var k1 = el("div", "card");
+    if (leader && M.events.length) {
+      k1.appendChild(el("div", "team", leader.team));
+      k1.appendChild(el("div", "small", "in the lead with"));
+      k1.appendChild(el("div", "big", money(leader.earnings)));
+    } else k1.appendChild(el("div", "small", "No results yet. The first event will show here."));
+    c1.appendChild(k1);
+    if (leader && M.events.length) {
+      c1.appendChild(spark([{ v: series(leader.team), color: "#2f7d32" }]));
+      c1.appendChild(D.closed ? bars(golferBars(leader.team, null)) : lineupsNote());
+    }
+    wrap.appendChild(c1);
+
+    // weekly winner
+    var c2 = el("div", "col purple"); c2.appendChild(el("h2", null, "Weekly Winner"));
+    if (M.events.length) {
+      if (!state.event) state.event = M.events[M.events.length - 1].name;
+      c2.appendChild(picker(M.events.map(function (e) { return { label: e.name, value: e.name }; }), state.event,
+        function (v) { state.event = v; draw(); }));
+      var rows = (M.perEvent[state.event] || []).slice().sort(function (a, b) { return b.earnings - a.earnings; });
+      var top = rows.filter(function (r) { return r.rank === 1 && r.earnings > 0; });
+      var k2 = el("div", "card");
+      if (top.length) {
+        k2.appendChild(el("div", "team", top.map(function (t) { return t.team; }).join(" & ")));
+        k2.appendChild(el("div", "small", (top.length > 1 ? "split the pot at " : "won at ") + state.event));
+        k2.appendChild(el("div", "big", "with " + money(top[0].earnings)));
+      } else k2.appendChild(el("div", "small", "No winner yet for this event."));
+      c2.appendChild(k2);
+      if (top.length) {
+        if (D.closed) c2.appendChild(bars(golferBars(top[0].team, state.event)));
+        else c2.appendChild(lineupsNote());
+      }
+    } else c2.appendChild(el("div", "card")).appendChild(el("div", "small", "Waiting on the first event."));
+    wrap.appendChild(c2);
+
+    // user selection
+    var c3 = el("div", "col blue"); c3.appendChild(el("h2", null, "Your Team"));
+    if (M.teams.length) {
+      if (!state.team || !M.perTeam[state.team] && !M.teams.some(function (t) { return t.team === state.team; })) state.team = M.teams[0].team;
+      c3.appendChild(picker(M.teams.slice().sort(function (a, b) { return a.team.localeCompare(b.team); })
+        .map(function (t) { return { label: t.team, value: t.team }; }), state.team, function (v) { state.team = v; draw(); }));
+      var k3 = el("div", "card");
+      k3.appendChild(el("div", "team", state.team));
+      var me = M.teams.filter(function (t) { return t.team === state.team; })[0];
+      if (M.events.length) {
+        var last = M.events[M.events.length - 1].name;
+        k3.appendChild(el("div", "small", "season total, rank " + (me && me.rank ? "#" + me.rank : "-") + " of " + M.teams.length));
+        k3.appendChild(el("div", "big", money(me ? me.earnings : 0)));
+        k3.appendChild(el("div", "small", "last event (" + last + "): " + money((M.perTeam[state.team] || {})[last] || 0)));
+      } else k3.appendChild(el("div", "small", "No results yet."));
+      c3.appendChild(k3);
+      if (M.events.length) {
+        c3.appendChild(spark([
+          { v: series(leader.team), color: "#9aa5b1" }, { v: series(state.team), color: "#2a8be8" }
+        ]));
+        c3.appendChild(el("div", "small note", "Your team (blue) vs the overall leader (grey), by event"));
+        c3.appendChild(D.closed ? bars(golferBars(state.team, null)) : lineupsNote());
+      }
+    }
+    wrap.appendChild(c3);
+    view.appendChild(wrap);
+  }
+
+  function leaderboard(view) {
+    var box = el("div", "lb");
+    box.appendChild(el("h3", null, "Leaderboard through " + M.events.length + " event" + (M.events.length === 1 ? "" : "s")));
+    if (D.paidSpots) box.appendChild(el("div", "sub", "Top " + D.paidSpots + " teams at the end of the season earn a payout."));
+    var f = el("div", "find"); var inp = el("input"); inp.type = "search"; inp.placeholder = "Highlight a team";
+    inp.value = state.find;
+    inp.oninput = function () { state.find = inp.value; paintRows(); };
+    f.appendChild(inp); box.appendChild(f);
+    var list = el("div"); box.appendChild(list);
+    var max = M.teams.reduce(function (m, t) { return Math.max(m, t.earnings); }, 0) || 1;
+    function paintRows() {
+      clear(list);
+      var q = key(state.find).trim();
+      M.teams.forEach(function (t, i) {
+        var r = el("div", "row" + (t.paid ? " paid" : "") + (q && key(t.team).indexOf(q) >= 0 ? " hl" : ""));
+        r.appendChild(el("div", "rk", "#" + (t.rank || i + 1)));
+        var tr = el("div", "track");
+        var fl = el("div", "fill"); fl.style.width = Math.max(1, Math.round(t.earnings / max * 100)) + "%";
+        tr.appendChild(fl); tr.appendChild(el("div", "nm", t.team)); tr.appendChild(el("div", "am", money(t.earnings)));
+        r.appendChild(tr); list.appendChild(r);
+        if (D.paidSpots && t.rank === D.paidSpots) list.appendChild(el("div", "cut", "payout line"));
+      });
+      if (!M.teams.length) list.appendChild(el("div", "note", "No teams yet."));
+    }
+    paintRows();
+    view.appendChild(box);
+  }
+
+  var TABS = [["tracker", "Tracker", tracker], ["leaderboard", "Leaderboard", leaderboard]];
+  function draw() {
+    var nav = document.getElementById("nav"); clear(nav);
+    TABS.forEach(function (t) {
+      var b = el("button", state.tab === t[0] ? "on" : "", t[1]);
+      b.onclick = function () { state.tab = t[0]; draw(); };
+      nav.appendChild(b);
+    });
+    var view = document.getElementById("view"); clear(view);
+    TABS.filter(function (t) { return t[0] === state.tab; })[0][2](view);
+  }
+  function start() {
+    M = build();
+    if (D.demo) $b("demo", "DEMO DATA: made-up teams, and real Austin Championship money (the other two events are invented).");
+    var t = C.TITLE || "2027 PGA Fantasy Golf Tour";
+    document.getElementById("title").textContent = t.replace(/PGA Fantasy Golf Tour/i, "Fantasy Golf Tour") + " Tracker";
+    if (!D.closed) $b("info", "Entries are still open, so team lineups are hidden. They appear once entries close.");
+    if (D.generated) document.getElementById("foot").textContent = "Updated " + new Date(D.generated).toLocaleString() + ". Earnings are official PGA Tour prize money.";
+    draw();
+  }
+  load();
+})();
+</script>
+</body>
+</html>

@@ -76,3 +76,11 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-18 (night): dashboard plan
 
 - Tom wants a public web dashboard in this repo, using his Tableau Public dashboard as the template (option b: I build the page). Privacy rule from Tom: team names only, no user-identifiable info. The Standings tab's "Name" column must never go into the feed. Waiting on the dashboard link from Tom before designing anything.
+
+## 2026-11-18 (night): dashboard, first slice
+
+- Studied Tom's Tableau Public dashboard (2025FGTScoring / 2026FGTTracker): tabs 2026 FGT Tracker, Weekly Results, Leaderboard, Top 37, Team Performance, Winner List, How Many Times Picked?, Past Finishes, Duplicate Teams?, Lineup Analysis (221 teams in 2026, 36 events, top 37 paid). Decisions from Tom: drop "most teams from a single owner/group" and Duplicate Teams (the entry form rejects duplicates); hide lineups until all entries close; keep the Tableau look; build home page and leaderboard first.
+- Built: `Code.gs` `doGet(?view=dashboard)` returns team name, earnings, ranks, schedule, results, golfers, and lineups only when closed (Settings B5 = Yes or DEADLINE passed). It never reads Entries and omits the Standings Name column and Entry IDs; checked with stub data. `site/dashboard.html` Tracker and Leaderboard tabs. Preview with `?demo=1` / `?demo=pre`.
+- Tested only in jsdom (text and structure, no visual check, not in a real browser; the sandbox blocks a local server and Chrome blocks file:// URLs). Tom must check the look on his phone and desktop.
+- Needed next for the remaining tabs: send every golfer in the field (cuts and withdrawals too) with each result so Team Performance (made the cut) and Past Finishes work. The Austin test only sent golfers who earned money.
+- jsdom for tests lives in the scratchpad, not the repo.

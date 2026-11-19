@@ -31,8 +31,52 @@ var TABS = {
   Schedule:    ['Event', 'Finish Date', 'Purse', 'Reference Purse 2026', 'Counts for FGT', 'Notes']
 };
 
-function doGet() {
+function doGet(e) {
+  if (e && e.parameter && e.parameter.view === 'dashboard') return json_(dashboardData_());
   return json_({ ok: true, message: 'FGT entry endpoint is running.' });
+}
+
+// Read-only data for the public dashboard (site/dashboard.html). PRIVACY: team names only. It never reads the
+// Entries tab, and it leaves out the Standings "Name" column and Entry IDs. Lineups (which golfers each team
+// picked) are withheld until entries are closed: Settings B5 = Yes, or the DEADLINE has passed.
+function dashboardData_() {
+  var set = tab_('Settings');
+  var flag = String(set.getRange(5, 2).getValue() || '').trim().toLowerCase();
+  var closed = flag === 'yes' || !!(DEADLINE && new Date() > DEADLINE);
+  var paid = set.getRange(2, 2).getValue();
+
+  function rows_(name, cols) {
+    var sh = tab_(name), last = sh.getLastRow();
+    if (last < 2) return [];
+    return sh.getRange(2, 1, last - 1, cols).getValues();
+  }
+  function day_(v) {
+    return v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(v || '');
+  }
+
+  var standings = rows_('Standings', 9).filter(function (r) { return r[2]; }).map(function (r) {
+    return { rank: r[0], team: String(r[2]), earnings: Number(r[6]) || 0, wins: Number(r[7]) || 0, paid: r[8] === 'Yes' };
+  });
+  var schedule = rows_('Schedule', 6).filter(function (r) { return r[0]; }).map(function (r) {
+    return { event: String(r[0]), finish: day_(r[1]), purse: Number(r[2]) || 0, counts: String(r[4]) };
+  });
+  var eventScores = rows_('EventScores', 6).filter(function (r) { return r[0]; }).map(function (r) {
+    return { event: String(r[0]), team: String(r[2]), earnings: Number(r[3]) || 0, rank: Number(r[4]) || 0, share: Number(r[5]) || 0 };
+  });
+  var results = rows_('Tournaments', 5).filter(function (r) { return r[0]; }).map(function (r) {
+    return { event: String(r[0]), date: day_(r[1]), golfer: String(r[2]), finish: String(r[3]), earnings: Number(r[4]) || 0 };
+  });
+  var golfers = rows_('Golfers', 2).map(function (r) { return { golfer: String(r[0]), points: Number(r[1]) || 0 }; });
+  var lineups = !closed ? [] : rows_('Lineups', 4).filter(function (r) { return r[1]; }).map(function (r) {
+    return { team: String(r[1]), golfer: String(r[2]), points: Number(r[3]) || 0 };
+  });
+
+  return {
+    ok: true, generated: new Date().toISOString(), closed: closed,
+    paidSpots: typeof paid === 'number' ? paid : 0,
+    standings: standings, schedule: schedule, eventScores: eventScores,
+    results: results, golfers: golfers, lineups: lineups
+  };
 }
 
 function doPost(e) {
@@ -151,6 +195,9 @@ function setupSheets() {
     set.getRange(3, 2).setFormula('=COUNTA(Standings!$B$2:$B$1000)');
     set.getRange(4, 2).setFormula('=ROUND(B3*0.175,0)');
     set.getRange(2, 2).setNumberFormat('0'); // leave blank until the number of paid teams is decided
+  }
+  if (!set.getRange(5, 1).getValue()) {
+    set.getRange(5, 1).setValue('Entries closed (type Yes to show lineups on the dashboard)');
   }
   refreshGolfers();
   rebuildLineupsAndStandings();
