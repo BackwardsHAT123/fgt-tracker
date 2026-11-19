@@ -114,3 +114,9 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - Added to `site/dashboard.html`: golfers ranked by how many teams picked them, in columns of 25 (#1-25, #26-50, ...), bar length by pick count and colour by point level (Tom's palette, with the saturation boost), a "Highlight golfer" search and the Points legend. Hidden until entries close, since pick counts reveal lineups. Tom confirmed the Tracker changes earlier. jsdom check only; Tom to eyeball.
 - Still to build: Top (paid) Teams pies, Team Performance, Past Finishes, Lineup Analysis.
+
+## 2026-11-18 (night): TAH design on the dashboard
+
+- Tom asked for the TAH design on most of the dashboard (fonts, headings, buttons, etc.), keeping his point palette and the tracker's green/purple/blue, plus a light/dark toggle top right. Done in `site/dashboard.html` using the same tokens as `index.html`: Outfit, pill tabs (selected = green), pill toggle button, rounded inputs, hairline cards, no shadows, dark default with light via the toggle (choice saved in localStorage). The green/purple/blue and the money-shaded point-level chart have dark-mode variants (in dark, more money = more vivid; low = dim). Chart colours are set when drawn, so toggling redraws.
+- Changed from the Tableau look: title no longer all caps, the selected team in Weekly Results is green instead of orange (TAH keeps orange for primary buttons only), footer is a hairline card. Backup of the pre-TAH page was kept in the scratchpad only.
+- jsdom check of toggle and charts; look to be confirmed in a real browser.
