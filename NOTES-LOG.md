@@ -60,3 +60,11 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-18 (late): EventScores showed $0, fixed
 
 - First real run (Austin Championship posted via the results feed): Tournaments, Lineups and Standings Season Earnings were right, but EventScores Earnings was $0 for both demo teams. Cause not confirmed in Sheets; most likely the SUMPRODUCT(SUMIFS(..., array criteria)) formula does not expand without ARRAYFORMULA. `refreshEventScores` now computes each team's earnings per event in the script (accent/case-insensitive name match) and writes numbers; Event Rank and Pot Share remain formulas. Checked with stub data in node only. Consequence: EventScores earnings update only when the results feed or FGT > Update event scores runs.
+
+## 2026-11-18 (night): 2027 schedule
+
+- Scraped pgatour.com/schedule/2027 (season picker, 2027). 36 events, Jan 21-24 (The American Express) through the Tour Championship (Aug 26-29, 2027). **2027 purses are not posted yet** (page shows "-"); the dollar figure shown under each event is last year's winner share, not a purse. Fall 2027 events are not on the page yet.
+- Added a Schedule tab (Event, Finish Date, Purse, Reference Purse 2026, Counts for FGT, Notes) and an `action:'schedule'` feed (same token, replaces the whole tab). `tools/post-results.js` sends a file with an `events` list as a schedule. Reference purses are the 2026 purse of the same event (renamed ones matched by course and defending winner: The Sentry = old Farmers, GO by Raymond James = old Wyndham, Myrtle Beach Classic). Sompo has no reference.
+- Counts for FGT: Tour Championship = No, TBD (Additional Event, Feb 18-21) = TBD, others Yes. Same-weekend pairs (separate events): Genesis + TBD (Feb 21), Truist + Myrtle Beach (May 16), Scottish Open + ISCO (Jul 11), Open + Corales (Jul 18). Zurich Classic is a team event; prize money split per golfer needs checking.
+- Re-run later when purses post: re-scrape, fill `purse`, resend the schedule JSON.
+- Tournament names used in results should match the Schedule's event names (the Austin results used the long official name).

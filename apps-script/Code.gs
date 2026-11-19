@@ -25,7 +25,10 @@ var TABS = {
   // One row per event per team (made by "Update event scores"). Highest earnings wins the event.
   EventScores: ['Tournament', 'Entry ID', 'Team Name', 'Earnings', 'Event Rank', 'Pot Share'],
   Standings:   ['Rank', 'Entry ID', 'Team Name', 'Name', 'Points Used', '# Golfers', 'Season Earnings', 'Event Wins', 'Paid Spot'],
-  Settings:    ['Setting', 'Value']
+  Settings:    ['Setting', 'Value'],
+  // The season's events, loaded from pgatour.com by the schedule feed. "Purse" stays blank until the Tour posts it;
+  // "Reference Purse 2026" is last year's purse for the same event. Same-weekend events are separate rows.
+  Schedule:    ['Event', 'Finish Date', 'Purse', 'Reference Purse 2026', 'Counts for FGT', 'Notes']
 };
 
 function doGet() {
@@ -39,6 +42,7 @@ function doPost(e) {
     var d = JSON.parse(e.postData.contents);
 
     if (d.action === 'results') return saveResults_(d); // weekly prize money from the PGA Tour page
+    if (d.action === 'schedule') return saveSchedule_(d); // season schedule from the PGA Tour page
 
     if (d.website) return json_({ ok: true }); // honeypot tripped: pretend success, store nothing
 
@@ -244,6 +248,31 @@ function saveResults_(d) {
   t.getRange('E:E').setNumberFormat('$#,##0');
   refreshEventScores();
   return json_({ ok: true, stored: fresh.length, notOnGolfersTabWithMoney: unmatched });
+}
+
+// Receives the season schedule: {action:'schedule', token, events:[{event, finish:'YYYY-MM-DD', purse, refPurse, counts, notes}]}.
+// Same token as the results feed. Replaces the whole Schedule tab, so re-sending an updated list (for example once
+// purses are posted) is safe.
+function saveSchedule_(d) {
+  var want = PropertiesService.getScriptProperties().getProperty('RESULTS_TOKEN');
+  if (!want || String(d.token) !== want) return json_({ ok: false, error: 'Not authorized.' });
+  if (!d.events || !d.events.length) return json_({ ok: false, error: 'No events.' });
+  var sh = tab_('Schedule');
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, TABS.Schedule.length).clearContent();
+  var rows = d.events.map(function (e) {
+    return [
+      clean_(e.event),
+      e.finish ? new Date(String(e.finish) + 'T12:00:00') : '',
+      e.purse ? Number(e.purse) : '',
+      e.refPurse ? Number(e.refPurse) : '',
+      clean_(e.counts),
+      clean_(e.notes)
+    ];
+  });
+  sh.getRange(2, 1, rows.length, 6).setValues(rows);
+  sh.getRange('B:B').setNumberFormat('yyyy-mm-dd');
+  sh.getRange('C:D').setNumberFormat('$#,##0');
+  return json_({ ok: true, stored: rows.length });
 }
 
 // One row per event per team, with that team's earnings and event rank. Highest earnings wins the event.
