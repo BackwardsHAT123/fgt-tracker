@@ -143,3 +143,5 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - Weekly Results golfer popup (Tom's Tableau template): name; "- is a N pointer and picked on N teams."; "- made $X this week, bringing the season total to $Y." (this week's money in green); then "<Team> earned a total of $Z this week." Template said "his total"; I wrote "the season total" to avoid assuming pronouns. Popups support bold/green text parts now; pick counts per golfer are in the model (`M.pickN`).
 - Tom chose "bringing his total to" for the Weekly Results popup (PGA Tour only), matching his template.
+
+- Top Teams pie slice popup (Tom's Tableau template): team name, "Team Total" (green), then Golfer / Points / Total Golfer Earnings for the hovered slice, then a table of all the team's golfers (points, season earnings bar in point colour), hovered golfer's row bold. The hovered slice gets a thick outline. Tap works on phones. `showTipNode` added for custom popup content.

@@ -191,6 +191,20 @@
   .ftip .g { font-weight: 700; color: var(--success); font-size: 16px; }
   .ftip .gap { margin-top: 8px; }
   .bars .bar[data-tip] { cursor: default; }
+  .ftip.wide { max-width: 470px; width: max-content; }
+  .ptip .tn { font-size: 22px; line-height: 28px; font-weight: 700; }
+  .ptip .tt { color: var(--muted); font-size: 16px; }
+  .ptip .tt b, .ptip .kv .gv { color: var(--success); font-weight: 700; }
+  .ptip .kv { display: grid; grid-template-columns: auto auto; gap: 0 14px; margin: 10px 0 10px 24px; color: var(--muted); }
+  .ptip .kv .nmv { color: var(--ink); font-weight: 700; font-size: 17px; }
+  .ptip .kv .pv { color: var(--ink); font-weight: 700; }
+  .ptip .gr { display: grid; grid-template-columns: minmax(130px, 1fr) 54px 160px; gap: 8px; align-items: center; font-size: 13px; padding: 2px 0; border-bottom: 1px solid var(--hair); }
+  .ptip .gr.h { color: var(--muted); border-bottom: 1px solid var(--border); }
+  .ptip .gr.on { font-weight: 700; background: color-mix(in srgb, var(--hair) 55%, transparent); }
+  .ptip .gr .pt { text-align: center; }
+  .ptip .gbar { position: relative; height: 18px; }
+  .ptip .gbar i { position: absolute; left: 0; top: 1px; bottom: 1px; border: 1px solid rgba(0,0,0,.3); border-radius: 3px; }
+  .ptip .gbar span { position: absolute; right: 4px; top: 0; }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
@@ -362,9 +376,14 @@
     var top = y + 16; if (top + h > window.innerHeight - 8) top = y - h - 10;
     tipEl.style.left = left + "px"; tipEl.style.top = Math.max(8, top) + "px";
   }
+  function showTipNode(node, x, y) {
+    if (!tipEl) { tipEl = el("div", "ftip"); document.body.appendChild(tipEl); }
+    clear(tipEl); tipEl.className = "ftip wide"; tipEl.appendChild(node);
+    tipEl.style.display = "block"; placeTip(x, y);
+  }
   function showTip(rows, x, y) {
     if (!tipEl) { tipEl = el("div", "ftip"); document.body.appendChild(tipEl); }
-    clear(tipEl);
+    clear(tipEl); tipEl.className = "ftip";
     rows.forEach(function (r, i) {
       if (i === 0) { tipEl.appendChild(el("div", "t1", r)); return; }
       if (r && r.parts) {
@@ -686,26 +705,59 @@
     if (D.paidSpots) return { n: D.paidSpots, placeholder: false };
     return { n: Math.round(ASSUMED_TEAMS * PAID_SHARE), placeholder: true };
   }
-  function pie(items) {
+  // Popup for a pie slice (Tom's template): team and total, the golfer's details, then the team's golfers.
+  function pieTip(team, teamTotal, items, cur) {
+    var box = el("div", "ptip");
+    box.appendChild(el("div", "tn", team));
+    var tt = el("div", "tt", "Team Total: "); tt.appendChild(el("b", null, money(teamTotal))); box.appendChild(tt);
+    var kv = el("div", "kv");
+    kv.appendChild(el("div", null, "Golfer:")); kv.appendChild(el("div", "nmv", cur.label));
+    kv.appendChild(el("div", null, "Points:")); kv.appendChild(el("div", "pv", String(cur.points || "-")));
+    kv.appendChild(el("div", null, "Total Golfer Earnings:")); kv.appendChild(el("div", "gv", money(cur.value)));
+    box.appendChild(kv);
+    var h = el("div", "gr h"); ["Golfer", "Points", "Total Earnings"].forEach(function (x, j) { h.appendChild(el("div", j === 1 ? "pt" : null, x)); });
+    box.appendChild(h);
+    var max = items.reduce(function (m, i) { return Math.max(m, i.value); }, 0) || 1;
+    items.forEach(function (i) {
+      var r = el("div", "gr" + (i.label === cur.label ? " on" : ""));
+      r.appendChild(el("div", null, i.label)); r.appendChild(el("div", "pt", String(i.points || "-")));
+      var g = el("div", "gbar"), bar = el("i"); bar.style.width = Math.max(1, Math.round(i.value / max * 100)) + "%";
+      bar.style.background = PT[i.points] || "#ddd"; g.appendChild(bar); g.appendChild(el("span", null, money(i.value)));
+      r.appendChild(g); box.appendChild(r);
+    });
+    return box;
+  }
+  function pie(items, team, teamTotal) {
     var NS = "http://www.w3.org/2000/svg", R = 56, C = 60;
     var svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 120 120");
     var total = items.reduce(function (s, i) { return s + i.value; }, 0);
-    function add(tag, attrs, tip) {
+    var edge = theme() === "dark" ? "#1c1a17" : "#ffffff", hl = theme() === "dark" ? "#f2eee8" : "#121310";
+    function add(tag, attrs, item) {
       var n = document.createElementNS(NS, tag);
       Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
-      if (tip) { var t = document.createElementNS(NS, "title"); t.textContent = tip; n.appendChild(t); }
-      svg.appendChild(n); return n;
+      svg.appendChild(n);
+      if (item) {
+        var show = function (e) {
+          n.setAttribute("stroke", hl); n.setAttribute("stroke-width", "2.5"); svg.appendChild(n);   // bring to front, outline
+          showTipNode(pieTip(team, teamTotal, items, item), e.clientX, e.clientY);
+        };
+        n.style.cursor = "default";
+        n.addEventListener("mouseenter", show);
+        n.addEventListener("mousemove", function (e) { if (tipEl) placeTip(e.clientX, e.clientY); });
+        n.addEventListener("mouseleave", function () { n.setAttribute("stroke", edge); n.setAttribute("stroke-width", "1"); hideTip(); });
+        n.addEventListener("click", function (e) { e.stopPropagation(); show(e); });
+      }
+      return n;
     }
     if (!total) { add("circle", { cx: C, cy: C, r: R, fill: "none", stroke: tc().seg, "stroke-width": "1" }); return svg; }
     var a = -Math.PI / 2;
     items.filter(function (i) { return i.value > 0; }).forEach(function (i) {
-      var tip = i.label + ": " + money(i.value) + " (" + i.points + " pt, " + Math.round(i.value / total * 100) + "%)";
       var fill = PT[i.points] || "#ddd";
-      if (i.value >= total) { add("circle", { cx: C, cy: C, r: R, fill: fill, stroke: "#fff", "stroke-width": "1" }, tip); return; }
+      if (i.value >= total) { add("circle", { cx: C, cy: C, r: R, fill: fill, stroke: edge, "stroke-width": "1" }, i); return; }
       var b = a + i.value / total * 2 * Math.PI, large = b - a > Math.PI ? 1 : 0;
       var d = "M" + C + "," + C + " L" + (C + R * Math.cos(a)).toFixed(2) + "," + (C + R * Math.sin(a)).toFixed(2) +
         " A" + R + "," + R + " 0 " + large + " 1 " + (C + R * Math.cos(b)).toFixed(2) + "," + (C + R * Math.sin(b)).toFixed(2) + " Z";
-      add("path", { d: d, fill: fill, stroke: theme() === "dark" ? "#1c1a17" : "#ffffff", "stroke-width": "1" }, tip);
+      add("path", { d: d, fill: fill, stroke: edge, "stroke-width": "1", "stroke-linejoin": "round" }, i);
       a = b;
     });
     return svg;
@@ -727,7 +779,7 @@
       cards.push(c);
       c.appendChild(el("div", "nm", "#" + (t.rank || i + 1) + ". " + t.team));
       c.appendChild(el("div", "am", money(t.earnings)));
-      c.appendChild(pie(golferBars(t.team, null)));
+      c.appendChild(pie(golferBars(t.team, null), t.team, t.earnings));
       grid.appendChild(c);
     });
     box.appendChild(grid);
