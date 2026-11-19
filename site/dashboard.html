@@ -81,7 +81,9 @@
   .pchart { display: block; width: 100%; height: auto; }
   .footbar { background: #fbfaf0; text-align: center; padding: 10px 8px; margin-top: 18px; font-size: 13.5px; color: #444; text-transform: uppercase; }
   .footbar b { color: #222; }
-  .teal .fill { background: #3bb3b3; } .teal .val { color: #1b8a8a; }
+  .pts .fill { border: 1px solid rgba(0,0,0,.28); } .pts .val { color: #333; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 12px; color: var(--muted); padding: 8px 4px; }
+  .legend i { display: inline-block; width: 14px; height: 14px; margin-right: 4px; vertical-align: -3px; border: 1px solid rgba(0,0,0,.2); }
   .wk h3 { margin: 6px 0 2px; font-size: 22px; }
   .wk .hint { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
   .wk .ctl { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin: 8px 0 12px; }
@@ -214,8 +216,18 @@
       .sort(function (a, b) { return b.value - a.value; });
   }
 
+  // Point-level colours (Tom's palette): golfers worth 1-6 points.
+  var PT = { 1: "#adbab2", 2: "#a0cdf8", 3: "#78c8c6", 4: "#ef62ee", 5: "#f0b868", 6: "#b85d58" };
+  function legend() {
+    var l = el("div", "legend"); l.appendChild(el("span", null, "Points"));
+    for (var p = 1; p <= 6; p++) {
+      var s = el("span"); var sw = el("i"); sw.style.background = PT[p]; s.appendChild(sw); s.appendChild(document.createTextNode(String(p))); l.appendChild(s);
+    }
+    return l;
+  }
+
   // ---- drawing blocks ----
-  function bars(items) {
+  function bars(items, byPoints) {
     var box = el("div", "bars");
     var max = items.reduce(function (m, i) { return Math.max(m, i.value); }, 0) || 1;
     items.forEach(function (i) {
@@ -223,6 +235,7 @@
       row.appendChild(el("div", "lab", i.label));
       var t = el("div", "track");
       var f = el("div", "fill"); f.style.width = Math.max(1, Math.round(i.value / max * 70)) + "%";
+      if (byPoints && PT[i.points]) f.style.background = PT[i.points];
       t.appendChild(f); t.appendChild(el("div", "val", money(i.value)));
       row.appendChild(t); box.appendChild(row);
     });
@@ -435,7 +448,7 @@
     var inp = el("input"); inp.type = "search"; inp.placeholder = "Team name"; inp.value = state.wFind || "";
     c2.appendChild(inp); ctl.appendChild(c1); ctl.appendChild(c2); box.appendChild(ctl);
 
-    var split = el("div", "split"), left = el("div"), right = el("div", "teal");
+    var split = el("div", "split"), left = el("div"), right = el("div", "pts");
     left.appendChild(el("div", "side-h", "Click a team to see its golfers on the right"));
     var list = el("div", "list"); left.appendChild(list);
     var max = rows.length ? rows[0].earnings : 1;
@@ -459,7 +472,8 @@
     if (!D.closed) right.appendChild(lineupsNote());
     else if (state.wTeam) {
       var gb = golferBars(state.wTeam, ev);
-      right.appendChild(gb.length ? bars(gb) : el("div", "note", "No lineup found for this team."));
+      right.appendChild(gb.length ? bars(gb, true) : el("div", "note", "No lineup found for this team."));
+      if (gb.length) right.appendChild(legend());
     }
     split.appendChild(left); split.appendChild(right); box.appendChild(split);
     view.appendChild(box);

@@ -99,3 +99,5 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - Added both to `site/dashboard.html` following Tom's Tableau tabs. Weekly Results: event picker, highlight-team search, teams ranked by that event's money (only teams that earned money show; Tableau also showed teams whose golfers all missed the cut, which needs cut rows in the results feed), click a team to see its golfers' earnings on the right (hidden until entries close). Winner List: numbered events with winning team(s), ties shown as "A & B (split)", and the amount. jsdom check only.
 - Still to build: Top (paid) Teams pies, Team Performance, How Many Times Picked, Past Finishes, Lineup Analysis.
+
+- Tom supplied a point-level palette (1 grey-green, 2 light blue, 3 teal, 4 magenta, 5 orange, 6 muted red; hex values estimated from his screenshot). Applied to the Weekly Results golfer bars, with a Points legend. The Tracker column bars stay in their column colour and the point-level charts stay money-shaded, since neither is coloured by point level.
