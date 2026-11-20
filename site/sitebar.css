@@ -1,0 +1,17 @@
+/* Shared header for every page (home, team picker, tracker). Uses each page's TAH colour tokens. */
+.sitebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px; font-family: var(--sans); }
+.sitebar .sb-home { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; font-size: 17px; }
+.sitebar .sb-home img { width: 36px; height: 36px; border-radius: 8px; display: block; }
+.sitebar .sb-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sitebar .sb-links { display: flex; gap: 6px; }
+.sitebar a.sb-link, .sitebar .sb-theme { font: 500 15px/20px var(--sans); color: var(--ink); text-decoration: none; background: transparent;
+  border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; cursor: pointer; white-space: nowrap; }
+.sitebar a.sb-link:hover, .sitebar .sb-theme:hover { border-color: var(--ink); }
+.sitebar a.sb-link[aria-current="page"] { background: var(--success); color: var(--on-success); border-color: var(--success); font-weight: 600; }
+.sitebar a:focus-visible, .sitebar button:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; }
+.sitebar-rule { border: 0; border-top: 1px solid var(--hair); margin: 0; }
+@media (max-width: 600px) {
+  .sitebar .sb-home span { display: none; }
+  .sitebar a.sb-link, .sitebar .sb-theme { padding: 6px 10px; font-size: 14px; }
+}

@@ -3,8 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:site_name" content="Fantasy Golf Tour">
+<meta property="og:type" content="website">
+<meta property="og:title" content="2027 PGA Fantasy Golf Tour">
+<meta property="og:description" content="Pick your team and follow the 2027 season.">
+<meta property="og:url" content="https://fgt-mt.com/">
+<meta property="og:image" content="https://fgt-mt.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Fantasy Golf Tour logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="Pick your team and follow the 2027 season.">
 <title>Fantasy Golf Tour</title>
-<meta name="description" content="The PGA Fantasy Golf Tour: pick your team and follow the 2027 season.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" type="image/png" href="favicon.png">
 <script>
@@ -17,6 +27,7 @@
     document.documentElement.setAttribute("data-theme", t);
   })();
 </script>
+<link rel="stylesheet" href="sitebar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
@@ -26,14 +37,14 @@
     color-scheme: dark;
     --surface: #262524; --raised: #1c1a17; --ink: #f2eee8; --muted: #b3b2ae;
     --hair: #3a3733; --border: #8a877d;
-    --accent: #ed7437; --on-accent: #121310; --accent-text: #ed7437;
+    --accent: #ed7437; --on-accent: #121310; --accent-text: #ed7437; --success: #79bc76; --on-success: #121310;
     --sans: "Outfit", "Avenir Next", system-ui, sans-serif;
     --radius-md: 12px; --radius-pill: 999px;
   }
   :root[data-theme="light"] {
     color-scheme: light;
     --surface: #f2eee8; --raised: #fbf9f5; --ink: #121310; --muted: #5a574e;
-    --hair: #d9d3c8; --border: #8d887b; --accent-text: #a8420f;
+    --hair: #d9d3c8; --border: #8d887b; --accent-text: #a8420f; --success: #38763a; --on-success: #fffeff;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -60,7 +71,8 @@
   @media (max-width: 600px) { h1 { font-size: 32px; line-height: 38px; } .big { font-size: 22px; min-height: 64px; } }
 </style>
 </head>
-<body>
+<body data-page="home">
+<div id="sitebar"></div>
 <main>
   <img class="logo" src="logo-480.jpg" width="240" height="240" alt="Fantasy Golf Tour logo">
   <div>
@@ -110,11 +122,6 @@
     }).catch(function () {});
   })();
 </script>
-<script>
-  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
-    var saved = null; try { saved = localStorage.getItem("fgt-theme"); } catch (x) {}
-    if (!saved) document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
-  });
-</script>
+<script src="sitebar.js"></script>
 </body>
 </html>

@@ -3,6 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:site_name" content="Fantasy Golf Tour">
+<meta property="og:type" content="website">
+<meta property="og:title" content="2027 Tracker: Fantasy Golf Tour">
+<meta property="og:description" content="Standings, weekly winners, prize money and stats for the 2027 Fantasy Golf Tour.">
+<meta property="og:url" content="https://fgt-mt.com/dashboard.html">
+<meta property="og:image" content="https://fgt-mt.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Fantasy Golf Tour logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="Standings, weekly winners, prize money and stats for the 2027 Fantasy Golf Tour.">
 <title>FGT Tracker</title>
 <meta name="color-scheme" content="light dark">
 <script>
@@ -15,6 +26,7 @@
     document.documentElement.setAttribute("data-theme", t);
   })();
 </script>
+<link rel="stylesheet" href="sitebar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
@@ -61,11 +73,21 @@
   .banner.demo { background: var(--amber); color: var(--on-accent); }
   .banner.info { background: var(--raised); border: 1px solid var(--hair); }
   .banner.bad { background: var(--raised); border: 1px solid var(--danger); color: var(--danger); }
-  nav { display: flex; gap: var(--space-2); flex-wrap: wrap; margin: var(--space-3) 0 var(--space-4); }
-  nav button { font: 500 15px/20px var(--sans); cursor: pointer; color: var(--ink); background: transparent;
+  #nav button { font: 500 15px/20px var(--sans); cursor: pointer; color: var(--ink); background: transparent;
     border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 6px 16px; min-height: 34px; }
-  nav button:hover { border-color: var(--ink); }
-  nav button.on { background: var(--success); color: var(--on-success); border-color: var(--success); font-weight: 600; }
+  #nav button:hover { border-color: var(--ink); }
+  #nav button.on { background: var(--success); color: var(--on-success); border-color: var(--success); font-weight: 600; }
+  /* Tabs in two rows: groups (pills), then the tabs inside the chosen group (underlined text). */
+  #nav { display: block; margin: var(--space-3) 0 var(--space-3); }
+  #nav .grp { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  #nav .sub { display: flex; gap: 4px 18px; flex-wrap: wrap; margin-top: 10px; padding-bottom: 2px; border-bottom: 1px solid var(--hair); }
+  #nav .sub button { border: 0; border-radius: 0; padding: 6px 2px; min-height: 0; background: transparent; color: var(--muted);
+    border-bottom: 3px solid transparent; font-weight: 500; }
+  #nav .sub button.on { background: transparent; color: var(--ink); border-bottom-color: var(--success); font-weight: 600; }
+  @media (max-width: 600px) {
+    #nav .sub { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #nav .sub button { white-space: nowrap; }
+  }
   input[type=search], select.picker {
     font: inherit; font-size: 15px; color: var(--ink); background: var(--surface);
     border: 1px solid var(--border); border-radius: var(--radius-md); padding: 7px 12px; }
@@ -301,13 +323,40 @@
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
+  .mcwrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ---- Phones ---- */
+  @media (max-width: 600px) {
+    .wrap { padding: 0 12px 48px; }
+    header.pagehd { padding-top: 14px; }
+    .mybar select.picker { max-width: 100%; }
+    .hd { height: auto; min-height: 40px; flex-wrap: wrap; padding: 4px 0; }
+    .hd select.picker { max-width: 100%; }
+    /* Leaderboard and Weekly Results rows: name on top, amounts underneath, so they never overlap */
+    .row .track, .wk .wrow .track { height: auto; min-height: 44px; }
+    .row .nm, .wk .wrow .nm { position: relative; display: block; max-width: 100%; padding: 4px 8px 0; top: 0; left: 0; }
+    .row .am, .wk .wrow .am { position: relative; display: block; text-align: right; right: 0; top: 0; padding: 0 6px 4px; background: none; }
+    .row .fill, .wk .wrow .fill { top: 2px; bottom: 2px; }
+    .wl .wr { grid-template-columns: 1fr auto; }
+    .wl .wr .ev { grid-column: 1 / -1; }
+    .tpf .phd h3 { font-size: 22px; line-height: 28px; }
+    .tpf .phd .ctl { width: 100%; }
+    .tpf .picker { max-width: 100%; flex: 1; }
+    .tpf .kc .num { font-size: 34px; line-height: 40px; } .tpf .kc .money { font-size: 26px; line-height: 32px; }
+    .tpf .mc, .tpf .mcx { min-width: calc(var(--n, 10) * 26px); }
+    .ftip { max-width: calc(100vw - 16px); font-size: 13px; }
+    .ftip.wide { width: calc(100vw - 16px); max-width: calc(100vw - 16px); }
+    .ptip .gr { grid-template-columns: minmax(90px, 1fr) 36px 112px; font-size: 12px; }
+    .ftip .sent { max-width: 100%; }
+    .la .stat .num { font-size: 28px; line-height: 34px; }
+  }
 </style>
 </head>
-<body>
+<body data-page="tracker">
+<div id="sitebar"></div>
 <div class="wrap">
   <header class="pagehd">
     <h1 id="title">2027 Fantasy Golf Tour Tracker</h1>
-    <button class="btn" id="theme" type="button" aria-label="Switch between light and dark mode"></button>
   </header>
   <div id="banners"></div>
   <nav id="nav"></nav>
@@ -318,6 +367,7 @@
 </div>
 
 <script src="config.js"></script>
+<script src="sitebar.js"></script>
 <script>
 (function () {
   "use strict";
@@ -337,17 +387,8 @@
              scale: { green: ["#e6f3e6", "#2a6b2e"], purple: ["#ece2f4", "#4b0a7d"], blue: ["#e3eefb", "#1f6fd6"] } }
   };
   function tc() { return TC[theme()]; }
-  function paintToggle() {
-    var b = document.getElementById("theme");
-    b.textContent = theme() === "dark" ? "\u2600 Light" : "\u263E Dark";
-  }
-  function toggleTheme() {
-    var t = theme() === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", t);
-    try { localStorage.setItem("fgt-theme", t); } catch (e) {}
-    paintToggle();
-    if (M) draw();   // charts take their colours when drawn
-  }
+  // The shared header (sitebar.js) owns the toggle; redraw charts when the theme changes.
+  window.addEventListener("fgt-theme-change", function () { if (M) draw(); });
 
   // ---- helpers (all text goes in via textContent, so team names can never inject HTML) ----
   function el(tag, cls, text) {
@@ -619,6 +660,7 @@
     node.addEventListener("click", function (e) { e.stopPropagation(); showTip(rowsFn(), e.clientX, e.clientY); });  // phones: tap
   }
   document.addEventListener("click", hideTip);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hideTip(); });
   window.addEventListener("scroll", hideTip, { passive: true });
   // Popup rows for a golfer: name, points, season earnings, and (when given) money at the selected event.
   function golferTip(eventName) {
@@ -1228,7 +1270,8 @@
         attachNodeTip(col, function () { return cutTip(team, c); });
         mc.appendChild(col); xs.appendChild(el("div", null, String(i + 1)));
       });
-      box.appendChild(mc); box.appendChild(xs);
+      var mw = el("div", "mcwrap"); mw.style.setProperty("--n", counts.length);
+      mw.appendChild(mc); mw.appendChild(xs); box.appendChild(mw);
     }
 
     box.appendChild(el("h4", null, "Weekly Ranking"));
@@ -1492,15 +1535,32 @@
               ["leaderboard", "Leaderboard", leaderboard], ["top", "Top Teams", topTeams], ["perf", "Team Performance", teamPerformance], ["winners", "Winner List", winners],
               ["picked", "How Many Times Picked?", picked], ["finishes", "Past Finishes", pastFinishes],
               ["lineups", "Lineup Analysis", lineupAnalysis], ["schedule", "Schedule", schedule]];
+  var GROUPS = [["Season", ["tracker", "leaderboard", "top", "schedule"]], ["Weekly", ["weekly", "winners"]],
+                ["Teams", ["perf"]], ["Golfers", ["picked", "finishes", "lineups"]]];
+  var lastInGroup = {};
+  function groupOf(tab) { return GROUPS.filter(function (g) { return g[1].indexOf(tab) >= 0; })[0] || GROUPS[0]; }
+  function tabLabel(id) { return TABS.filter(function (t) { return t[0] === id; })[0][1]; }
   function draw() {
     hideTip();
     myBar();
     var nav = document.getElementById("nav"); clear(nav);
-    TABS.forEach(function (t) {
-      var b = el("button", state.tab === t[0] ? "on" : "", t[1]);
-      b.onclick = function () { state.tab = t[0]; draw(); };
-      nav.appendChild(b);
+    var g = groupOf(state.tab); lastInGroup[g[0]] = state.tab;
+    var row = el("div", "grp");
+    GROUPS.forEach(function (gr) {
+      var b = el("button", gr === g ? "on" : "", gr[0]); b.type = "button";
+      b.onclick = function () { state.tab = lastInGroup[gr[0]] || gr[1][0]; draw(); };
+      row.appendChild(b);
     });
+    nav.appendChild(row);
+    if (g[1].length > 1) {
+      var sub = el("div", "sub");
+      g[1].forEach(function (id) {
+        var b = el("button", state.tab === id ? "on" : "", tabLabel(id)); b.type = "button";
+        b.onclick = function () { state.tab = id; draw(); };
+        sub.appendChild(b);
+      });
+      nav.appendChild(sub);
+    }
     var view = document.getElementById("view"); clear(view);
     TABS.filter(function (t) { return t[0] === state.tab; })[0][2](view);
   }
@@ -1509,7 +1569,6 @@
   }
   function start() {
     M = build();
-    document.getElementById("theme").onclick = toggleTheme;
     clear(document.getElementById("banners"));   // start() can run again when fresher data arrives
     if (D.demo) $b("demo", "DEMO DATA: 40 made-up teams, and real Austin Championship money (the other two events, including Demo Major, are invented).");
     var t = C.TITLE || "2027 PGA Fantasy Golf Tour";
@@ -1518,14 +1577,6 @@
     footer();
     draw();
   }
-  // Follow the device's light/dark setting as it changes, unless the visitor picked one with the toggle.
-  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
-    var saved = null; try { saved = localStorage.getItem("fgt-theme"); } catch (x) {}
-    if (saved) return;
-    document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
-    paintToggle(); if (M) draw();
-  });
-  paintToggle();
   load();
 })();
 </script>

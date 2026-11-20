@@ -238,3 +238,12 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Tom: the higher-payout flag is now just the amber star (★), with "Higher payout" as its hover text and screen-reader label; the Schedule note says "★ Starred events pay more: ...".
 - Schedule tab: the star now has its own column between the event number and the event name (Tom). On phones the type, purse and status wrap under the event name.
 - Tom redeployed and ran Set up tabs. Live feed: payouts 37 places, $14,950 ($1,500 to $100), payoutsFinal false, paidSpots 0 (so the dashboard uses 37). Snapshot refreshed.
+
+## 2026-11-20: site polish (Tom: "do them")
+
+- Shared header (`site/sitebar.js`, `site/sitebar.css`) on home, team picker and dashboard: logo linking home, Team Picker and 2027 Tracker (current page highlighted green), one light/dark toggle (replaces the per-page toggles; the dashboard redraws charts on the `fgt-theme-change` event).
+- Link previews: og/twitter tags with per-page titles and descriptions, image `site/og-image.jpg` (logo, "2027 PGA Fantasy Golf Tour", "Pick your team", "Follow the 2027 season", fgt-mt.com).
+- Grouped dashboard tabs: group pills (Season, Weekly, Teams, Golfers) and a second row of tabs inside the group (remembers the last tab per group; Teams has one tab, so no second row). Nav styles now scoped to `#nav` so they don't touch the header.
+- Phones: rows in Leaderboard/Weekly Results put the name above the amounts (no overlap), Winner List wraps, Team Performance header stacks, the made-the-cut chart scrolls sideways (26 px per event), popups fit the screen width, golfer tables in popups narrower, Times Picked/Lineup numbers smaller.
+- Readability (#11 without point numbers): popups close with Esc as well as tap elsewhere and scroll; dark text on the palette fills already meets contrast (checked the boosted magenta).
+- jsdom re-checks pass (two old tests checked removed features). Phone view still to be confirmed by Tom.
