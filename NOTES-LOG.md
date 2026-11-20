@@ -316,3 +316,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - No email after the resend, and the menu said "No event has results yet": the Sheet has 0 teams (test entry deleted), so EventScores was empty and `buildRecap_` returned null. Now the recap is built whenever the event has results: with no teams it shows the story, golfers (picked by no one) and Next up, with "No FGT teams have scores yet." in place of the team sections; the menu also looks at Tournaments results. Tested against the live feed (0 teams, 113 results). Tom: paste Code.gs and save (menu works at once); redeploy so the automatic send has it too.
 - Tom: the menu recap with the story arrived and looks right ("that's perfect").
 - Tom redeployed Code.gs (recap fixes live). Feed checked: ok.
+
+## 2026-11-20: control heights (Tom)
+
+- Weekly Results: the Select tournament dropdown and Highlight team search box were different heights. All search boxes and dropdowns on the dashboard now share the dropdown's height (32px, box-sizing border-box; search box appearance reset so Safari honours it).

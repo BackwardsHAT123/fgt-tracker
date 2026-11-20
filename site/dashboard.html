@@ -92,7 +92,10 @@
     font: inherit; font-size: 15px; color: var(--ink); background: var(--surface);
     border: 1px solid var(--border); border-radius: var(--radius-md); padding: 7px 12px; }
   input::placeholder { color: var(--muted); opacity: 1; }
-  select.picker { max-width: 55%; padding: 5px 10px; }
+  select.picker { max-width: 55%; padding: 0 10px; }
+  /* Search boxes and dropdowns share one height (the dropdown's), so they line up side by side. */
+  input[type=search], select.picker { box-sizing: border-box; height: 32px; line-height: normal; }
+  input[type=search] { -webkit-appearance: none; appearance: none; padding: 0 12px; }
 
   /* Tracker: three coloured columns */
   .green { --c: var(--green); --c-bar: var(--green-bar); --c-tint: var(--green-tint); }
