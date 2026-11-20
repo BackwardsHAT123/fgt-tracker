@@ -84,12 +84,13 @@
   })();
   // "Next up": the next FGT event, from the dashboard snapshot published with the site.
   (function () {
-    var PRIZE = { regular: "$150 to the winning team", signature: "$200 to the winning team", players: "$200 to the winning team",
+    var PRIZE = { regular: "$150 to the winning team", signature: "$200 to the winning team", players: "$200 to the winning team", playoff: "$200 to the winning team",
                   major: "$300 to the winning team, $100 for 2nd" };
     var KNOWN = { "masters tournament": "major", "pga championship": "major", "u.s. open": "major", "the open championship": "major",
       "the players championship": "players", "at&t pebble beach pro-am": "signature", "the genesis invitational": "signature",
       "cadillac championship": "signature", "arnold palmer invitational presented by mastercard": "signature", "rbc heritage": "signature",
-      "truist championship": "signature", "the memorial tournament presented by workday": "signature", "travelers championship": "signature" };
+      "truist championship": "signature", "the memorial tournament presented by workday": "signature", "travelers championship": "signature",
+      "fedex st. jude championship": "playoff", "bmw championship": "playoff" };
     fetch("data/dashboard.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) {
       var done = {}; (d.results || []).forEach(function (r) { done[String(r.event).toLowerCase()] = 1; });
       var now = new Date(), t = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");

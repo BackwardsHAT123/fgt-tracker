@@ -35,7 +35,7 @@ events.forEach(e => teamNames.forEach(t => {
   eventScores.push({ event: e.event, team: t, earnings: m });
 }));
 // Weekly prizes (rules sheet). 'Demo Major' is scored as a Major so the 2nd-place prize shows.
-const PRIZES = { regular: [150], signature: [200], players: [200], major: [300, 100] };
+const PRIZES = { regular: [150], signature: [200], players: [200], playoff: [200], major: [300, 100] };
 function prizesFor(earned, prizes) {
   const out = earned.map(() => 0);
   const order = earned.map((v, i) => i).filter(i => earned[i] > 0).sort((a, b) => earned[b] - earned[a]);

@@ -304,7 +304,7 @@
    "refPurse": 20000000,
    "counts": "Yes",
    "notes": "FedExCup Playoffs",
-   "type": "regular"
+   "type": "playoff"
   },
   {
    "event": "BMW Championship",
@@ -313,7 +313,7 @@
    "refPurse": 20000000,
    "counts": "Yes",
    "notes": "FedExCup Playoffs",
-   "type": "regular"
+   "type": "playoff"
   },
   {
    "event": "Tour Championship",

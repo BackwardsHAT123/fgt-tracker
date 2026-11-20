@@ -15,8 +15,9 @@ var HEADERS = [
 ];
 
 // Weekly prize money for the team that wins each event (rules sheet), by event type on the Schedule tab.
+// FedExCup playoff events (FedEx St. Jude, BMW) pay $200 like Signature Events (Tom, Nov 20 2026).
 // Majors also pay 2nd place. Teams tied on money split the prizes for the places they share.
-var PRIZES = { regular: [150], signature: [200], players: [200], major: [300, 100] };
+var PRIZES = { regular: [150], signature: [200], players: [200], playoff: [200], major: [300, 100] };
 
 // Confirmation email sent to each player after they enter (from the Google account that owns this script).
 var VENMO_HANDLE = 'Thomas-E-OToole', ENTRY_FEE = 100, CONTACT = 'FGT_MT@outlook.com',
@@ -349,7 +350,7 @@ function saveResults_(d) {
 }
 
 // Receives the season schedule: {action:'schedule', token, events:[{event, finish:'YYYY-MM-DD', purse, refPurse, counts, notes, type}]}.
-// type is regular, signature, players or major (sets the weekly prize; see PRIZES).
+// type is regular, signature, players, playoff or major (sets the weekly prize; see PRIZES).
 // Same token as the results feed. Replaces the whole Schedule tab, so re-sending an updated list (for example once
 // purses are posted) is safe.
 function saveSchedule_(d) {
