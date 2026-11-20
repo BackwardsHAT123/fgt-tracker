@@ -110,7 +110,8 @@
   .card .small { font-size: 14px; color: var(--muted); }
   .card .big { font-size: 22px; line-height: 28px; font-weight: 700; color: var(--c); }
   .spark { display: block; width: 100%; height: 56px; margin: 0; flex: none; }
-  .cap { flex: none; text-align: center; font-size: 13px; color: var(--muted); padding: 2px 0; }
+  .cap { flex: none; text-align: center; font-size: 13px; line-height: 16px; color: var(--muted); padding: 2px 0; }
+  @media (min-width: 861px) { .col .cap { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.1px; } }
   .bars { margin-top: 0; }
   .bar { display: grid; grid-template-columns: 38% 1fr; align-items: center; gap: 8px; height: 34px; padding: 0 4px; font-size: 14px; }
   .bar:nth-child(odd) { background: color-mix(in srgb, var(--hair) 45%, transparent); }
