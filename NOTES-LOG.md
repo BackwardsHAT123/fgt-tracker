@@ -340,3 +340,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-20: SG Total chart as rounds (Tom)
 
 - Tom: the SG Total chart should be pale green bars for each past round with a line for the 50-round average. `tools/datagolf.js` now stores `rd` per golfer: last 50 rounds [event, round, SG Total, average of the 50 rounds up to and including it (fewer if less history)]. sg.json grew to ~334 KB (loaded in the background). Chart: pale green bars (darker green in dark mode), dark green average line, event start dates under the bars, hover/tap per round, legend.
+
+## 2026-11-20: Stats layout (Tom)
+
+- Team Performance > Stats is now one grid: the roster (earnings bars + legend) runs down the left beside both rows; top right is the SG Total chart (golfer picker in its header) next to Long vs Short Game; Recent Performance spans the right below them. Under 1100px: roster | plot, roster | SG chart, table full width; under 760px: one column.
