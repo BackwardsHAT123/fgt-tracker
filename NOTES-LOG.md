@@ -247,3 +247,4 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Phones: rows in Leaderboard/Weekly Results put the name above the amounts (no overlap), Winner List wraps, Team Performance header stacks, the made-the-cut chart scrolls sideways (26 px per event), popups fit the screen width, golfer tables in popups narrower, Times Picked/Lineup numbers smaller.
 - Readability (#11 without point numbers): popups close with Esc as well as tap elsewhere and scroll; dark text on the palette fills already meets contrast (checked the boosted magenta).
 - jsdom re-checks pass (two old tests checked removed features). Phone view still to be confirmed by Tom.
+- Fix: the Tracker's top blocks grew from 214 to 268 px (all three columns, so they still line up); the Your Team card's new prize and payout lines had pushed its trend line down onto the golfer bars. Chrome would not resize to phone width here, so the phone view is for Tom to check.
