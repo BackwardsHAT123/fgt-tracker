@@ -309,3 +309,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Tom: amateurs can play but can't accept prize money (unless they turn pro); their money is redistributed among the professionals who made the cut. pgatour.com's Official Money already reflects this (amateurs $0, pros paid as if the amateur weren't there), so the data was right.
 - Fix: the readiness check's "winner at $0 = not ready" would have blocked an amateur win forever (Nick Dunlap won the 2024 American Express, our first event's tournament). It now uses the best-placed professional (`player.amateur` flag), and the 80%-paid rule counts professionals only. Run summary notes an amateur winner, the top pro and the number of amateurs at $0.
 - Story: "Amateur Nick Dunlap ... Amateurs can't take prize money, so the pros were paid as if Dunlap weren't in the field: Bezuidenhout (2nd) got the winner's share." Also fixed "the The American Express". Tested on R2024002 and the 2026 events. No Code.gs change.
+
+## 2026-11-20: recap story test on Austin
+
+- The menu test recap had no story because Austin was loaded before stories existed. Re-pulled Austin with the story under the Sheet's exact name ("... presented by Compliance Solutions"; story text uses the short name) and Tom posted it: ok, 113 rows stored (was 64: more golfers now match the points list or Lineups), Christiaan Maas has money but is not on the points list (write-in 1-pointer). Snapshot refreshed. The resend should have triggered the automatic recap email (first delivery since the recap feature).
