@@ -249,3 +249,4 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - jsdom re-checks pass (two old tests checked removed features). Phone view still to be confirmed by Tom.
 - Fix: the Tracker's top blocks grew from 214 to 268 px (all three columns, so they still line up); the Your Team card's new prize and payout lines had pushed its trend line down onto the golfer bars. Chrome would not resize to phone width here, so the phone view is for Tom to check.
 - Tom: the dashboard's first tab is now labelled "Main" instead of "Tracker" (internal id still `tracker`). Tom asked what the blue outline is (the My team marker); I suggested a "My team" tag instead; no answer yet.
+- Tom chose option 1: the blue outline around "my team" is replaced by a blue "My team" tag in front of the name (Leaderboard, Weekly Results list) and under the name on Top Teams pies. The My team bar's hint now says so.

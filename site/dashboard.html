@@ -300,8 +300,10 @@
   .mybar .hint { color: var(--muted); font-size: 13px; }
   .nextup { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 8px 14px; margin-bottom: var(--space-4); font-size: 15px; }
   .nextup b { font-weight: 600; } .nextup .lbl { color: var(--muted); margin-right: 6px; } .nextup .pz { color: var(--success); font-weight: 600; }
-  .row.mine .nm, .wk .wrow.mine .nm { outline: 2px solid var(--blue); outline-offset: 1px; border-radius: 4px; }
-  .tp .pc.mine { border: 2px solid var(--blue); }
+  /* "My team" tag (blue pill) in lists, instead of an outline */
+  .mytag { display: inline-block; font-size: 11px; line-height: 16px; font-weight: 700; padding: 0 7px; margin-right: 6px; border-radius: 999px;
+    background: var(--blue); color: #ffffff; vertical-align: 1px; }
+  :root[data-theme="dark"] .mytag { color: #121310; }
   .row .won { color: var(--success); font-weight: 600; margin-right: 8px; }
   .pzb { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
   .pzb.major { border-color: #c55657; color: #c55657; } .pzb.signature, .pzb.players, .pzb.playoff { border-color: var(--purple); color: var(--purple); }
@@ -462,6 +464,13 @@
     draw();
   }
   function isMine(team) { return !!team && team === myTeam(); }
+  // Team name with a "My team" tag in front when it is the visitor's team.
+  function nameEl(cls, team, prefix) {
+    var d = el("div", cls);
+    if (isMine(team)) d.appendChild(el("span", "mytag", "My team"));
+    d.appendChild(document.createTextNode((prefix || "") + team));
+    return d;
+  }
   function myBar() {
     var bar = document.getElementById("mybar"); clear(bar);
     if (!M || !M.teams.length) return;
@@ -470,7 +479,7 @@
       .map(function (t) { return { label: t.team, value: t.team }; }));
     var cur = M.teams.some(function (t) { return t.team === myTeam(); }) ? myTeam() : "";
     bar.appendChild(picker(opts, cur, setMyTeam));
-    bar.appendChild(el("span", "hint", cur ? "Shown first on every tab and outlined in blue. Saved on this device." : "Pick it once and every tab opens with it. Saved on this device."));
+    bar.appendChild(el("span", "hint", cur ? "Shown first on every tab and tagged \u201cMy team\u201d in the lists. Saved on this device." : "Pick it once and every tab opens with it. Saved on this device."));
   }
 
   // ---- prizes (rules sheet): winner gets $150, $200 at The Players and Signature Events, $300 at Majors plus $100 for 2nd ----
@@ -895,7 +904,7 @@
         r.appendChild(el("div", "rk", "#" + (t.rank || i + 1)));
         var tr = el("div", "track");
         var fl = el("div", "fill"); fl.style.width = Math.max(1, Math.round(t.earnings / max * 100)) + "%";
-        tr.appendChild(fl); tr.appendChild(el("div", "nm", t.team));
+        tr.appendChild(fl); tr.appendChild(nameEl("nm", t.team));
         var am = el("div", "am"); if (pays[t.team]) am.appendChild(el("span", "won", "in line for " + money2(pays[t.team])));
         if (t.winnings) am.appendChild(el("span", "won", "won " + money2(t.winnings))); am.appendChild(document.createTextNode(money(t.earnings)));
         tr.appendChild(am);
@@ -942,7 +951,7 @@
         var d = el("div", "wrow" + (r.team === state.wTeam ? " sel" : "") + (q && key(r.team).indexOf(q) >= 0 ? " hl" : "") + (isMine(r.team) ? " mine" : ""));
         d.appendChild(el("div", "rk", String(i + 1)));
         var t = el("div", "track"), f = el("div", "fill"); f.style.width = Math.max(1, Math.round(r.earnings / max * 100)) + "%";
-        t.appendChild(f); t.appendChild(el("div", "nm", r.team)); t.appendChild(el("div", "am", (r.prize ? "wins " + money2(r.prize) + " · " : "") + money(r.earnings)));
+        t.appendChild(f); t.appendChild(nameEl("nm", r.team)); t.appendChild(el("div", "am", (r.prize ? "wins " + money2(r.prize) + " · " : "") + money(r.earnings)));
         d.appendChild(t);
         d.onclick = function () { state.wTeam = r.team; draw(); };
         list.appendChild(d);
@@ -1103,6 +1112,7 @@
       c.title = i >= pc.n ? "Just outside the money" : "";
       cards.push(c);
       c.appendChild(el("div", "nm", "#" + (t.rank || i + 1) + ". " + t.team));
+      if (isMine(t.team)) c.appendChild(el("span", "mytag", "My team"));
       c.appendChild(el("div", "am", money(t.earnings)));
       if (pays[t.team]) c.appendChild(el("div", "small pay", "in line for " + money2(pays[t.team])));
       c.appendChild(pie(golferBars(t.team, null), t.team, t.earnings));
