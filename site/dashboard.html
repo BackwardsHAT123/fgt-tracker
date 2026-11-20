@@ -281,6 +281,24 @@
   .tpf .panel { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3); }
   .tpf .panel h5 { margin: 0 0 var(--space-2); font-size: 17px; font-weight: 600; }
   .tpf .grey { --c: var(--ink); --c-bar: color-mix(in srgb, var(--muted) 55%, transparent); }
+  .tpf .sgph + .sgph { margin-top: var(--space-4); }
+  .tpf .sgwrap svg { display: block; width: 100%; height: auto; }
+  .tpf .sgpick { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) 0 var(--space-2); font-weight: 600; }
+  .tpf .sgpick .picker { max-width: 280px; }
+  .tpf .rpmeta { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); margin-bottom: var(--space-3); }
+  .tpf .rpmeta div { border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 6px 8px; text-align: center; }
+  .tpf .rpmeta span { display: block; color: var(--muted); font-size: 12px; }
+  .tpf .rpmeta b { font-family: var(--head); font-size: 22px; line-height: 26px; font-variant-numeric: tabular-nums; }
+  .tpf .rpscroll { overflow-x: auto; }
+  .tpf .rp table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .tpf .rp th { text-align: left; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .tpf .rp td { padding: 5px 6px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+  .tpf .rp .n { text-align: right; }
+  .tpf .rp td.ev { max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+  .tpf .rp .pos { color: var(--green); } .tpf .rp .neg { color: var(--danger); } .tpf .rp .tot { font-weight: 700; }
+  .tpf .sgcredit { margin-top: var(--space-3); text-align: center; font-size: 12px; color: var(--muted); }
+  .tpf .sgcredit a { color: inherit; }
+  @media (max-width: 600px) { .tpf .rpmeta { grid-template-columns: repeat(2, 1fr); } }
   /* Past Finishes */
   .pfn h3 { margin: 6px 0 2px; font-size: 24px; line-height: 30px; font-weight: 600; }
   .pfn .sub { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
@@ -725,6 +743,7 @@
       var t = el("div", "track");
       var f = el("div", "fill"); f.style.width = Math.max(1, Math.round(i.value / max * 70)) + "%";
       if (byPoints && PT[i.points]) f.style.background = PT[i.points];
+      if (i.color) f.style.background = i.color;
       t.appendChild(f); t.appendChild(el("div", "val", money(i.value)));
       row.appendChild(t); box.appendChild(row);
       if (tip) attachTip(row, function () { return tip(i); });
@@ -1363,13 +1382,152 @@
     box.appendChild(el("div", "cap", "Orange: " + team + ". Grey: every other team. Green band: the payout spots (top " + pc.n + ")."));
   }
 
+  // ---- Team Performance: Stats (DataGolf strokes gained) ----
+  // Quadrants by strokes gained per round over the last 12 months: Long Game = off the tee + approach,
+  // Short Game = around the green + putting. Colours are Tom's: Elite blue, Longknockers orange, Shortknockers grey, Bad red.
+  var QUAD = {
+    elite: { name: "Elite", label: "ELITE", color: "#2a7de1" },
+    long:  { name: "Longknockers who can't putt", label: "LONGKNOCKERS WHO CAN'T PUTT", color: "#ed7437" },
+    short: { name: "Shortknockers who can putt", label: "SHORTKNOCKERS WHO CAN PUTT", color: "#8f9691" },
+    bad:   { name: "Bad", label: "BAD", color: "#d0393f" }
+  };
+  function sgOf(name) { return SG && SG.byKey ? SG.byKey[fold(name)] || null : null; }
+  function longShort(g) {
+    if (!g || !g.avg || g.avg[0] == null || g.avg[1] == null || g.avg[2] == null || g.avg[3] == null) return null;
+    var lg = g.avg[0] + g.avg[1], sh = g.avg[2] + g.avg[3];
+    return { long: lg, short: sh, q: lg >= 0 ? (sh >= 0 ? "elite" : "long") : (sh >= 0 ? "short" : "bad") };
+  }
+  function sg2(v) { return v == null ? "-" : (v > 0 ? "+" : "") + v.toFixed(2); }
+  function sgCls(v) { return v == null ? "" : v > 0.005 ? "pos" : v < -0.005 ? "neg" : ""; }
+
   function perfStats(box, team) {
+    if (!D.closed) { box.appendChild(lineupsNote()); return; }
+    var items = golferBars(team, null);
+    items.forEach(function (i) { var ls = longShort(sgOf(i.label)); i.quad = ls ? ls.q : null; i.color = ls ? QUAD[ls.q].color : null; });
+
     var grid = el("div", "sgph");
     var p1 = el("div", "panel grey"); p1.appendChild(el("h5", null, "Total Earnings this season"));
-    if (!D.closed) p1.appendChild(lineupsNote()); else p1.appendChild(bars(golferBars(team, null), false, golferTip(null)));
-    var p2 = el("div", "panel"); p2.appendChild(el("h5", null, "Strokes gained"));
-    p2.appendChild(el("div", "note", "Strokes Gained Total trend, Long Game vs Short Game, and Recent Performance arrive once the DataGolf stats are connected. The earnings bars will then take the colour of each golfer's strokes gained group."));
+    p1.appendChild(bars(items, false, golferTip(null)));
+    p1.appendChild(quadLegend());
+    var p2 = el("div", "panel"); p2.appendChild(el("h5", null, "Long Game vs Short Game"));
+    if (!SG) p2.appendChild(el("div", "note", SG === null && sgAsked ? "Loading strokes gained from DataGolf..." : "Strokes gained data is not available right now."));
+    else p2.appendChild(sgScatter(items));
     grid.appendChild(p1); grid.appendChild(p2); box.appendChild(grid);
+    if (!SG) return;
+
+    // Golfer picker for the trend and the Recent Performance table (defaults to the team's top earner with data).
+    var withData = items.filter(function (i) { var g = sgOf(i.label); return g && g.ev && g.ev.length; });
+    if (!state.sgGolfer || !withData.some(function (i) { return i.label === state.sgGolfer; }))
+      state.sgGolfer = withData.length ? withData[0].label : null;
+    var row = el("div", "sgpick"); row.appendChild(el("span", null, "Golfer"));
+    row.appendChild(picker(withData.map(function (i) { return { label: i.label, value: i.label }; }), state.sgGolfer,
+      function (v) { state.sgGolfer = v; draw(); }));
+    box.appendChild(row);
+    var grid2 = el("div", "sgph");
+    var p3 = el("div", "panel"), p4 = el("div", "panel");
+    var gname = state.sgGolfer, g = gname ? sgOf(gname) : null;
+    p3.appendChild(el("h5", null, "Strokes Gained Total" + (gname ? ": " + gname : "")));
+    p4.appendChild(el("h5", null, "Recent Performance" + (gname ? ": " + gname : "")));
+    if (!g) { p3.appendChild(el("div", "note", "No strokes gained data for this team's golfers.")); }
+    else { p3.appendChild(sgTrend(g)); p4.appendChild(recentTable(gname, g, items)); }
+    grid2.appendChild(p3); grid2.appendChild(p4); box.appendChild(grid2);
+    var cr = el("div", "sgcredit"); cr.appendChild(document.createTextNode("Strokes gained, DG Rank and OWGR courtesy of "));
+    var a = el("a", null, "DataGolf"); a.href = "https://datagolf.com"; a.target = "_blank"; a.rel = "noopener"; cr.appendChild(a);
+    cr.appendChild(document.createTextNode(". Strokes gained are per round; Long vs Short Game uses the last 12 months."));
+    box.appendChild(cr);
+  }
+  function quadLegend() {
+    var l = el("div", "legend");
+    ["elite", "long", "short", "bad"].forEach(function (k) {
+      var s = el("span"), sw = el("i"); sw.style.background = QUAD[k].color; s.appendChild(sw); s.appendChild(document.createTextNode(QUAD[k].name)); l.appendChild(s);
+    });
+    var s = el("span"), sw = el("i"); sw.style.background = "color-mix(in srgb, var(--muted) 55%, transparent)"; s.appendChild(sw);
+    s.appendChild(document.createTextNode("No strokes gained data")); l.appendChild(s);
+    return l;
+  }
+  function sgScatter(items) {
+    var pts = items.map(function (i) { var g = sgOf(i.label), ls = longShort(g); return ls ? { i: i, g: g, ls: ls } : null; }).filter(Boolean);
+    if (!pts.length) return el("div", "note", "No strokes gained data for this team's golfers.");
+    var W = 600, H = 440, P = 34;
+    var m = 0.5; pts.forEach(function (p) { m = Math.max(m, Math.abs(p.ls.long), Math.abs(p.ls.short)); });
+    m = Math.ceil(m * 1.15 * 4) / 4;
+    var x = function (v) { return P + (v + m) / (2 * m) * (W - 2 * P); }, y = function (v) { return H - P - (v + m) / (2 * m) * (H - 2 * P); };
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "sgsc");
+    var tint = function (c) { return "color-mix(in srgb, " + c + " 9%, transparent)"; };
+    svgEl(svg, "rect", { x: x(0), y: y(m), width: x(m) - x(0), height: y(0) - y(m), fill: tint(QUAD.elite.color) });
+    svgEl(svg, "rect", { x: x(-m), y: y(m), width: x(0) - x(-m), height: y(0) - y(m), fill: tint(QUAD.short.color) });
+    svgEl(svg, "rect", { x: x(0), y: y(0), width: x(m) - x(0), height: y(-m) - y(0), fill: tint(QUAD.long.color) });
+    svgEl(svg, "rect", { x: x(-m), y: y(0), width: x(0) - x(-m), height: y(-m) - y(0), fill: tint(QUAD.bad.color) });
+    svgEl(svg, "line", { x1: x(-m), x2: x(m), y1: y(0), y2: y(0), stroke: tc().axis, "stroke-width": 1 });
+    svgEl(svg, "line", { x1: x(0), x2: x(0), y1: y(-m), y2: y(m), stroke: tc().axis, "stroke-width": 1 });
+    var q = function (k, tx, ty, anchor) { svgEl(svg, "text", { x: tx, y: ty, "text-anchor": anchor, "font-size": 11, "font-weight": 700, fill: QUAD[k].color, "letter-spacing": "0.4" }, QUAD[k].label); };
+    q("elite", W - P - 4, P + 12, "end"); q("short", P + 4, P + 12, "start"); q("long", W - P - 4, H - P - 6, "end"); q("bad", P + 4, H - P - 6, "start");
+    svgEl(svg, "text", { x: W / 2, y: H - 8, "text-anchor": "middle", "font-size": 12, fill: tc().axis }, "Long Game (off the tee + approach) →");
+    var yl = svgEl(svg, "text", { x: 12, y: H / 2, "text-anchor": "middle", "font-size": 12, fill: tc().axis, transform: "rotate(-90 12 " + H / 2 + ")" }, "Short Game (around the green + putting) →");
+    var maxE = pts.reduce(function (a, p) { return Math.max(a, p.i.value); }, 0) || 1;
+    pts.sort(function (a, b) { return b.i.value - a.i.value; }).forEach(function (p) {
+      var r = 5 + 15 * Math.sqrt(p.i.value / maxE), cx = x(p.ls.long), cy = y(p.ls.short);
+      var c = svgEl(svg, "circle", { cx: cx, cy: cy, r: r, fill: QUAD[p.ls.q].color, "fill-opacity": 0.75, stroke: theme() === "dark" ? "#121310" : "#fffeff", "stroke-width": 1 });
+      var last = p.i.label.split(" ").slice(-1)[0];
+      svgEl(svg, "text", { x: cx, y: cy - r - 3, "text-anchor": "middle", "font-size": 11, fill: tc().axis, "pointer-events": "none" }, last);
+      c.style.cursor = "pointer";
+      attachTip(c, function () {
+        return [p.i.label, ["Group", QUAD[p.ls.q].name], ["Long Game", sg2(p.ls.long) + " per round"], ["Short Game", sg2(p.ls.short) + " per round"],
+          ["SG Total", sg2(p.g.avg[4]) + " per round (" + p.g.n + " rounds)"], ["Season earnings", money(p.i.value)]];
+      });
+    });
+    var wrap = el("div", "sgwrap"); wrap.appendChild(svg);
+    var miss = items.length - pts.length;
+    if (miss) wrap.appendChild(el("div", "cap", miss + " golfer" + (miss === 1 ? " has" : "s have") + " no strokes gained data and " + (miss === 1 ? "is" : "are") + " not shown. Bubble size: season earnings."));
+    else wrap.appendChild(el("div", "cap", "Bubble size: season earnings. Hover or tap a bubble for details."));
+    return wrap;
+  }
+  function sgTrend(g) {
+    var ev = g.ev || [], n = ev.length;
+    if (!n) return el("div", "note", "No events with strokes gained yet.");
+    var W = 600, H = 240, L = 40, R = 12, T = 14, B = 26;
+    var vals = ev.map(function (e) { return e[7]; });
+    var m = 1; vals.forEach(function (v) { if (v != null) m = Math.max(m, Math.abs(v)); }); m = Math.ceil(m);
+    var x = function (k) { return n === 1 ? (L + W - R) / 2 : L + k * (W - L - R) / (n - 1); }, y = function (v) { return T + (m - v) / (2 * m) * (H - T - B); };
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "sgtr");
+    [-m, 0, m].forEach(function (v) {
+      svgEl(svg, "line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: v === 0 ? tc().axis : tc().zero, "stroke-width": 1 });
+      svgEl(svg, "text", { x: L - 6, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: tc().axis }, (v > 0 ? "+" : "") + v);
+    });
+    if (n > 1) svgEl(svg, "polyline", { points: ev.map(function (e, k) { return x(k).toFixed(1) + "," + y(e[7]).toFixed(1); }).join(" "), fill: "none", stroke: tc().you, "stroke-width": 2.5 });
+    ev.forEach(function (e, k) {
+      var c = svgEl(svg, "circle", { cx: x(k), cy: y(e[7]), r: 5, fill: e[7] >= 0 ? tc().you : QUAD.bad.color });
+      var meta = SG.events[e[0]] || ["", ""];
+      attachTip(c, function () { return [meta[0], ["Date", meta[1]], ["Finish", e[1] || "-"], ["SG Total", sg2(e[7]) + " per round (" + e[2] + " rounds)"]]; });
+      svgEl(svg, "text", { x: x(k), y: H - 8, "text-anchor": "middle", "font-size": 10, fill: tc().axis }, (meta[1] || "").slice(5).replace("-", "/"));
+    });
+    var wrap = el("div", "sgwrap"); wrap.appendChild(svg);
+    wrap.appendChild(el("div", "cap", "Strokes gained total per round at each of the last " + n + " events (dates as month/day). Hover or tap a dot for the event."));
+    return wrap;
+  }
+  function recentTable(name, g, items) {
+    var wrap = el("div", "rp");
+    var it = items.filter(function (i) { return i.label === name; })[0];
+    var meta = el("div", "rpmeta");
+    [["Points", it && it.points ? String(it.points) : "-"], ["OWGR", g.owgr ? "#" + g.owgr : "-"], ["DG Rank", g.dg ? "#" + g.dg : "-"],
+     ["SG Total (12 mo)", sg2(g.avg ? g.avg[4] : null)]].forEach(function (p) {
+      var d = el("div"); d.appendChild(el("span", null, p[0])); d.appendChild(el("b", null, p[1])); meta.appendChild(d);
+    });
+    wrap.appendChild(meta);
+    var tbl = el("table"), thead = el("thead"), hr = el("tr");
+    ["Event", "Finish", "OTT", "APP", "ARG", "PUTT", "Total"].forEach(function (h, k) { var th = el("th", k > 1 ? "n" : null, h); hr.appendChild(th); });
+    thead.appendChild(hr); tbl.appendChild(thead);
+    var tb = el("tbody");
+    (g.ev || []).slice(-10).reverse().forEach(function (e) {
+      var tr = el("tr"), meta2 = SG.events[e[0]] || ["", ""];
+      var ev = el("td", "ev", meta2[0]); ev.title = meta2[0] + " (" + meta2[1] + ")"; tr.appendChild(ev);
+      tr.appendChild(el("td", null, e[1] || "-"));
+      [3, 4, 5, 6, 7].forEach(function (k) { tr.appendChild(el("td", "n " + sgCls(e[k]) + (k === 7 ? " tot" : ""), sg2(e[k]))); });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb); var sc = el("div", "rpscroll"); sc.appendChild(tbl); wrap.appendChild(sc);
+    wrap.appendChild(el("div", "cap", "Last 10 events, newest first. Strokes gained per round: off the tee, approach, around the green, putting."));
+    return wrap;
   }
 
   // ---- Past Finishes ----
@@ -1599,7 +1757,19 @@
   function footer() {
     if (D && D.generated) document.getElementById("foot").textContent = "Updated " + new Date(D.generated).toLocaleString() + ". Earnings are official PGA Tour prize money.";
   }
+  // DataGolf strokes gained (site/data/sg.json, refreshed by the weekly job). Loaded once in the background; the
+  // Team Performance Stats panels use it when it arrives.
+  var SG = null, sgAsked = false;
+  function loadSG() {
+    if (sgAsked) return; sgAsked = true;
+    fetch("data/sg.json?t=" + Date.now(), { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (j) { if (j && j.golfers) { SG = j; SG.byKey = {}; Object.keys(j.golfers).forEach(function (n) { SG.byKey[fold(n)] = j.golfers[n]; }); if (M && state.tab === "perf") draw(); } })
+      .catch(function () {});
+  }
+  function fold(s) { return String(s).toLowerCase().replace(/\u00f8/g, "o").replace(/\u00e6/g, "ae").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim(); }
+
   function start() {
+    loadSG();
     M = build();
     clear(document.getElementById("banners"));   // start() can run again when fresher data arrives
     if (D.demo) $b("demo", "DEMO DATA: 40 made-up teams, and real Austin Championship money (the other two events, including Demo Major, are invented).");

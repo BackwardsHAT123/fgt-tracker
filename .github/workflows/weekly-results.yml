@@ -63,15 +63,21 @@ jobs:
           if [ "$OFF" != "$WANT" ]; then echo "This line is the other half of a summer/winter pair; skipping."; exit 0; fi
           if [ "$CHECK" = "true" ]; then node tools/weekly-update.js --check; exit $?; fi
           if [ -n "$EVENT" ]; then node tools/weekly-update.js --event "$EVENT"; else node tools/weekly-update.js --days "$DAYS"; fi
+      - name: Refresh DataGolf strokes gained (site/data/sg.json)
+        # Skips itself if the DATAGOLF_KEY secret is missing; a DataGolf problem never blocks the results commit.
+        continue-on-error: true
+        env:
+          DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
+        run: node tools/datagolf.js
       - name: Commit the new snapshot and republish the site
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if git diff --quiet -- site/data/dashboard.json; then echo "Snapshot unchanged."; exit 0; fi
+          if git diff --quiet -- site/data/dashboard.json site/data/sg.json; then echo "Snapshot and stats unchanged."; exit 0; fi
           git config user.name "fgt-results-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site/data/dashboard.json
-          git commit -m "Update dashboard snapshot after results"
+          git add site/data/dashboard.json site/data/sg.json
+          git commit -m "Update dashboard snapshot and stats after results"
           git pull --rebase
           git push
           gh workflow run pages.yml
