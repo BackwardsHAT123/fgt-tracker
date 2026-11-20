@@ -58,22 +58,30 @@ async function pullResults(url, opts) {
     if (opts.halve) e = Math.round(e / 2 * 100) / 100;
     return { golfer: p.player.displayName, finish: p.position, earnings: e };
   });
+  // Amateurs play but can't take prize money (pgatour.com shows them at $0 and pays their share to the pros), so the
+  // checks below look at the best-placed professional, not position 1. An amateur can win (Dunlap, 2024 AmEx).
+  const isAm = (pr.players || []).map(p => !!(p.player && p.player.amateur));
+  const topPro = rows.find((r, i) => !isAm[i]);
+  const ams = rows.filter((r, i) => isAm[i]);
   const out = { tournament: opts.name || t.tournamentName, date: finishDate(t.displayDate), rows,
     story: opts.halve || (pr.teams && pr.teams.length) ? '' : storyFromRounds(pr.players, opts.name || t.tournamentName) };
   const paid = rows.filter(r => r.earnings > 0), total = paid.reduce((s, r) => s + r.earnings, 0);
   // Money not (fully) posted yet: too few golfers paid, the winner shows $0, or far less than the purse paid out.
   const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
   // (Small fields such as the TOUR Championship's 30: most of the field paid is enough.)
-  if ((paid.length < 30 && paid.length < 0.8 * rows.length) || !(rows[0] && rows[0].earnings > 0))
+  const pros = rows.length - ams.length;
+  if ((paid.length < 30 && paid.length < 0.8 * pros) || !(topPro && topPro.earnings > 0))
     throw notReady('The past-results page lists ' + rows.length + ' golfers but only ' + paid.length + ' with money' +
-      (rows[0] && !rows[0].earnings ? ' and the winner at $0' : '') + '; the money is probably not posted yet.');
+      (topPro && !topPro.earnings ? ' and the top professional (' + topPro.golfer + ') at $0' : '') + '; the money is probably not posted yet.');
   const purse = Number(opts.purse) || 0;   // team events: halved golfer shares still add up to the team purse
   if (purse && total < 0.7 * purse)
     throw notReady('Money on the past-results page adds up to ' + fmt(total) + ', under 70% of the ' + fmt(purse) + ' purse; probably not fully posted yet.');
   const by = f => rows.filter(r => r.finish === f).length;
   const summary = out.tournament + ' (' + out.date + '): ' + rows.length + ' golfers, ' + paid.length + ' with money ($' +
     total.toLocaleString('en-US') + '), ' + by('CUT') + ' cut, ' + by('W/D') + ' withdrew' + (opts.halve ? ', money halved (team event)' : '') +
-    '. Winner: ' + (rows[0] ? rows[0].golfer + ' $' + rows[0].earnings.toLocaleString('en-US') : '-') +
+    '. Winner: ' + (rows[0] ? rows[0].golfer + (isAm[0] ? ' (amateur, no prize money)' : '') + ' $' + rows[0].earnings.toLocaleString('en-US') : '-') +
+    (isAm[0] && topPro ? '. Top professional: ' + topPro.golfer + ' (' + topPro.finish + ') $' + topPro.earnings.toLocaleString('en-US') : '') +
+    (ams.length ? '. Amateurs at $0: ' + ams.length : '') +
     (pr.teams && !opts.halve ? '. NOTE: this event lists teams; if it is the Zurich Classic, use --halve.' : '');
   return { out, summary, tournamentName: t.tournamentName };
 }
@@ -94,7 +102,7 @@ function lastName(pl) {
 // Uses last names only and no pronouns. Returns '' when the data is too thin (or for team events).
 function storyFromRounds(players, eventName) {
   const num = v => { const t = String(v == null ? '' : v).trim(); if (t === 'E') return 0; const n = Number(t.replace('+', '')); return t === '' || t === '-' || isNaN(n) ? null : n; };
-  const ps = (players || []).map(p => ({ name: p.player.displayName, last: lastName(p.player),
+  const ps = (players || []).map(p => ({ name: p.player.displayName, last: lastName(p.player), am: !!p.player.amateur,
     pos: String(p.position || ''), rounds: (p.rounds || []).map(r => ({ score: Number(r.score) || null, par: num(r.parRelativeScore) })), total: num(p.parRelativeScore) }))
     .filter(p => p.name && p.rounds.length && p.rounds[0].par != null);
   const w = ps.find(p => p.pos === '1') || ps[0];
@@ -122,18 +130,19 @@ function storyFromRounds(players, eventName) {
   const soloAll = ledAll && Array.from({ length: N - 1 }, (_, i) => standing(i + 1).leaders.length === 1).every(Boolean);
   const finalRd = 'a final-round ' + (last.score || '') + ' (' + par(last.par) + ')' + (lowOfDay ? ', the low round of the day' : '');
   const names = list => list.map(p => p.last).join(list.length > 2 ? ', ' : ' and ');
+  const theEv = /^the\s/i.test(eventName) ? eventName : 'the ' + eventName;   // "won the 3M Open", "won The American Express"
   const out = [];
   const winBy = margin === 0 ? 'in a playoff over ' + names(chasers) + ' after they finished tied at ' + par(w.total)
     : 'at ' + par(w.total) + ', ' + shots(margin) + ' clear of ' + names(chasers.slice(0, 3)) + (chasers.length > 3 ? ' and others' : '');
   if (ledAll && margin > 0) {
-    out.push(w.name + ' went wire to wire at the ' + eventName + ', ' + (soloAll ? 'leading alone' : 'leading or sharing the lead') + ' after every round, and won ' + winBy + '.');
+    out.push(w.name + ' went wire to wire at ' + theEv + ', ' + (soloAll ? 'leading alone' : 'leading or sharing the lead') + ' after every round, and won ' + winBy + '.');
   } else if (backPen > 0) {
     out.push(w.name + ' came from ' + shots(backPen) + ' back (' + placeText(placePen, pen.field.filter(x => x.c === cum(w, N - 1)).length > 1) +
-      ') going into the final round and won the ' + eventName + ' ' + winBy + ', with ' + finalRd + '.');
+      ') going into the final round and won ' + theEv + ' ' + winBy + ', with ' + finalRd + '.');
   } else {
     const lead = Math.min(...pen.field.filter(x => x.p !== w).map(x => x.c)) - cum(w, N - 1);
     out.push(w.name + (lead > 0 ? ' took a ' + shots(lead).replace(' shots', '-shot').replace('one shot', 'one-shot') + ' lead into the final round' : ' started the final round tied for the lead') +
-      ' and ' + (margin === 0 ? 'won the ' + eventName + ' ' + winBy : (margin <= 1 ? 'held on to win the ' : 'won the ') + eventName + ' ' + winBy) + ', closing with ' + (last.score || '') + ' (' + par(last.par) + ').');
+      ' and ' + (margin === 0 ? 'won ' + theEv + ' ' + winBy : (margin <= 1 ? 'held on to win ' : 'won ') + theEv + ' ' + winBy) + ', closing with ' + (last.score || '') + ' (' + par(last.par) + ').');
   }
   // The leader(s) going into the final round who didn't win, and how they finished.
   if (backPen > 0) {
@@ -149,6 +158,11 @@ function storyFromRounds(players, eventName) {
     const who = N - 1 === 3 ? '54-hole leader' : 'overnight leader';
     if (faded.length === 1) out.push(who.charAt(0).toUpperCase() + who.slice(1) + ' ' + faded[0] + '.');
     else if (faded.length) out.push('Of the ' + who.replace('leader', 'co-leaders') + ', ' + faded.join('; ') + '.');
+  }
+  if (w.am) {
+    out[0] = 'Amateur ' + out[0];
+    const pro = ps.filter(p => !p.am && p.total != null).sort((a, b) => a.total - b.total)[0];
+    if (pro) { const m = String(pro.pos).match(/^(T?)(\d+)$/); out.push('Amateurs can\'t take prize money, so the pros were paid as if ' + w.last + ' weren\'t in the field: ' + pro.last + ' (' + (m ? placeText(Number(m[2]), !!m[1]) : pro.pos) + ') got the winner\'s share.'); }
   }
   return out.join(' ').replace(/\s+/g, ' ').trim();
 }

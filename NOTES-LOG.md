@@ -303,3 +303,9 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Fix found while testing: the "fewer than 30 golfers with money = not ready" rule would have blocked the 30-man TOUR Championship forever (29 paid). Now not ready only if fewer than 30 AND under 80% of the field are paid.
 - Recap order now: title, story, FGT winner + prize, Major 2nd, season-leader line ("X has the early season lead" / "New season leader: X takes over the top spot from Y" / "X stays on top of the season standings (N weeks running)"; ties share), Golfers who paid off ("picked by N teams" / "picked by no one", counted from the Lineups tab so it works while the feed hides lineups; counts only), Top teams this week, Season standings, biggest climb, Next up.
 - Tested with demo data (vm harness). Needs Tom: paste Code.gs, save, redeploy (New version).
+
+## 2026-11-20: amateurs (Tom)
+
+- Tom: amateurs can play but can't accept prize money (unless they turn pro); their money is redistributed among the professionals who made the cut. pgatour.com's Official Money already reflects this (amateurs $0, pros paid as if the amateur weren't there), so the data was right.
+- Fix: the readiness check's "winner at $0 = not ready" would have blocked an amateur win forever (Nick Dunlap won the 2024 American Express, our first event's tournament). It now uses the best-placed professional (`player.amateur` flag), and the 80%-paid rule counts professionals only. Run summary notes an amateur winner, the top pro and the number of amateurs at $0.
+- Story: "Amateur Nick Dunlap ... Amateurs can't take prize money, so the pros were paid as if Dunlap weren't in the field: Bezuidenhout (2nd) got the winner's share." Also fixed "the The American Express". Tested on R2024002 and the 2026 events. No Code.gs change.
