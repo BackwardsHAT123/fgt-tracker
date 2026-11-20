@@ -1290,7 +1290,6 @@
     k1.appendChild(el("div", "num", "#" + (me && me.rank ? me.rank : "-"))); k1.appendChild(el("div", "lbl", "of " + M.teams.length));
     var k2 = el("div", "kc"); k2.appendChild(el("div", "money", money(me ? me.earnings : 0)));
     k2.appendChild(el("div", "lbl", "Total through " + M.events.length + " event" + (M.events.length === 1 ? "" : "s")));
-    if (me && me.winnings) k2.appendChild(el("div", "lbl", "Weekly prize money won: " + money2(me.winnings)));
     var pp = M.events.length ? seasonPayouts()[team] : 0;
     if (pp) k2.appendChild(el("div", "lbl", "In line for " + money2(pp) + " at season's end"));
     var tr = el("div", "trend"), vals = series(team); tr.appendChild(trendChart(vals, team)); tr.appendChild(trendLabels(vals));
