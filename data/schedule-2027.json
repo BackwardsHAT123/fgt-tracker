@@ -55,13 +55,14 @@
    "type": "regular"
   },
   {
-   "event": "Cognizant Classic in The Palm Beaches",
+   "event": "Cognizant Classic",
    "finish": "2027-02-28",
    "purse": null,
    "refPurse": 9600000,
    "counts": "Yes",
    "notes": "",
-   "type": "regular"
+   "type": "regular",
+   "pgaName": "Cognizant Classic in The Palm Beaches"
   },
   {
    "event": "Cadillac Championship",
@@ -82,13 +83,14 @@
    "type": "players"
   },
   {
-   "event": "Arnold Palmer Invitational presented by Mastercard",
+   "event": "Arnold Palmer Invitational",
    "finish": "2027-03-21",
    "purse": null,
    "refPurse": 20000000,
    "counts": "Yes",
    "notes": "Signature Event",
-   "type": "signature"
+   "type": "signature",
+   "pgaName": "Arnold Palmer Invitational presented by Mastercard"
   },
   {
    "event": "Texas Children's Houston Open",
@@ -190,13 +192,14 @@
    "type": "regular"
   },
   {
-   "event": "the Memorial Tournament presented by Workday",
+   "event": "Memorial Tournament",
    "finish": "2027-06-06",
    "purse": null,
    "refPurse": 20000000,
    "counts": "Yes",
    "notes": "Signature Event",
-   "type": "signature"
+   "type": "signature",
+   "pgaName": "the Memorial Tournament presented by Workday"
   },
   {
    "event": "RBC Canadian Open",
@@ -298,13 +301,14 @@
    "type": "regular"
   },
   {
-   "event": "FedEx St. Jude Championship",
+   "event": "FedEx St. Jude",
    "finish": "2027-08-15",
    "purse": null,
    "refPurse": 20000000,
    "counts": "Yes",
    "notes": "FedExCup Playoffs",
-   "type": "playoff"
+   "type": "playoff",
+   "pgaName": "FedEx St. Jude Championship"
   },
   {
    "event": "BMW Championship",

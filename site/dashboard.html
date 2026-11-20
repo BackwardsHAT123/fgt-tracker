@@ -495,7 +495,8 @@
     "at&t pebble beach pro-am": "signature", "the genesis invitational": "signature", "cadillac championship": "signature",
     "arnold palmer invitational presented by mastercard": "signature", "rbc heritage": "signature", "truist championship": "signature",
     "the memorial tournament presented by workday": "signature", "travelers championship": "signature",
-    "fedex st. jude championship": "playoff", "bmw championship": "playoff"
+    "fedex st. jude championship": "playoff", "bmw championship": "playoff",
+    "arnold palmer invitational": "signature", "memorial tournament": "signature", "fedex st. jude": "playoff"
   };
   function resolveType(name, given) {
     if (PRIZES[given] && given !== "regular") return given;
@@ -549,7 +550,19 @@
     return b;
   }
 
+  // Shorter display names for long PGA Tour titles (Tom). Applied to older data too, whatever name the Sheet holds.
+  var SHORT_NAMES = {
+    "austin championship presented by compliance solutions": "Austin Championship",
+    "cognizant classic in the palm beaches": "Cognizant Classic",
+    "arnold palmer invitational presented by mastercard": "Arnold Palmer Invitational",
+    "the memorial tournament presented by workday": "Memorial Tournament",
+    "fedex st. jude championship": "FedEx St. Jude"
+  };
+  function shortName(n) { return SHORT_NAMES[String(n).trim().toLowerCase()] || n; }
   function build() {
+    (D.results || []).forEach(function (r) { r.event = shortName(r.event); });
+    (D.eventScores || []).forEach(function (r) { r.event = shortName(r.event); });
+    (D.schedule || []).forEach(function (e) { e.event = shortName(e.event); });
     (D.schedule || []).forEach(function (e) { e.type = resolveType(e.event, e.type); });
     var ev = {};
     D.results.forEach(function (r) {

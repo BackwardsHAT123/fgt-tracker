@@ -106,7 +106,10 @@
       "the players championship": "players", "at&t pebble beach pro-am": "signature", "the genesis invitational": "signature",
       "cadillac championship": "signature", "arnold palmer invitational presented by mastercard": "signature", "rbc heritage": "signature",
       "truist championship": "signature", "the memorial tournament presented by workday": "signature", "travelers championship": "signature",
-      "fedex st. jude championship": "playoff", "bmw championship": "playoff" };
+      "fedex st. jude championship": "playoff", "bmw championship": "playoff",
+      "arnold palmer invitational": "signature", "memorial tournament": "signature", "fedex st. jude": "playoff" };
+    var SHORT = { "cognizant classic in the palm beaches": "Cognizant Classic", "arnold palmer invitational presented by mastercard": "Arnold Palmer Invitational",
+      "the memorial tournament presented by workday": "Memorial Tournament", "fedex st. jude championship": "FedEx St. Jude" };
     fetch("data/dashboard.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) {
       var done = {}; (d.results || []).forEach(function (r) { done[String(r.event).toLowerCase()] = 1; });
       var now = new Date(), t = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
@@ -118,7 +121,7 @@
       var dates = mo(st) === mo(f) ? mo(st) + " " + st.getDate() + "-" + f.getDate() : mo(st) + " " + st.getDate() + " - " + mo(f) + " " + f.getDate();
       var p = document.getElementById("nextup");
       p.appendChild(document.createTextNode("Next up: "));
-      var b = document.createElement("b"); b.textContent = n.event; p.appendChild(b);
+      var b = document.createElement("b"); b.textContent = SHORT[n.event.trim().toLowerCase()] || n.event; p.appendChild(b);
       var ty = PRIZE[n.type] && n.type !== "regular" ? n.type : (KNOWN[n.event.trim().toLowerCase()] || "regular");
       p.appendChild(document.createTextNode(", " + dates + ". " + PRIZE[ty] + "."));
       if (ty !== "regular") { var f = document.createElement("span"); f.className = "hpf"; f.textContent = "\u2605"; f.title = "Higher payout"; f.setAttribute("aria-label", "Higher payout"); p.appendChild(f); }

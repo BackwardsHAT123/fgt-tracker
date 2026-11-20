@@ -32,7 +32,8 @@ const iso = d => d.toISOString().slice(0, 10);
   for (const e of due) {
     const season = e.finish.slice(0, 4);
     bySeason[season] = bySeason[season] || await seasonTournaments(season);
-    const t = bySeason[season].find(x => norm(x.name) === norm(e.event));
+    // Match on pgatour.com's full name (pgaName) when the Schedule uses a shorter one; results are stored under the short name.
+    const t = bySeason[season].find(x => norm(x.name) === norm(e.pgaName || e.event));
     if (!t) { say('- ' + e.event + ': not found on pgatour.com\'s ' + season + ' schedule. Check the name.'); problems++; continue; }
     if (t.status !== 'COMPLETED') { say('- ' + e.event + ': not official yet (' + t.status + '). Will try again on the next run.'); continue; }
     try {
