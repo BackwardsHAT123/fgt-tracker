@@ -2,11 +2,13 @@
 //   1. finds FGT events from data/schedule-2027.json that finished in the last few days,
 //   2. checks pgatour.com's schedule for their status, and for each one that is official (COMPLETED)
 //      pulls the full field and sends it to the Sheet (re-sending replaces that event's rows, so repeats are safe),
-//   3. saves the dashboard snapshot (site/data/dashboard.json) if anything was sent.
+//   3. saves the dashboard snapshot (site/data/dashboard.json) if anything was sent,
+//   4. catch-up and alarm: any FGT event that finished 2+ days ago but has no results in the Sheet is retried, and if it
+//      is still missing the run fails, so GitHub emails Tom (a run that quietly posts nothing would otherwise look fine).
 // Usage: FGT_RESULTS_TOKEN=... node tools/weekly-update.js [--days 3] [--event "Exact Schedule name"] [--dry-run] [--check]
 // --check only tests the token by resending data/schedule-2027.json (no results change).
 const fs = require('fs');
-const { ROOT, pullResults, seasonTournaments, postToSheet, saveSnapshot } = require('./fgt-lib');
+const { ROOT, pullResults, seasonTournaments, postToSheet, saveSnapshot, liveFeed } = require('./fgt-lib');
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
 const days = Number(opt('--days') || 3), only = opt('--event'), dry = args.includes('--dry-run');
@@ -25,11 +27,19 @@ const iso = d => d.toISOString().slice(0, 10);
   }
   const sched = JSON.parse(fs.readFileSync(opt('--schedule') || (ROOT + '/data/schedule-2027.json'), 'utf8')).events;   // --schedule: another file, for testing
   const now = new Date(), from = iso(new Date(now.getTime() - days * 86400000)), to = iso(now);
-  const due = sched.filter(e => only ? e.event === only : (e.counts === 'Yes' && e.finish >= from && e.finish <= to));
-  if (!due.length) { say(only ? 'No Schedule event named "' + only + '".' : 'No FGT events finished between ' + from + ' and ' + to + '. Nothing to do.'); return finish(0); }
-  const bySeason = {};
-  let sent = 0, problems = 0;
+  const overdue = iso(new Date(now.getTime() - 2 * 86400000));   // finished 2+ days ago: results should be in by now
+  let problems = 0, have = null;
+  if (!only) {
+    try { have = new Set((await liveFeed()).data.results.map(r => r.event)); }
+    catch (err) { say('- Could not read the Sheet to check for missing events: ' + err.message); problems++; }
+  }
+  const missing = e => have && e.counts === 'Yes' && e.finish <= overdue && !have.has(e.event);
+  const due = sched.filter(e => only ? e.event === only : (e.counts === 'Yes' && e.finish >= from && e.finish <= to) || missing(e));
+  if (!due.length) { say(only ? 'No Schedule event named "' + only + '".' : 'No FGT events finished between ' + from + ' and ' + to + (have ? ', and none are missing from the Sheet. Nothing to do.' : '.')); return finish(problems ? 1 : 0); }
+  const bySeason = {}, done = new Set();
+  let sent = 0;
   for (const e of due) {
+    if (e.finish < from) say('- ' + e.event + ' (finished ' + e.finish + ') has no results in the Sheet yet. Catching up.');
     const season = e.finish.slice(0, 4);
     bySeason[season] = bySeason[season] || await seasonTournaments(season);
     // Match on pgatour.com's full name (pgaName) when the Schedule uses a shorter one; results are stored under the short name.
@@ -41,12 +51,17 @@ const iso = d => d.toISOString().slice(0, 10);
       const r = await pullResults(url, { name: e.event, halve: /team event/i.test(e.notes || '') });
       if (dry) { say('- (dry run) ' + r.summary); continue; }
       const reply = await postToSheet(r.out, process.env.FGT_RESULTS_TOKEN);
-      sent++;
+      sent++; done.add(e.event);
       say('- Sent ' + r.summary + ' Sheet stored ' + reply.stored + ' rows' +
         (reply.notOnGolfersTabWithMoney && reply.notOnGolfersTabWithMoney.length ? '; golfers with money not on the points list: ' + reply.notOnGolfersTabWithMoney.join(', ') : '') + '.');
     } catch (err) { say('- ' + e.event + ': ' + err.message); problems++; }
   }
   if (sent) say(await saveSnapshot());
+  // Alarm: anything still missing makes the run fail, so GitHub emails Tom.
+  for (const e of sched.filter(e => missing(e) && !done.has(e.event))) {
+    say('- MISSING: ' + e.event + ' finished ' + e.finish + ' but its results are not in the Sheet. Check the run log above, or load it by hand (Actions > Weekly results > Run workflow, event "' + e.event + '").');
+    problems++;
+  }
   finish(problems ? 1 : 0);
 })().catch(e => { say('Stopped: ' + e.message); finish(1); });
 

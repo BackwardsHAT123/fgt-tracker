@@ -184,6 +184,10 @@ function onOpen() {
     .addItem('Update event scores', 'refreshEventScores')
     .addItem('Rebuild Lineups and Standings', 'rebuildLineupsAndStandings')
     .addItem('Send me a test confirmation email', 'sendTestConfirmation')
+    .addSeparator()
+    .addItem('Email me the unpaid list', 'emailUnpaidList')
+    .addItem('Back up the Sheet now', 'backupNow')
+    .addItem('Turn on weekly backups', 'turnOnWeeklyBackups')
     .addToUi();
 }
 
@@ -229,6 +233,72 @@ function sendTestConfirmation() {
   var me = Session.getEffectiveUser().getEmail();
   sendConfirmation_(me, 'Test Player', 'Test Team (not a real entry)', 'Scottie Scheffler (6), Chad Ramey (3)', 9);
   SpreadsheetApp.getUi().alert('Test email sent to ' + me + '.');
+}
+
+// ---- Unpaid list (private: emailed only to the script owner) --------------------------------------
+
+// Emails the script owner every entry whose Paid box (Entries column N) is not ticked, oldest first.
+function emailUnpaidList() {
+  var sh = sheet_(), last = sh.getLastRow();
+  var rows = last < 2 ? [] : sh.getRange(2, 1, last - 1, 14).getValues();
+  var tz = Session.getScriptTimeZone();
+  var entered = rows.filter(function (r) { return r[5]; });
+  var unpaid = entered.filter(function (r) { return r[13] !== true; });
+  var lines = unpaid.map(function (r, i) {
+    var when = r[0] instanceof Date ? Utilities.formatDate(r[0], tz, 'MMM d') : '';
+    return (i + 1) + '. ' + r[5] + ' - ' + r[1] + ' - ' + r[2] + ' - ' + r[3] + (when ? ' (entered ' + when + ')' : '') +
+      (r[10] ? ' [marked duplicate of row ' + r[10] + ']' : '');
+  });
+  var me = Session.getEffectiveUser().getEmail();
+  var subject = 'FGT unpaid entries: ' + unpaid.length + ' of ' + entered.length;
+  var body = unpaid.length
+    ? ['Teams whose Paid box is not ticked (' + unpaid.length + ' of ' + entered.length + ' entries, $' +
+        (unpaid.length * ENTRY_FEE).toLocaleString() + ' outstanding):', '', lines.join('\n'), '',
+       'Team - name - phone - email. Tick the Paid box in the Entries tab as Venmo payments come in.'].join('\n')
+    : 'Everyone has paid: all ' + entered.length + ' entries have the Paid box ticked.';
+  MailApp.sendEmail({ to: me, subject: subject, body: body, name: 'Fantasy Golf Tour' });
+  try { SpreadsheetApp.getUi().alert('Sent to ' + me + ': ' + unpaid.length + ' unpaid of ' + entered.length + ' entries.'); } catch (x) {}
+}
+
+// ---- Backups (copies of the whole Sheet in a private Drive folder) --------------------------------
+
+var BACKUP_FOLDER = 'FGT Sheet backups', BACKUPS_KEPT = 12;
+
+// Saves a dated copy of the whole Sheet in the "FGT Sheet backups" folder in the owner's Drive and keeps the newest 12.
+// The copies include the Entries tab (contact info), so they stay private like the Sheet. To restore, open a copy and
+// copy the tab or rows you need back into the real Sheet (the website keeps writing to the real one only).
+function backupSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var props = PropertiesService.getScriptProperties(), folder = null, id = props.getProperty('BACKUP_FOLDER_ID');
+  try { if (id) { folder = DriveApp.getFolderById(id); if (folder.isTrashed()) folder = null; } } catch (x) { folder = null; }
+  if (!folder) {
+    var found = DriveApp.getFoldersByName(BACKUP_FOLDER);
+    folder = found.hasNext() ? found.next() : DriveApp.createFolder(BACKUP_FOLDER);
+    props.setProperty('BACKUP_FOLDER_ID', folder.getId());
+  }
+  var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HHmm');
+  var name = ss.getName() + ' backup ' + stamp;
+  DriveApp.getFileById(ss.getId()).makeCopy(name, folder);
+  var copies = [], it = folder.getFiles();
+  while (it.hasNext()) { var f = it.next(); if (f.getName().indexOf(ss.getName() + ' backup ') === 0) copies.push(f); }
+  copies.sort(function (a, b) { return b.getDateCreated() - a.getDateCreated(); });
+  copies.slice(BACKUPS_KEPT).forEach(function (f) { f.setTrashed(true); });
+  return name;
+}
+
+function backupNow() {
+  var name = backupSheet();
+  SpreadsheetApp.getUi().alert('Saved "' + name + '" in the Drive folder "' + BACKUP_FOLDER + '" (the newest ' + BACKUPS_KEPT + ' are kept).');
+}
+
+// Installs one weekly trigger: Tuesday about 3am, after the Sunday/Monday results runs. Safe to run again.
+function turnOnWeeklyBackups() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'backupSheet') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('backupSheet').timeBased().onWeekDay(ScriptApp.WeekDay.TUESDAY).atHour(3).create();
+  var name = backupSheet();
+  SpreadsheetApp.getUi().alert('Weekly backups are on (Tuesdays about 3am). First copy saved now: "' + name + '" in "' + BACKUP_FOLDER + '".');
 }
 
 function setupSheets() {

@@ -39,3 +39,9 @@ After changing `Code.gs`, redeploy it (Deploy > Manage deployments > edit > New 
 - The page is public, and anyone with the Apps Script URL can post to it. The script validates fields, recomputes the point total, stops formula injection, and has a honeypot field, but it can't verify a person is who they say. The per-golfer point values come from the page, so someone determined could post a fake value; check lineups against the point sheet before payouts.
 - Entries (names, phones, emails, addresses) live only in the Sheet. Keep the Sheet's sharing private. Don't commit exports of it to this repo.
 - Set `DEADLINE` in `Code.gs` to stop accepting entries automatically.
+
+## Safety nets (Sheet menu FGT)
+
+- **Email me the unpaid list**: emails only the script owner every entry whose Paid box is not ticked (team, name, phone, email, date entered) and the amount outstanding.
+- **Back up the Sheet now** / **Turn on weekly backups**: saves a dated copy of the whole Sheet in the Drive folder "FGT Sheet backups" (newest 12 kept). Weekly backups run Tuesdays about 3am. The copies include contact info; keep the folder private.
+- The weekly results job retries any FGT event that finished 2+ days ago but has no results in the Sheet, and fails (GitHub emails you) if it is still missing.

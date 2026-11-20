@@ -83,10 +83,16 @@ async function postToSheet(data, token) {
 }
 
 // Saves the live dashboard feed as site/data/dashboard.json, refusing anything that looks like personal details.
-async function saveSnapshot() {
+// The live dashboard feed from the Apps Script: { text, data }.
+async function liveFeed() {
   const text = await (await fetch(scriptUrl() + '?view=dashboard')).text();
-  const d = JSON.parse(text);
+  let d; try { d = JSON.parse(text); } catch (e) { throw new Error('Feed replied with something that is not JSON: ' + text.slice(0, 120)); }
   if (!d.ok || !Array.isArray(d.standings)) throw new Error('Feed did not return dashboard data: ' + text.slice(0, 120));
+  return { text, data: d };
+}
+
+async function saveSnapshot() {
+  const { text, data: d } = await liveFeed();
   const bad = [
     [/[\w.+-]+@[\w-]+\.[\w.]+/, 'an email address'],
     [/\(?\d{3}\)?[ .-]?\d{3}[ .-]?\d{4}/, 'a phone number'],
@@ -100,4 +106,4 @@ async function saveSnapshot() {
     (d.closed ? 'shown' : 'hidden') + ', ' + Math.round(text.length / 1024) + ' KB';
 }
 
-module.exports = { ROOT, pullResults, seasonTournaments, postToSheet, saveSnapshot, finishDate };
+module.exports = { ROOT, pullResults, seasonTournaments, postToSheet, saveSnapshot, liveFeed, finishDate };
