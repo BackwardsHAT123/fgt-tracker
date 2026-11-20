@@ -1,0 +1,62 @@
+name: Live scores
+
+# Keeps live/live.json current for the dashboard's Live tab: the field and tee times in event week, then
+# positions, scores and projected money every 10 minutes while golf is being played (DataGolf in-play feed).
+# The file is published on its own branch, "live-data", replaced on every update (one commit, no history),
+# so it never clutters main or triggers a site deploy. The page reads it from raw.githubusercontent.com.
+# Needs the repo secret DATAGOLF_KEY. Outside an FGT event week the job writes "no event" once and goes quiet.
+on:
+  schedule:
+    - cron: "*/10 11-23 * * 0,4,5,6"   # Thu-Sun daytime (UTC)
+    - cron: "*/10 0-3 * * 0,1,5,6"     # Thu-Sun evenings in the US (early UTC next day)
+    - cron: "*/15 12-23 * * 1"         # Monday finishes
+    - cron: "17 */4 * * 1,2,3"         # event week preview (field, tee times)
+  workflow_dispatch:
+    inputs:
+      any:
+        description: "Test: use DataGolf's current event even if it isn't on the FGT schedule"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-scores
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build live.json from DataGolf
+        env:
+          DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
+          ANY: ${{ inputs.any }}
+        run: |
+          if [ "$ANY" = "true" ]; then node tools/live-update.js --any; else node tools/live-update.js; fi
+      - name: Publish to the live-data branch (only if something changed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f live/live.json ] || { echo "No live.json written."; exit 0; }
+          old=$(git ls-remote --heads origin live-data | wc -l)
+          if [ "$old" -gt 0 ]; then
+            git fetch -q --depth 1 origin live-data
+            git show FETCH_HEAD:live.json > /tmp/old.json 2>/dev/null || echo '{}' > /tmp/old.json
+            same=$(node -e 'const f=require("fs"),s=o=>{delete o.generated;return JSON.stringify(o)};console.log(s(JSON.parse(f.readFileSync("/tmp/old.json")))===s(JSON.parse(f.readFileSync("live/live.json"))))')
+            if [ "$same" = "true" ]; then echo "Unchanged; not publishing."; exit 0; fi
+          fi
+          dir=$(mktemp -d); cp live/live.json "$dir/live.json"; cd "$dir"
+          git init -q -b live-data
+          git config user.name "fgt-live-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add live.json
+          git commit -q -m "Live data $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:live-data
+          echo "Published."

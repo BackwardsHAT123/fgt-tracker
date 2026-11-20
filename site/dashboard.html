@@ -151,6 +151,23 @@
   .wk .ctl .picker { max-width: 100%; }
   .wk .split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
   @media (max-width: 860px) { .wk .split { grid-template-columns: 1fr; } }
+  .livebn { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--hair); border-radius: var(--radius-md); background: var(--raised); padding: 10px 14px; margin: 0 0 var(--space-4); font-size: 15px; }
+  .livebn .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+  .livebn .dot.on { background: var(--danger); animation: lvpulse 1.6s ease-in-out infinite; }
+  @keyframes lvpulse { 50% { opacity: 0.35; } }
+  .livebn .lnk { margin-left: auto; font: 600 14px/18px var(--sans); border: 1px solid var(--border); background: transparent; color: var(--ink); border-radius: var(--radius-pill); padding: 5px 14px; cursor: pointer; }
+  .lv .lvx { color: var(--muted); font-size: 13px; margin: 6px 0 12px; }
+  .lv .wrow .am .pj, .lv .pj { color: var(--muted); }
+  .lv table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .lv th { text-align: left; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .lv td { padding: 5px 6px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+  .lv .n { text-align: right; } .lv .b { font-weight: 700; } .lv td.g { max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+  .lv .pos { color: var(--green); } .lv .neg { color: var(--danger); }
+  .lv tr.gone td, .lv tr.out td { color: var(--muted); } .lv tr.out td.n { text-align: left; font-style: italic; }
+  .lv .rpscroll { overflow-x: auto; }
+  .lv .lvp .it { display: flex; justify-content: space-between; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--hair); font-size: 14px; }
+  .lv .lvp .it .nm { font-weight: 600; } .lv .lvp .it .tt { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .lv .lvp .it.off .nm { color: var(--muted); font-weight: 400; }
   .wk .side-h { font-weight: 600; font-size: 16px; padding: 6px 0; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
   .wk .list { max-height: 560px; overflow-y: auto; }
   .wk .wrow { display: grid; grid-template-columns: 30px 1fr; align-items: center; cursor: pointer; border-bottom: 1px solid var(--hair); }
@@ -860,7 +877,8 @@
     return h;
   }
   function tracker(view) {
-    var nu = nextUpBox(); if (nu) view.appendChild(nu);
+    var lb = liveBanner(); if (lb) view.appendChild(lb);
+    var nu = liveOn() ? null : nextUpBox(); if (nu) view.appendChild(nu);
     var wrap = el("div", "cols");
     var leader = M.teams[0], hasEvents = M.events.length > 0;
 
@@ -1775,11 +1793,176 @@
     view.appendChild(box);
   }
 
-  var TABS = [["tracker", "Main", tracker], ["weekly", "Weekly Results", weekly],
+  // ---- Live (Tom's #5 and #6): live/live.json from the "Live scores" job (DataGolf in-play feed) ----
+  // Published on the repo's live-data branch and read from raw.githubusercontent.com (refreshed every ~10 minutes
+  // during play). The demo uses a saved RSM Classic snapshot. Team totals are added up here from the lineups.
+  var LIVE_URL = "https://raw.githubusercontent.com/BackwardsHAT123/fgt-tracker/live-data/live.json";
+  var LIVE = null, liveTimer = null;
+  function loadLive() {
+    var url = demo ? (params.get("live") === "pre" ? "data/live-demo-pre.json" : "data/live-demo.json") : LIVE_URL;   // ?demo=1&live=pre: preview week
+    fetch(url + "?t=" + Date.now(), { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) return;
+        var changed = !LIVE || JSON.stringify(LIVE) !== JSON.stringify(j);
+        LIVE = j; LIVE.byKey = {}; (j.players || []).forEach(function (p) { LIVE.byKey[fold(p.name)] = p; });
+        if (changed && M && (state.tab === "live" || state.tab === "tracker")) draw();
+      }).catch(function () {});
+    if (!liveTimer && !demo) liveTimer = setInterval(function () { if (!document.hidden) loadLive(); }, 5 * 60 * 1000);
+  }
+  function liveOn() { return !!(LIVE && (LIVE.status === "live" || LIVE.status === "final" || LIVE.status === "preview")); }
+  function toPar(v) { return v == null || v === "" ? "-" : v === 0 ? "E" : (v > 0 ? "+" : "") + v; }
+  function gone(p) { return /^(CUT|MC|WD|W\/D|DQ|MDF)$/i.test(String(p.pos || "")); }
+  function teeText(p, round) {
+    var t = (p.tee || []).filter(function (x) { return x.r === round; })[0]; if (!t || !t.t) return "";
+    var m = String(t.t).match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})/); if (!m) return t.t;
+    var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])), h = +m[4], ap = h >= 12 ? "pm" : "am";
+    return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getUTCDay()] + " " + ((h + 11) % 12 + 1) + ":" + m[5] + " " + ap;
+  }
+  function thruText(p) {
+    if (gone(p)) return p.pos;
+    if (p.thru === 18 || String(p.thru).toUpperCase() === "F") return "F";
+    if (!p.thru) { var tt = teeText(p, LIVE.round || 1); return tt ? tt.replace(/^\w+ /, "") : "-"; }
+    return String(p.thru);
+  }
+  function agoText() {
+    var t = Date.parse(LIVE.generated || ""); if (!t) return "";
+    var m = Math.max(0, Math.round((Date.now() - t) / 60000));
+    return m < 2 ? "updated just now" : m < 90 ? "updated " + m + " min ago" : "updated " + Math.round(m / 60) + " h ago";
+  }
+  // Per team: money if it ended now, projected money, and how many of its golfers are still playing.
+  function liveTeams() {
+    return M.teams.map(function (t) {
+      var gs = (M.lineup[t.team] || []).map(function (g) { return LIVE.byKey[fold(M.names[key(g)] || g)]; }).filter(Boolean);
+      return { team: t.team, now: gs.reduce(function (s, p) { return s + (p.now || 0); }, 0), proj: gs.reduce(function (s, p) { return s + (p.proj || 0); }, 0),
+               inField: gs.length, alive: gs.filter(function (p) { return !gone(p); }).length, size: (M.lineup[t.team] || []).length };
+    }).filter(function (r) { return r.inField > 0; }).sort(function (a, b) { return b.now - a.now || b.proj - a.proj; });
+  }
+  function liveBanner() {
+    if (!liveOn()) return null;
+    var b = el("div", "livebn"), dot = el("span", "dot" + (LIVE.status === "live" ? " on" : ""));
+    b.appendChild(dot);
+    var txt = LIVE.status === "preview" ? "This week: " + LIVE.event + ". See who's in the field."
+      : (LIVE.status === "final" ? "Final round done at the " : "Live now: ") + LIVE.event + (LIVE.status === "live" ? ", round " + LIVE.round : "") + ".";
+    if (LIVE.status !== "preview" && D.closed && myTeam()) {
+      var rows = liveTeams(), k = rows.map(function (r) { return r.team; }).indexOf(myTeam());
+      if (k >= 0) txt += " " + myTeam() + " is " + ordinal(k + 1) + " if it ended now (" + money(rows[k].now) + ").";
+    }
+    b.appendChild(el("span", null, txt));
+    var go = el("button", "lnk", "Open Live"); go.type = "button"; go.onclick = function () { state.tab = "live"; draw(); window.scrollTo(0, 0); };
+    b.appendChild(go);
+    return b;
+  }
+  function ordinal(n) { var t = n % 100; return n + (t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th"); }
+
+  function live(view) {
+    var box = el("div", "wk lv");
+    if (!LIVE) { box.appendChild(el("div", "note", "Loading live scores...")); view.appendChild(box); loadLive(); return; }
+    if (!liveOn()) {
+      box.appendChild(el("h3", null, "Live"));
+      box.appendChild(el("div", "note", "No FGT event this week." + (LIVE.next ? " Next up: " + LIVE.next.event + ", finishing " + LIVE.next.finish + "." : "") +
+        " This tab comes alive in event week: first the field and tee times, then live scores and projected money from Thursday."));
+      view.appendChild(box); return;
+    }
+    var et = LIVE.type || "regular";
+    var h = el("h3"); h.appendChild(document.createTextNode(LIVE.status === "preview" ? "This week: " + LIVE.event : LIVE.event + (LIVE.status === "live" ? ", round " + LIVE.round : ", final round done")));
+    box.appendChild(h);
+    var ph = el("div", "hint"); ph.appendChild(el("span", "pzb " + et, TYPE_NAME[et] || "Regular"));
+    ph.appendChild(document.createTextNode(" " + prizeText(et) + (LIVE.status === "preview" ? "." : ". " + agoText() + " (DataGolf).")));
+    box.appendChild(ph);
+    if (LIVE.status === "preview") { livePreview(box); view.appendChild(box); return; }
+    var expl = el("div", "lvx", "\"If it ended now\" pays each golfer for their current place" + (LIVE.cutPending ? " (top 65 and ties, as if the cut fell now)" : "") +
+      ". \"Projected\" is the money each golfer is expected to make, from DataGolf's live finish odds. Both use a " + money(LIVE.purse) + " purse" +
+      (LIVE.purseIsEstimate ? " (last year's; this year's isn't posted yet)" : "") + ". Official money arrives with the results after the event.");
+    box.appendChild(expl);
+    if (!D.closed) { box.appendChild(lineupsNote()); box.appendChild(liveGolfers(LIVE.players.slice().sort(function (a, b) { return b.now - a.now || b.proj - a.proj; }).slice(0, 30), "Leaderboard (top 30)")); view.appendChild(box); return; }
+
+    var rows = liveTeams();
+    if (!state.lTeam || !rows.some(function (r) { return r.team === state.lTeam; }))
+      state.lTeam = rows.some(function (r) { return r.team === myTeam(); }) ? myTeam() : (rows.length ? rows[0].team : null);
+    var split = el("div", "split"), left = el("div"), right = el("div");
+    left.appendChild(el("div", "side-h", "Teams if it ended now (projected in grey). Click one for its golfers."));
+    var list = el("div", "list"), max = rows.length ? Math.max(rows[0].now, 1) : 1;
+    var nows = rows.map(function (r) { return r.now; });
+    rows.forEach(function (r) {
+      var place = 1 + nows.filter(function (v) { return v > r.now; }).length, tied = nows.filter(function (v) { return v === r.now; }).length > 1;
+      var d = el("div", "wrow" + (r.team === state.lTeam ? " sel" : "") + (isMine(r.team) ? " mine" : ""));
+      d.appendChild(el("div", "rk", (tied ? "T" : "") + place));
+      var t = el("div", "track"), f = el("div", "fill"); f.style.width = Math.max(1, Math.round(r.now / max * 100)) + "%";
+      t.appendChild(f); t.appendChild(nameEl("nm", r.team));
+      var am = el("div", "am"); am.appendChild(document.createTextNode(money(r.now) + " ")); am.appendChild(el("span", "pj", money(r.proj)));
+      t.appendChild(am); d.appendChild(t);
+      d.title = r.alive + " of " + r.size + " golfers still playing";
+      d.onclick = function () { state.lTeam = r.team; draw(); };
+      list.appendChild(d);
+    });
+    if (!rows.length) list.appendChild(el("div", "note", "No team has a golfer in this event."));
+    left.appendChild(list);
+    var team = state.lTeam, gs = team ? (M.lineup[team] || []).map(function (g) {
+      var nm = M.names[key(g)] || g, p = LIVE.byKey[fold(nm)];
+      return p || { name: nm, out: true };
+    }) : [];
+    gs.sort(function (a, b) { return (a.out ? 1 : 0) - (b.out ? 1 : 0) || (b.now || 0) - (a.now || 0) || (b.proj || 0) - (a.proj || 0); });
+    right.appendChild(liveGolfers(gs, team ? team + ": golfers" : "Golfers"));
+    split.appendChild(left); split.appendChild(right); box.appendChild(split);
+    view.appendChild(box);
+  }
+  function liveGolfers(gs, title) {
+    var wrap = el("div", "lvg"); wrap.appendChild(el("div", "side-h", title));
+    var tbl = el("table"), hr = el("tr");
+    ["Golfer", "Pos", "Total", "Today", "Thru", "Now", "Proj"].forEach(function (x, k) { hr.appendChild(el("th", k > 0 ? "n" : null, x)); });
+    var th = el("thead"); th.appendChild(hr); tbl.appendChild(th);
+    var tb = el("tbody");
+    gs.forEach(function (p) {
+      var tr = el("tr", p.out ? "out" : gone(p) ? "gone" : null);
+      tr.appendChild(el("td", "g", p.name));
+      if (p.out) { var td = el("td", "n", "not in the field"); td.colSpan = 6; tr.appendChild(td); tb.appendChild(tr); return; }
+      tr.appendChild(el("td", "n", gone(p) ? p.pos : p.pos || "-"));
+      tr.appendChild(el("td", "n " + (p.score < 0 ? "pos" : p.score > 0 ? "neg" : ""), toPar(p.score)));
+      tr.appendChild(el("td", "n", gone(p) ? "" : toPar(p.today)));
+      tr.appendChild(el("td", "n", thruText(p)));
+      tr.appendChild(el("td", "n b", money(p.now || 0)));
+      tr.appendChild(el("td", "n pj", money(p.proj || 0)));
+      if (!gone(p) && p.win != null) tr.title = p.name + ": " + (p.win * 100).toFixed(1) + "% to win, " + (p.top10 * 100).toFixed(0) + "% top 10" + (LIVE.cutPending && p.mc != null ? ", " + (p.mc * 100).toFixed(0) + "% to make the cut" : "");
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb); var sc = el("div", "rpscroll"); sc.appendChild(tbl); wrap.appendChild(sc);
+    return wrap;
+  }
+  // #6: before the event, who's in the field (and when they tee off) for a chosen team, and the most-picked golfers playing.
+  function livePreview(box) {
+    var field = LIVE.players || [];
+    box.appendChild(el("div", "lvx", field.length + " golfers in the field. Tee times are course local time."));
+    if (!D.closed) { box.appendChild(lineupsNote()); return; }
+    if (!state.lTeam || !M.teams.some(function (t) { return t.team === state.lTeam; })) state.lTeam = myTeam() || (M.teams[0] && M.teams[0].team);
+    var ctl = el("div", "ctl"), c1 = el("div"); c1.appendChild(el("label", null, "Team"));
+    c1.appendChild(picker(M.teams.slice().sort(function (a, b) { return a.team.localeCompare(b.team); }).map(function (t) { return { label: t.team, value: t.team }; }),
+      state.lTeam, function (v) { state.lTeam = v; draw(); }));
+    ctl.appendChild(c1); box.appendChild(ctl);
+    var split = el("div", "split"), left = el("div"), right = el("div");
+    var mine = (M.lineup[state.lTeam] || []).map(function (g) { var nm = M.names[key(g)] || g; return { name: nm, p: LIVE.byKey[fold(nm)] }; });
+    var playing = mine.filter(function (x) { return x.p; });
+    left.appendChild(el("div", "side-h", state.lTeam + ": " + playing.length + " of " + mine.length + " golfers playing"));
+    var ul = el("div", "lvp");
+    mine.sort(function (a, b) { return (b.p ? 1 : 0) - (a.p ? 1 : 0) || a.name.localeCompare(b.name); }).forEach(function (x) {
+      var r = el("div", "it" + (x.p ? "" : " off")); r.appendChild(el("span", "nm", x.name));
+      r.appendChild(el("span", "tt", x.p ? (teeText(x.p, 1) || "in the field") : "not playing")); ul.appendChild(r);
+    });
+    left.appendChild(ul);
+    right.appendChild(el("div", "side-h", "Most-picked golfers in the field"));
+    var top = field.map(function (p) { return { name: p.name, n: M.pickN[key(p.name)] || M.pickN[fold(p.name)] || 0, p: p }; })
+      .filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); }).slice(0, 12);
+    var ul2 = el("div", "lvp");
+    top.forEach(function (x) { var r = el("div", "it"); r.appendChild(el("span", "nm", x.name)); r.appendChild(el("span", "tt", x.n + " team" + (x.n === 1 ? "" : "s") + " · " + (teeText(x.p, 1) || ""))); ul2.appendChild(r); });
+    if (!top.length) ul2.appendChild(el("div", "note", "None of the picked golfers are in this field."));
+    right.appendChild(ul2);
+    split.appendChild(left); split.appendChild(right); box.appendChild(split);
+  }
+
+  var TABS = [["tracker", "Main", tracker], ["live", "Live", live], ["weekly", "Weekly Results", weekly],
               ["leaderboard", "Leaderboard", leaderboard], ["top", "Top Teams", topTeams], ["perf", "Team Performance", teamPerformance], ["winners", "Winner List", winners],
               ["picked", "How Many Times Picked?", picked], ["finishes", "Past Finishes", pastFinishes],
               ["lineups", "Lineup Analysis", lineupAnalysis], ["schedule", "Schedule", schedule]];
-  var GROUPS = [["Season", ["tracker", "leaderboard", "top", "schedule"]], ["Weekly", ["weekly", "winners"]],
+  var GROUPS = [["Season", ["tracker", "leaderboard", "top", "schedule"]], ["Weekly", ["live", "weekly", "winners"]],
                 ["Teams", ["perf"]], ["Golfers", ["picked", "finishes", "lineups"]]];
   var lastInGroup = {};
   function groupOf(tab) { return GROUPS.filter(function (g) { return g[1].indexOf(tab) >= 0; })[0] || GROUPS[0]; }
@@ -1792,7 +1975,7 @@
     var row = el("div", "grp");
     GROUPS.forEach(function (gr) {
       var b = el("button", gr === g ? "on" : "", gr[0]); b.type = "button";
-      b.onclick = function () { state.tab = lastInGroup[gr[0]] || gr[1][0]; draw(); };
+      b.onclick = function () { state.tab = lastInGroup[gr[0]] || (gr[0] === "Weekly" && !liveOn() ? "weekly" : gr[1][0]); draw(); };
       row.appendChild(b);
     });
     nav.appendChild(row);
@@ -1823,6 +2006,7 @@
   function fold(s) { return String(s).toLowerCase().replace(/\u00f8/g, "o").replace(/\u00e6/g, "ae").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim(); }
 
   function start() {
+    loadLive();
     M = build();
     clear(document.getElementById("banners"));   // start() can run again when fresher data arrives
     if (D.demo) $b("demo", "DEMO DATA: 40 made-up teams, and real Austin Championship money (the other two events, including Demo Major, are invented).");
