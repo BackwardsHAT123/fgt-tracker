@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="sitebar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
   /* TAH design system tokens (same as team-picker.html and dashboard.html). */
   :root {
@@ -38,7 +38,8 @@
     --surface: #262524; --raised: #1c1a17; --ink: #f2eee8; --muted: #b3b2ae;
     --hair: #3a3733; --border: #8a877d;
     --accent: #ed7437; --on-accent: #121310; --accent-text: #ed7437; --success: #79bc76; --on-success: #121310;
-    --sans: "Outfit", "Avenir Next", system-ui, sans-serif;
+    --sans: "Inter", system-ui, -apple-system, sans-serif;
+    --head: "Barlow Condensed", "Arial Narrow", sans-serif;
     --radius-md: 12px; --radius-pill: 999px;
   }
   :root[data-theme="light"] {
@@ -69,6 +70,9 @@
   footer { text-align: center; color: var(--muted); font-size: 14px; padding: 16px; }
   footer b { color: var(--ink); font-weight: 600; }
   @media (max-width: 600px) { h1 { font-size: 32px; line-height: 38px; } .big { font-size: 22px; min-height: 64px; } }
+  /* Fonts (Tom picked pairing 2, Nov 2026): Barlow Condensed for headings and big numbers, Inter for everything else. */
+  h1, .sitebar .sb-home { font-family: var(--head); letter-spacing: 0; }
+  body { font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body data-page="home">

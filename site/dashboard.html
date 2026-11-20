@@ -29,10 +29,10 @@
 <link rel="stylesheet" href="sitebar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="icon" href="favicon.png">
 <style>
-  /* TAH design system (same tokens as the entry page): Outfit, pill buttons and chips, hairline cards, no shadows.
+  /* TAH design system (same tokens as the entry page): Barlow Condensed headings + Inter text, pill buttons and chips, hairline cards, no shadows.
      Dark by default; light via the toggle. Point-level colours and the tracker's green/purple/blue are Tom's own. */
   :root {
     color-scheme: dark;
@@ -43,7 +43,8 @@
     --green: #79d27e; --green-bar: #4fa653; --green-tint: #243026;
     --purple: #c39bf0; --purple-bar: #9a63d1; --purple-tint: #2d2535;
     --blue: #6db3ff; --blue-bar: #4c9aef; --blue-tint: #222d3a;
-    --sans: "Outfit", "Avenir Next", system-ui, sans-serif;
+    --sans: "Inter", system-ui, -apple-system, sans-serif;
+    --head: "Barlow Condensed", "Arial Narrow", sans-serif;
     --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px;
     --radius-md: 12px; --radius-pill: 999px;
   }
@@ -63,7 +64,6 @@
   header.pagehd { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding: 24px 0 var(--space-3); }
   h1 { margin: 0; font-size: 44px; line-height: 48px; font-weight: 700; letter-spacing: -0.5px; }
   @media (max-width: 700px) { h1 { font-size: 30px; line-height: 34px; } }
-  h2, h3 { font-family: var(--sans); }
   button, select, input { font-family: var(--sans); }
   .btn { font: 600 15px/20px var(--sans); cursor: pointer; border-radius: var(--radius-pill); padding: 6px 18px; min-height: 36px;
     border: 1px solid var(--border); background: transparent; color: var(--ink); white-space: nowrap; }
@@ -351,6 +351,9 @@
     .ftip .sent { max-width: 100%; }
     .la .stat .num { font-size: 28px; line-height: 34px; }
   }
+  /* Fonts (Tom picked pairing 2, Nov 2026): Barlow Condensed for headings and big numbers, Inter for everything else. */
+  h1, h2, h3, h4, h5, .sitebar .sb-home, .card .team, .card .big, .kc .num, .kc .money, .la .stat .num, .ftip .tn, .ftip .frac, .ftip .big, .tp .pc .am { font-family: var(--head); letter-spacing: 0; }
+  body { font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body data-page="tracker">
