@@ -290,13 +290,14 @@
   .wl .wr .second { color: var(--muted); font-size: 13px; }
   .sch h3 { margin: 6px 0 4px; font-size: 24px; line-height: 30px; font-weight: 600; }
   .sch .sub { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
-  .sch .srow { display: grid; grid-template-columns: 34px minmax(170px, 1.6fr) 110px 150px 110px 1.4fr; gap: 10px; align-items: center; padding: 7px 6px; border-bottom: 1px solid var(--hair); font-size: 14px; }
+  .sch .srow { display: grid; grid-template-columns: 30px 26px minmax(170px, 1.6fr) 110px 150px 110px 1.4fr; gap: 10px; align-items: center; padding: 7px 6px; border-bottom: 1px solid var(--hair); font-size: 14px; }
   .sch .srow.head { color: var(--muted); font-size: 13px; border-bottom: 1px solid var(--border); }
   .sch .srow.next { background: color-mix(in srgb, var(--success) 14%, transparent); border-radius: 8px; }
   .sch .srow.off { color: var(--muted); }
   .sch .ev { font-weight: 600; } .sch .num { text-align: right; font-variant-numeric: tabular-nums; }
   .sch .st { font-size: 13px; } .sch .st b { color: var(--ink); }
-  @media (max-width: 860px) { .sch .srow { grid-template-columns: 28px 1fr 90px; } .sch .srow > :nth-child(4), .sch .srow > :nth-child(5), .sch .srow > :nth-child(6) { grid-column: 2 / -1; } }
+  .sch .star { text-align: center; } .sch .star .hpf { margin-left: 0; }
+  @media (max-width: 860px) { .sch .srow { grid-template-columns: 26px 24px 1fr 90px; } .sch .srow > :nth-child(5), .sch .srow > :nth-child(6), .sch .srow > :nth-child(7) { grid-column: 3 / -1; } }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
@@ -1462,14 +1463,15 @@
     if (!list.length) { box.appendChild(el("div", "note", "The schedule has not been loaded yet.")); view.appendChild(box); return; }
     var done = {}; M.events.forEach(function (e) { done[e.name.toLowerCase()] = 1; });
     var nx = nextEvent(), head = el("div", "srow head");
-    ["#", "Event", "Dates", "Type", "Purse", "Status"].forEach(function (x, j) { head.appendChild(el("div", j === 4 ? "num" : null, x)); });
+    ["#", "", "Event", "Dates", "Type", "Purse", "Status"].forEach(function (x, j) { head.appendChild(el("div", j === 5 ? "num" : null, x)); });
     box.appendChild(head);
     var n = 0;
     list.forEach(function (e) {
       var counts = e.counts !== "No", scored = done[e.event.toLowerCase()];
       var r = el("div", "srow" + (nx && e.event === nx.event ? " next" : "") + (counts ? "" : " off") + (counts && higher(e.type) ? " hp" : ""));
       r.appendChild(el("div", null, counts && e.counts !== "TBD" ? String(++n) : ""));
-      var evc = el("div", "ev", e.event); if (counts && higher(e.type)) evc.appendChild(flag()); r.appendChild(evc);
+      var star = el("div", "star"); if (counts && higher(e.type)) star.appendChild(flag()); r.appendChild(star);
+      r.appendChild(el("div", "ev", e.event));
       r.appendChild(el("div", null, dateRange(e.finish)));
       var tcell = el("div"); tcell.appendChild(el("span", "pzb " + e.type, TYPE_NAME[e.type] || "Regular"));
       if (counts) tcell.appendChild(el("div", "st", prizeText(e.type))); r.appendChild(tcell);
