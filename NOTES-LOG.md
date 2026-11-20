@@ -259,3 +259,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Fix: long event names (Austin's sponsor title) widened the middle Main-tab column; the three columns are now forced equal (`minmax(0, 1fr)`), long text wraps inside.
 - Shorter tournament names (Tom): Austin Championship (drops "presented by Compliance Solutions"), Cognizant Classic, Arnold Palmer Invitational, Memorial Tournament, FedEx St. Jude. Schedule file uses the short names with `pgaName` keeping pgatour.com's full name for the weekly job's matching (dry run on Austin found it). Dashboard and home page map long names to short ones on load (`SHORT_NAMES`), so data already in the Sheet under the long name (Austin) also shows short. Schedule resent via the job's check run.
 - Main tab (Tom): the green Overall Leader card and the blue Your Team card are now the same height (an invisible spacer matches Your Team's chart caption); the purple card is unchanged.
+
+## 2026-11-20: live test entry and phone check (Tom)
+
+- Tom sent a real test entry from his phone: it reached the Sheet, the confirmation email arrived and a repeat lineup was rejected, so the duplicate-lineup Code.gs (67633b1) is live. Removed both "Open" items from CLAUDE.md.
+- Tom checked the dashboard on his phone: looks good. The phone-view item is closed.
