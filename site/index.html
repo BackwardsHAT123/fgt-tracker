@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fantasy Golf Tour</title>
 <meta name="description" content="The PGA Fantasy Golf Tour: pick your team and follow the 2027 season.">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="light dark">
 <link rel="icon" type="image/png" href="favicon.png">
 <script>
-  /* Same theme choice as the dashboard (dark by default, TAH design system). */
+  /* Theme: the visitor's own choice (saved by the toggle) wins; otherwise follow the device's light/dark setting;
+     devices with no setting get light. */
   (function () {
-    var t = "dark";
+    var t = null;
     try { var v = localStorage.getItem("fgt-theme"); if (v === "light" || v === "dark") t = v; } catch (e) {}
+    if (!t) t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", t);
   })();
 </script>
@@ -50,6 +52,8 @@
   .big.secondary:hover { border-color: var(--ink); }
   .big.primary:hover { filter: brightness(1.06); }
   .big:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 3px; }
+  .nextup { color: var(--muted); font-size: 16px; line-height: 22px; max-width: 520px; }
+  .nextup b { color: var(--ink); font-weight: 600; }
   footer { text-align: center; color: var(--muted); font-size: 14px; padding: 16px; }
   footer b { color: var(--ink); font-weight: 600; }
   @media (max-width: 600px) { h1 { font-size: 32px; line-height: 38px; } .big { font-size: 22px; min-height: 64px; } }
@@ -62,6 +66,7 @@
     <h1 id="title">PGA Fantasy Golf Tour</h1>
     <p class="sub" id="deadline"></p>
   </div>
+  <p class="nextup" id="nextup" hidden></p>
   <nav class="buttons" aria-label="Main">
     <a class="big primary" href="team-picker.html">Team Picker</a>
     <a class="big secondary" href="dashboard.html">2027 Tracker</a>
@@ -76,6 +81,32 @@
     if (C.TITLE) document.getElementById("title").textContent = C.TITLE;
     if (C.DEADLINE_TEXT) document.getElementById("deadline").textContent = C.DEADLINE_TEXT;
   })();
+  // "Next up": the next FGT event, from the dashboard snapshot published with the site.
+  (function () {
+    var PRIZE = { regular: "$150 to the winning team", signature: "$200 to the winning team", players: "$200 to the winning team",
+                  major: "$300 to the winning team, $100 for 2nd" };
+    fetch("data/dashboard.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) {
+      var done = {}; (d.results || []).forEach(function (r) { done[String(r.event).toLowerCase()] = 1; });
+      var now = new Date(), t = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+      var n = (d.schedule || []).filter(function (e) { return e.counts !== "No" && e.counts !== "TBD" && !done[e.event.toLowerCase()] && e.finish >= t; })
+        .sort(function (a, b) { return a.finish < b.finish ? -1 : 1; })[0];
+      if (!n) return;
+      var f = new Date(n.finish + "T12:00:00"), st = new Date(f.getTime() - 3 * 86400000);
+      var mo = function (x) { return x.toLocaleString("en-US", { month: "short" }); };
+      var dates = mo(st) === mo(f) ? mo(st) + " " + st.getDate() + "-" + f.getDate() : mo(st) + " " + st.getDate() + " - " + mo(f) + " " + f.getDate();
+      var p = document.getElementById("nextup");
+      p.appendChild(document.createTextNode("Next up: "));
+      var b = document.createElement("b"); b.textContent = n.event; p.appendChild(b);
+      p.appendChild(document.createTextNode(", " + dates + ". " + (PRIZE[n.type] || PRIZE.regular) + "."));
+      p.hidden = false;
+    }).catch(function () {});
+  })();
+</script>
+<script>
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
+    var saved = null; try { saved = localStorage.getItem("fgt-theme"); } catch (x) {}
+    if (!saved) document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
+  });
 </script>
 </body>
 </html>

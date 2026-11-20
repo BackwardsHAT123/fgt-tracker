@@ -4,12 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FGT Tracker</title>
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="light dark">
 <script>
-  /* Set the theme before the page paints (no flash). Dark is the default, as in the TAH design system. */
+  /* Theme: the visitor's own choice (saved by the toggle) wins; otherwise follow the device's light/dark setting;
+     devices with no setting get light. */
   (function () {
-    var t = "dark";
+    var t = null;
     try { var v = localStorage.getItem("fgt-theme"); if (v === "light" || v === "dark") t = v; } catch (e) {}
+    if (!t) t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", t);
   })();
 </script>
@@ -267,6 +269,30 @@
   .pfn tr.hl td { box-shadow: inset 0 2px 0 var(--accent-text), inset 0 -2px 0 var(--accent-text); }
   .pfn .key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); align-items: center; }
   .pfn .key i { display: inline-block; width: 22px; height: 14px; vertical-align: -3px; margin-right: 4px; border-radius: 3px; }
+  /* My team bar, Next up, prizes, Schedule */
+  .mybar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 0 0 var(--space-3); font-size: 15px; }
+  .mybar .lbl { color: var(--muted); }
+  .mybar select.picker { max-width: 260px; }
+  .mybar .hint { color: var(--muted); font-size: 13px; }
+  .nextup { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 8px 14px; margin-bottom: var(--space-4); font-size: 15px; }
+  .nextup b { font-weight: 600; } .nextup .lbl { color: var(--muted); margin-right: 6px; } .nextup .pz { color: var(--success); font-weight: 600; }
+  .row.mine .nm, .wk .wrow.mine .nm { outline: 2px solid var(--blue); outline-offset: 1px; border-radius: 4px; }
+  .tp .pc.mine { border: 2px solid var(--blue); }
+  .row .won { color: var(--success); font-weight: 600; margin-right: 8px; }
+  .pzb { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+  .pzb.major { border-color: #c55657; color: #c55657; } .pzb.signature, .pzb.players { border-color: var(--purple); color: var(--purple); }
+  .wl .wr .pzv { color: var(--success); font-weight: 600; font-size: 14px; }
+  .wl .wr { grid-template-columns: minmax(180px, 38%) 1fr auto auto; }
+  .wl .wr .second { color: var(--muted); font-size: 13px; }
+  .sch h3 { margin: 6px 0 4px; font-size: 24px; line-height: 30px; font-weight: 600; }
+  .sch .sub { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+  .sch .srow { display: grid; grid-template-columns: 34px minmax(170px, 1.6fr) 110px 150px 110px 1.4fr; gap: 10px; align-items: center; padding: 7px 6px; border-bottom: 1px solid var(--hair); font-size: 14px; }
+  .sch .srow.head { color: var(--muted); font-size: 13px; border-bottom: 1px solid var(--border); }
+  .sch .srow.next { background: color-mix(in srgb, var(--success) 14%, transparent); border-radius: 8px; }
+  .sch .srow.off { color: var(--muted); }
+  .sch .ev { font-weight: 600; } .sch .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .sch .st { font-size: 13px; } .sch .st b { color: var(--ink); }
+  @media (max-width: 860px) { .sch .srow { grid-template-columns: 28px 1fr 90px; } .sch .srow > :nth-child(4), .sch .srow > :nth-child(5), .sch .srow > :nth-child(6) { grid-column: 2 / -1; } }
   .footbar { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); text-align: center; padding: 12px 8px; margin-top: var(--space-5); font-size: 14px; color: var(--muted); }
   .footbar b { color: var(--ink); font-weight: 600; }
   .foot { color: var(--muted); font-size: 13px; margin-top: var(--space-3); }
@@ -280,6 +306,7 @@
   </header>
   <div id="banners"></div>
   <nav id="nav"></nav>
+  <div class="mybar" id="mybar"></div>
   <main id="view"></main>
   <div class="footbar">Designed &amp; maintained by Tom Hewett &nbsp;|&nbsp; Questions or errors? Let me know at <b>FGT_MT@outlook.com</b></div>
   <div class="foot" id="foot"></div>
@@ -379,6 +406,74 @@
   }
 
   // ---- model ----
+  // ---- my team (saved in this browser) ----
+  var MY_KEY = "fgt-my-team";
+  function myTeam() { try { return localStorage.getItem(MY_KEY) || ""; } catch (e) { return ""; } }
+  function setMyTeam(t) {
+    try { if (t) localStorage.setItem(MY_KEY, t); else localStorage.removeItem(MY_KEY); } catch (e) {}
+    if (t) { state.team = t; state.pTeam = t; state.wTeam = t; }
+    draw();
+  }
+  function isMine(team) { return !!team && team === myTeam(); }
+  function myBar() {
+    var bar = document.getElementById("mybar"); clear(bar);
+    if (!M || !M.teams.length) return;
+    bar.appendChild(el("span", "lbl", "My team:"));
+    var opts = [{ label: "Choose your team", value: "" }].concat(M.teams.slice().sort(function (a, b) { return a.team.localeCompare(b.team); })
+      .map(function (t) { return { label: t.team, value: t.team }; }));
+    var cur = M.teams.some(function (t) { return t.team === myTeam(); }) ? myTeam() : "";
+    bar.appendChild(picker(opts, cur, setMyTeam));
+    bar.appendChild(el("span", "hint", cur ? "Shown first on every tab and outlined in blue. Saved on this device." : "Pick it once and every tab opens with it. Saved on this device."));
+  }
+
+  // ---- prizes (rules sheet): winner gets $150, $200 at The Players and Signature Events, $300 at Majors plus $100 for 2nd ----
+  var PRIZES = { regular: [150], signature: [200], players: [200], major: [300, 100] };
+  var TYPE_NAME = { regular: "Regular", signature: "Signature", players: "Players", major: "Major" };
+  function eventType(name) {
+    var k = String(name).trim().toLowerCase(), s = (D.schedule || []).filter(function (e) { return e.event.trim().toLowerCase() === k; })[0];
+    return s && PRIZES[s.type] ? s.type : "regular";
+  }
+  function prizeText(type) {
+    var p = (D.prizes || PRIZES)[type] || PRIZES.regular;
+    return "$" + p[0] + " to the winner" + (p[1] ? ", $" + p[1] + " for 2nd" : "");
+  }
+  function prizesFor(earned, prizes) {   // same rule as the Sheet: ties share the prizes for the places they occupy
+    var out = earned.map(function () { return 0; });
+    var order = earned.map(function (v, i) { return i; }).filter(function (i) { return earned[i] > 0; }).sort(function (a, b) { return earned[b] - earned[a]; });
+    var pos = 0;
+    while (pos < order.length && pos < prizes.length) {
+      var end = pos; while (end + 1 < order.length && earned[order[end + 1]] === earned[order[pos]]) end++;
+      var pot = 0; for (var p = pos; p <= end; p++) pot += prizes[p] || 0;
+      for (var q = pos; q <= end; q++) out[order[q]] = Math.round(pot / (end - pos + 1) * 100) / 100;
+      pos = end + 1;
+    }
+    return out;
+  }
+  function money2(n) { return "$" + (Math.round(n) === n ? n.toLocaleString("en-US") : n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); }
+
+  // ---- schedule helpers ----
+  function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function dateRange(finish) {   // events run Thursday to Sunday: show "Jan 21-24"
+    if (!finish) return "";
+    var f = new Date(finish + "T12:00:00"), st = new Date(f.getTime() - 3 * 86400000);
+    var mo = function (d) { return d.toLocaleString("en-US", { month: "short" }); };
+    return mo(st) === mo(f) ? mo(st) + " " + st.getDate() + "-" + f.getDate() : mo(st) + " " + st.getDate() + " - " + mo(f) + " " + f.getDate();
+  }
+  function nextEvent() {
+    var done = {}; M.events.forEach(function (e) { done[e.name.toLowerCase()] = 1; });
+    var t = today();
+    return (D.schedule || []).filter(function (e) { return e.counts !== "No" && !done[e.event.toLowerCase()] && e.finish >= t; })
+      .sort(function (a, b) { return a.finish < b.finish ? -1 : 1; })[0] || null;
+  }
+  function nextUpBox() {
+    var n = nextEvent(); if (!n) return null;
+    var b = el("div", "nextup"); b.appendChild(el("span", "lbl", "Next up:"));
+    b.appendChild(el("b", null, n.event)); b.appendChild(document.createTextNode(" · " + dateRange(n.finish) + " · "));
+    b.appendChild(el("span", "pz", prizeText(n.type)));
+    if (n.purse) b.appendChild(document.createTextNode(" · purse " + money(n.purse)));
+    return b;
+  }
+
   function build() {
     var ev = {};
     D.results.forEach(function (r) {
@@ -395,6 +490,14 @@
       (perTeam[r.team] = perTeam[r.team] || {})[r.event] = r.earnings;
       (perEvent[r.event] = perEvent[r.event] || []).push(r);
     });
+    if (D.eventScores.length && D.eventScores[0].prize == null) {   // older feed: work out prizes here
+      Object.keys(perEvent).forEach(function (ev) {
+        var rows = perEvent[ev], pz = prizesFor(rows.map(function (r) { return r.earnings; }), PRIZES[eventType(ev)]);
+        rows.forEach(function (r, i) { r.prize = pz[i]; });
+      });
+      var won = {}; D.eventScores.forEach(function (r) { won[r.team] = (won[r.team] || 0) + (r.prize || 0); });
+      D.standings.forEach(function (t) { if (t.winnings == null) t.winnings = won[t.team] || 0; });
+    }
     var teams = D.standings.slice().sort(function (a, b) { return (a.rank || 9999) - (b.rank || 9999) || b.earnings - a.earnings; });
 
     var lineup = {};    // team -> [golfer]
@@ -631,6 +734,7 @@
     return h;
   }
   function tracker(view) {
+    var nu = nextUpBox(); if (nu) view.appendChild(nu);
     var wrap = el("div", "cols");
     var leader = M.teams[0], hasEvents = M.events.length > 0;
 
@@ -664,6 +768,8 @@
         k2.appendChild(el("div", "team", top.map(function (t) { return t.team; }).join(" & ")));
         k2.appendChild(el("div", "small", (top.length > 1 ? "split the pot at " : "won at ") + state.event));
         k2.appendChild(el("div", "big", "with " + money(top[0].earnings)));
+        var wp = top.reduce(function (s, t) { return s + (t.prize || 0); }, 0) / top.length;
+        if (wp) k2.appendChild(el("div", "small", (top.length > 1 ? "each wins " : "wins ") + money2(wp)));
       } else k2.appendChild(el("div", "small", "No winner yet for this event."));
     } else k2.appendChild(el("div", "small", "Waiting on the first event."));
     t2.appendChild(k2); c2.appendChild(t2);
@@ -673,7 +779,7 @@
     // user selection
     var c3 = el("div", "col blue"), pick3 = null;
     if (M.teams.length) {
-      if (!state.team || !M.teams.some(function (t) { return t.team === state.team; })) state.team = M.teams[0].team;
+      if (!state.team || !M.teams.some(function (t) { return t.team === state.team; })) state.team = M.teams.some(function (t) { return t.team === myTeam(); }) ? myTeam() : M.teams[0].team;
       pick3 = picker(M.teams.slice().sort(function (a, b) { return a.team.localeCompare(b.team); })
         .map(function (t) { return { label: t.team, value: t.team }; }), state.team, function (v) { state.team = v; draw(); });
     }
@@ -687,6 +793,7 @@
         k3.appendChild(el("div", "small", "season total, rank " + (me && me.rank ? "#" + me.rank : "-") + " of " + M.teams.length));
         k3.appendChild(el("div", "big", money(me ? me.earnings : 0)));
         k3.appendChild(el("div", "small", "last event (" + last + "): " + money((M.perTeam[state.team] || {})[last] || 0)));
+        if (me && me.winnings) k3.appendChild(el("div", "small", "weekly prize money won: " + money2(me.winnings)));
       } else k3.appendChild(el("div", "small", "No results yet."));
     }
     t3.appendChild(k3);
@@ -716,11 +823,13 @@
       clear(list);
       var q = key(state.find).trim();
       M.teams.forEach(function (t, i) {
-        var r = el("div", "row" + (i < pc.n ? " paid" : "") + (q && key(t.team).indexOf(q) >= 0 ? " hl" : ""));
+        var r = el("div", "row" + (i < pc.n ? " paid" : "") + (q && key(t.team).indexOf(q) >= 0 ? " hl" : "") + (isMine(t.team) ? " mine" : ""));
         r.appendChild(el("div", "rk", "#" + (t.rank || i + 1)));
         var tr = el("div", "track");
         var fl = el("div", "fill"); fl.style.width = Math.max(1, Math.round(t.earnings / max * 100)) + "%";
-        tr.appendChild(fl); tr.appendChild(el("div", "nm", t.team)); tr.appendChild(el("div", "am", money(t.earnings)));
+        tr.appendChild(fl); tr.appendChild(el("div", "nm", t.team));
+        var am = el("div", "am"); if (t.winnings) am.appendChild(el("span", "won", "won " + money2(t.winnings))); am.appendChild(document.createTextNode(money(t.earnings)));
+        tr.appendChild(am);
         r.appendChild(tr); list.appendChild(r);
         if (i === pc.n - 1 && M.teams.length > pc.n) list.appendChild(el("div", "cut", "Payout line: top " + pc.n + " paid"));
       });
@@ -736,11 +845,14 @@
     if (!state.wEvent) state.wEvent = M.events[M.events.length - 1].name;
     var ev = state.wEvent;
     box.appendChild(el("h3", null, "Team performance at " + ev));
-    box.appendChild(el("div", "hint", "If your team had no one in this week's event, your team will not show up in the list."));
+    var et = eventType(ev);
+    var ph = el("div", "hint"); ph.appendChild(el("span", "pzb " + et, TYPE_NAME[et])); ph.appendChild(document.createTextNode(" " + prizeText(et) + ". If your team had no one in this week's event, your team will not show up in the list."));
+    box.appendChild(ph);
 
     var rows = (M.perEvent[ev] || []).filter(function (r) { return r.earnings > 0; })
       .sort(function (a, b) { return b.earnings - a.earnings; });
-    if (!state.wTeam || !rows.some(function (r) { return r.team === state.wTeam; })) state.wTeam = rows.length ? rows[0].team : null;
+    if (!state.wTeam || !rows.some(function (r) { return r.team === state.wTeam; }))
+      state.wTeam = rows.some(function (r) { return r.team === myTeam(); }) ? myTeam() : (rows.length ? rows[0].team : null);
 
     var ctl = el("div", "ctl");
     var c1 = el("div"); c1.appendChild(el("label", null, "Select tournament"));
@@ -757,10 +869,10 @@
       clear(list);
       var q = key(state.wFind || "").trim();
       rows.forEach(function (r, i) {
-        var d = el("div", "wrow" + (r.team === state.wTeam ? " sel" : "") + (q && key(r.team).indexOf(q) >= 0 ? " hl" : ""));
+        var d = el("div", "wrow" + (r.team === state.wTeam ? " sel" : "") + (q && key(r.team).indexOf(q) >= 0 ? " hl" : "") + (isMine(r.team) ? " mine" : ""));
         d.appendChild(el("div", "rk", String(i + 1)));
         var t = el("div", "track"), f = el("div", "fill"); f.style.width = Math.max(1, Math.round(r.earnings / max * 100)) + "%";
-        t.appendChild(f); t.appendChild(el("div", "nm", r.team)); t.appendChild(el("div", "am", money(r.earnings)));
+        t.appendChild(f); t.appendChild(el("div", "nm", r.team)); t.appendChild(el("div", "am", (r.prize ? "wins " + money2(r.prize) + " · " : "") + money(r.earnings)));
         d.appendChild(t);
         d.onclick = function () { state.wTeam = r.team; draw(); };
         list.appendChild(d);
@@ -788,8 +900,13 @@
       var top = (M.perEvent[e.name] || []).filter(function (r) { return r.rank === 1 && r.earnings > 0; });
       var row = el("div", "wr");
       row.appendChild(el("div", "ev", (i + 1) + ". " + e.name));
-      row.appendChild(el("div", null, top.length ? top.map(function (t) { return t.team; }).join(" & ") + (top.length > 1 ? " (split)" : "") : "-"));
+      var who = el("div", null, top.length ? top.map(function (t) { return t.team; }).join(" & ") + (top.length > 1 ? " (split)" : "") : "-");
+      var paid2 = (M.perEvent[e.name] || []).filter(function (r) { return r.prize > 0 && r.rank !== 1; });
+      if (paid2.length) who.appendChild(el("div", "second", "2nd: " + paid2.map(function (r) { return r.team + " (" + money2(r.prize) + ")"; }).join(", ")));
+      row.appendChild(who);
       row.appendChild(el("div", "amt", top.length ? money(top[0].earnings) : ""));
+      var pz = top.reduce(function (s, t) { return s + (t.prize || 0); }, 0);
+      row.appendChild(el("div", "pzv", pz ? "won " + money2(pz) : ""));
       box.appendChild(row);
     });
     view.appendChild(box);
@@ -897,7 +1014,7 @@
     // Teams just outside the money fill out the last row of pies; how many depends on how many pies fit across.
     var grid = el("div", "pies"), MAXB = 12, cards = [];
     M.teams.slice(0, pc.n + MAXB).forEach(function (t, i) {
-      var c = el("div", "pc" + (i >= pc.n ? " bubble" : ""));
+      var c = el("div", "pc" + (i >= pc.n ? " bubble" : "") + (isMine(t.team) ? " mine" : ""));
       c.title = i >= pc.n ? "Just outside the money" : "";
       cards.push(c);
       c.appendChild(el("div", "nm", "#" + (t.rank || i + 1) + ". " + t.team));
@@ -1015,7 +1132,8 @@
   function teamPerformance(view) {
     var box = el("div", "tpf");
     if (!M.teams.length) { box.appendChild(el("div", "note", "No teams yet.")); view.appendChild(box); return; }
-    if (!state.pTeam || !M.teams.some(function (t) { return t.team === state.pTeam; })) state.pTeam = state.team || M.teams[0].team;
+    if (!state.pTeam || !M.teams.some(function (t) { return t.team === state.pTeam; }))
+      state.pTeam = M.teams.some(function (t) { return t.team === myTeam(); }) ? myTeam() : (state.team || M.teams[0].team);
     if (!state.pView) state.pView = "weekly";
     var team = state.pTeam, me = M.teams.filter(function (t) { return t.team === team; })[0];
 
@@ -1036,6 +1154,7 @@
     k1.appendChild(el("div", "num", "#" + (me && me.rank ? me.rank : "-"))); k1.appendChild(el("div", "lbl", "of " + M.teams.length));
     var k2 = el("div", "kc"); k2.appendChild(el("div", "money", money(me ? me.earnings : 0)));
     k2.appendChild(el("div", "lbl", "Total through " + M.events.length + " event" + (M.events.length === 1 ? "" : "s")));
+    if (me && me.winnings) k2.appendChild(el("div", "lbl", "Weekly prize money won: " + money2(me.winnings)));
     var tr = el("div", "trend"), vals = series(team); tr.appendChild(trendChart(vals, team)); tr.appendChild(trendLabels(vals));
     cards.appendChild(k1); cards.appendChild(k2); cards.appendChild(tr); box.appendChild(cards);
 
@@ -1287,12 +1406,46 @@
     view.appendChild(box);
   }
 
+  function schedule(view) {
+    var box = el("div", "sch");
+    box.appendChild(el("h3", null, "2027 Schedule"));
+    var sub = el("div", "sub", "Weekly prizes: $150 to the winner of a regular event; $200 at The Players and Signature Events; $300 to the winner of a Major and $100 for 2nd. Events on the same weekend are scored separately.");
+    box.appendChild(sub);
+    var list = (D.schedule || []).slice().sort(function (a, b) { return a.finish < b.finish ? -1 : a.finish > b.finish ? 1 : 0; });
+    if (!list.length) { box.appendChild(el("div", "note", "The schedule has not been loaded yet.")); view.appendChild(box); return; }
+    var done = {}; M.events.forEach(function (e) { done[e.name.toLowerCase()] = 1; });
+    var nx = nextEvent(), head = el("div", "srow head");
+    ["#", "Event", "Dates", "Type", "Purse", "Status"].forEach(function (x, j) { head.appendChild(el("div", j === 4 ? "num" : null, x)); });
+    box.appendChild(head);
+    var n = 0;
+    list.forEach(function (e) {
+      var counts = e.counts !== "No", scored = done[e.event.toLowerCase()];
+      var r = el("div", "srow" + (nx && e.event === nx.event ? " next" : "") + (counts ? "" : " off"));
+      r.appendChild(el("div", null, counts && e.counts !== "TBD" ? String(++n) : ""));
+      r.appendChild(el("div", "ev", e.event));
+      r.appendChild(el("div", null, dateRange(e.finish)));
+      var tcell = el("div"); tcell.appendChild(el("span", "pzb " + e.type, TYPE_NAME[e.type] || "Regular"));
+      if (counts) tcell.appendChild(el("div", "st", prizeText(e.type))); r.appendChild(tcell);
+      r.appendChild(el("div", "num", e.purse ? money(e.purse) : "TBA"));
+      var st = el("div", "st");
+      if (!counts) st.textContent = "Not part of the FGT";
+      else if (e.counts === "TBD") st.textContent = "Event to be announced";
+      else if (scored) {
+        var top = (M.perEvent[e.event] || []).filter(function (x) { return x.rank === 1 && x.earnings > 0; });
+        st.appendChild(document.createTextNode("Won by ")); st.appendChild(el("b", null, top.map(function (x) { return x.team; }).join(" & ") || "-"));
+      } else st.textContent = nx && e.event === nx.event ? "Next up" : "Upcoming";
+      r.appendChild(st); box.appendChild(r);
+    });
+    view.appendChild(box);
+  }
+
   var TABS = [["tracker", "Tracker", tracker], ["weekly", "Weekly Results", weekly],
               ["leaderboard", "Leaderboard", leaderboard], ["top", "Top Teams", topTeams], ["perf", "Team Performance", teamPerformance], ["winners", "Winner List", winners],
               ["picked", "How Many Times Picked?", picked], ["finishes", "Past Finishes", pastFinishes],
-              ["lineups", "Lineup Analysis", lineupAnalysis]];
+              ["lineups", "Lineup Analysis", lineupAnalysis], ["schedule", "Schedule", schedule]];
   function draw() {
     hideTip();
+    myBar();
     var nav = document.getElementById("nav"); clear(nav);
     TABS.forEach(function (t) {
       var b = el("button", state.tab === t[0] ? "on" : "", t[1]);
@@ -1309,13 +1462,20 @@
     M = build();
     document.getElementById("theme").onclick = toggleTheme;
     clear(document.getElementById("banners"));   // start() can run again when fresher data arrives
-    if (D.demo) $b("demo", "DEMO DATA: 40 made-up teams, and real Austin Championship money (the other two events are invented).");
+    if (D.demo) $b("demo", "DEMO DATA: 40 made-up teams, and real Austin Championship money (the other two events, including Demo Major, are invented).");
     var t = C.TITLE || "2027 PGA Fantasy Golf Tour";
     document.getElementById("title").textContent = t.replace(/PGA Fantasy Golf Tour/i, "Fantasy Golf Tour") + " Tracker";
     if (!D.closed) $b("info", "Entries are still open, so team lineups are hidden. They appear once entries close.");
     footer();
     draw();
   }
+  // Follow the device's light/dark setting as it changes, unless the visitor picked one with the toggle.
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
+    var saved = null; try { saved = localStorage.getItem("fgt-theme"); } catch (x) {}
+    if (saved) return;
+    document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
+    paintToggle(); if (M) draw();
+  });
   paintToggle();
   load();
 })();

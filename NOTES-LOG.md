@@ -211,3 +211,16 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Fix: the page now shows data in three steps, each replacing the last only if the data changed (compared without the `generated` time): (1) the copy saved in this browser from the last visit, (2) `site/data/dashboard.json`, a snapshot published with the site (fast, from GitHub's servers), (3) the live feed, saved for next time. The error banner appears only if both the snapshot and the live feed fail. `start()` can now run more than once (banners cleared each time).
 - New `tools/snapshot-dashboard.js` writes the snapshot from the live feed and refuses to write if it sees anything like an email, phone number or Entry ID. Added to the weekly routine. First snapshot: 3 teams, 1 event, lineups hidden, 22 KB.
 - Tested in jsdom: snapshot shows first, a changed live feed replaces it, an unchanged one does not redraw, no snapshot falls back to live, both failing shows the error. No Code.gs change, so no redeploy.
+
+## 2026-11-20: my team, schedule, prizes, emails, automation, theme
+
+- Tom picked suggestions 1 and 3-6 (not 2, shareable links). Rules for weekly prizes from his rules sheet: $150 regular, $200 Players and Signature Events, $300 Majors winner plus $100 for 2nd; season payout to the top ~17% (exact number later; no season dollar amounts yet).
+- 1 My team: picker under the dashboard tabs, saved per device; default team on Tracker (Your Team), Weekly Results, Team Performance; outlined blue on Leaderboard, Weekly Results list and Top Teams.
+- 3 Schedule: new Schedule tab (dates as Thu-Sun ranges, type badge and prize, purse or TBA, status Won by / Next up / Upcoming / Not part of the FGT / to be announced); "Next up" line on the Tracker and the home page (from the snapshot).
+- 4 Automation: `tools/weekly-update.js` + `.github/workflows/weekly-results.yml` (cron Sun evening twice, Mon morning, Mon evening). Uses pgatour.com's season schedule data (tournament ids and status) and the past-results page (slug not needed: `/tournaments/<season>/event/<id>/past-results`). Shared code moved to `tools/fgt-lib.js`. Dry run against a test schedule: Austin pulled, fake name flagged, unfinished RSM skipped.
+- 5 Prizes: Code.gs computes a Prize per team per event (EventScores col G) from the Schedule tab's new Type column; Standings col J Weekly Winnings. Ties share the prizes for the places they occupy (tested: two tied at a Major split $400; tie for 2nd splits $100). Dashboard computes the same if the feed is older. Playoff events typed regular pending Tom.
+- 6 Confirmation email (MailApp, from the script owner's account, reply-to FGT_MT@outlook.com; never fails the entry) and a Paid checkbox column (Entries N, private). Menu item to send a test email to the owner.
+- Theme (Tom): light by default, following the device's light/dark setting; the toggle's saved choice wins. Applied to home, team picker (which now has the toggle too) and dashboard.
+- Tom declined showing point numbers on bars/slices (#11 part).
+- `data/schedule-2027.json` now in the repo with event types; it is the schedule source for the automation.
+- Needs from Tom: paste Code.gs + redeploy (new Gmail permission prompt), run Set up tabs, set the repo secret, resend the schedule.

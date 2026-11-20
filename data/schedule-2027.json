@@ -1,0 +1,328 @@
+{
+ "events": [
+  {
+   "event": "The American Express",
+   "finish": "2027-01-24",
+   "purse": null,
+   "refPurse": 9200000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "The Sentry",
+   "finish": "2027-01-30",
+   "purse": null,
+   "refPurse": 9600000,
+   "counts": "Yes",
+   "notes": "Torrey Pines; reference is the 2026 Farmers Insurance Open (same course, same defending winner)",
+   "type": "regular"
+  },
+  {
+   "event": "AT&T Pebble Beach Pro-Am",
+   "finish": "2027-02-07",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "Signature Event",
+   "type": "signature"
+  },
+  {
+   "event": "WM Phoenix Open",
+   "finish": "2027-02-14",
+   "purse": null,
+   "refPurse": 9600000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "The Genesis Invitational",
+   "finish": "2027-02-21",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "Signature Event. Same weekend as the TBD event below",
+   "type": "signature"
+  },
+  {
+   "event": "TBD (Additional Event)",
+   "finish": "2027-02-21",
+   "purse": null,
+   "refPurse": null,
+   "counts": "TBD",
+   "notes": "Placeholder on pgatour.com. Same weekend as the Genesis",
+   "type": "regular"
+  },
+  {
+   "event": "Cognizant Classic in The Palm Beaches",
+   "finish": "2027-02-28",
+   "purse": null,
+   "refPurse": 9600000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "Cadillac Championship",
+   "finish": "2027-03-07",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "Signature Event",
+   "type": "signature"
+  },
+  {
+   "event": "The Players Championship",
+   "finish": "2027-03-14",
+   "purse": null,
+   "refPurse": 25000000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "players"
+  },
+  {
+   "event": "Arnold Palmer Invitational presented by Mastercard",
+   "finish": "2027-03-21",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "Signature Event",
+   "type": "signature"
+  },
+  {
+   "event": "Texas Children's Houston Open",
+   "finish": "2027-03-28",
+   "purse": null,
+   "refPurse": 9900000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "Valero Texas Open",
+   "finish": "2027-04-04",
+   "purse": null,
+   "refPurse": 9800000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "Masters Tournament",
+   "finish": "2027-04-11",
+   "purse": null,
+   "refPurse": 22500000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "major"
+  },
+  {
+   "event": "RBC Heritage",
+   "finish": "2027-04-18",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "Signature Event",
+   "type": "signature"
+  },
+  {
+   "event": "Zurich Classic of New Orleans",
+   "finish": "2027-04-25",
+   "purse": null,
+   "refPurse": 9500000,
+   "counts": "Yes",
+   "notes": "Team event: pgatour.com reports each team's winnings; each golfer is credited half of their team's earnings",
+   "type": "regular"
+  },
+  {
+   "event": "THE CJ CUP Byron Nelson",
+   "finish": "2027-05-02",
+   "purse": null,
+   "refPurse": 10300000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "Valspar Championship",
+   "finish": "2027-05-09",
+   "purse": null,
+   "refPurse": 9100000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "Truist Championship",
+   "finish": "2027-05-16",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "Signature Event. Same weekend as the Myrtle Beach Classic",
+   "type": "signature"
+  },
+  {
+   "event": "Myrtle Beach Classic",
+   "finish": "2027-05-16",
+   "purse": null,
+   "refPurse": 4000000,
+   "counts": "Yes",
+   "notes": "Same weekend as the Truist Championship. Reference is the 2026 ONEflight Myrtle Beach Classic",
+   "type": "regular"
+  },
+  {
+   "event": "PGA Championship",
+   "finish": "2027-05-23",
+   "purse": null,
+   "refPurse": 20500000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "major"
+  },
+  {
+   "event": "Charles Schwab Challenge",
+   "finish": "2027-05-30",
+   "purse": null,
+   "refPurse": 9900000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "the Memorial Tournament presented by Workday",
+   "finish": "2027-06-06",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "Signature Event",
+   "type": "signature"
+  },
+  {
+   "event": "RBC Canadian Open",
+   "finish": "2027-06-13",
+   "purse": null,
+   "refPurse": 9800000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "U.S. Open",
+   "finish": "2027-06-20",
+   "purse": null,
+   "refPurse": 22500000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "major"
+  },
+  {
+   "event": "Travelers Championship",
+   "finish": "2027-06-27",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "Signature Event",
+   "type": "signature"
+  },
+  {
+   "event": "John Deere Classic",
+   "finish": "2027-07-04",
+   "purse": null,
+   "refPurse": 8800000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "Genesis Scottish Open",
+   "finish": "2027-07-11",
+   "purse": null,
+   "refPurse": 9000000,
+   "counts": "Yes",
+   "notes": "Same weekend as the ISCO Championship",
+   "type": "regular"
+  },
+  {
+   "event": "ISCO Championship",
+   "finish": "2027-07-11",
+   "purse": null,
+   "refPurse": 4000000,
+   "counts": "Yes",
+   "notes": "Same weekend as the Genesis Scottish Open",
+   "type": "regular"
+  },
+  {
+   "event": "The Open Championship",
+   "finish": "2027-07-18",
+   "purse": null,
+   "refPurse": 17750000,
+   "counts": "Yes",
+   "notes": "Same weekend as the Corales Puntacana Championship",
+   "type": "major"
+  },
+  {
+   "event": "Corales Puntacana Championship",
+   "finish": "2027-07-18",
+   "purse": null,
+   "refPurse": 4000000,
+   "counts": "Yes",
+   "notes": "Same weekend as The Open Championship",
+   "type": "regular"
+  },
+  {
+   "event": "3M Open",
+   "finish": "2027-07-25",
+   "purse": null,
+   "refPurse": 8800000,
+   "counts": "Yes",
+   "notes": "",
+   "type": "regular"
+  },
+  {
+   "event": "Sompo Championship",
+   "finish": "2027-08-01",
+   "purse": null,
+   "refPurse": null,
+   "counts": "Yes",
+   "notes": "New name; no 2026 event to compare",
+   "type": "regular"
+  },
+  {
+   "event": "GO by Raymond James",
+   "finish": "2027-08-08",
+   "purse": null,
+   "refPurse": 8500000,
+   "counts": "Yes",
+   "notes": "Reference is the 2026 Wyndham Championship (same course, same defending winner)",
+   "type": "regular"
+  },
+  {
+   "event": "FedEx St. Jude Championship",
+   "finish": "2027-08-15",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "FedExCup Playoffs",
+   "type": "regular"
+  },
+  {
+   "event": "BMW Championship",
+   "finish": "2027-08-22",
+   "purse": null,
+   "refPurse": 20000000,
+   "counts": "Yes",
+   "notes": "FedExCup Playoffs",
+   "type": "regular"
+  },
+  {
+   "event": "Tour Championship",
+   "finish": "2027-08-29",
+   "purse": null,
+   "refPurse": 40000000,
+   "counts": "No",
+   "notes": "Not used in the FGT",
+   "type": "regular"
+  }
+ ]
+}

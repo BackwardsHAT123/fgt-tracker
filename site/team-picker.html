@@ -4,14 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FGT Team Entry</title>
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
+<script>
+  /* Theme: the visitor's own choice (saved by the toggle) wins; otherwise follow the device's light/dark setting;
+     devices with no setting get light. */
+  (function () {
+    var t = null;
+    try { var v = localStorage.getItem("fgt-theme"); if (v === "light" || v === "dark") t = v; } catch (e) {}
+    if (!t) t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
 <style>
-  /* TAH design system: dark-first. Tokens from the TAH tokens.json. Light values kept for a future toggle
-     via <html data-theme="light">. */
+  /* TAH design system tokens. Light or dark is set on <html data-theme> (see the theme script above). */
   :root {
     color-scheme: dark;
     --surface: #262524; --raised: #1c1a17; --ink: #f2eee8; --muted: #b3b2ae;
@@ -36,6 +45,7 @@
   .wrap { max-width: 880px; margin: 0 auto; padding: 0 var(--space-4) 120px; }
   header { padding: 28px 0 8px; }
   header.top { display: flex; align-items: center; gap: var(--space-4); }
+  header.top .themebtn { margin-left: auto; align-self: flex-start; }
   .logo { width: 80px; height: 80px; border-radius: var(--radius-md); flex: none; display: block; }
   @media (max-width: 600px) { .logo { width: 56px; height: 56px; } }
   h1 { margin: 0 0 var(--space-1); font-size: 44px; line-height: 48px; font-weight: 700; letter-spacing: -0.5px; }
@@ -158,6 +168,7 @@
       <p class="sub">Build your team with 25 points. Your team is final once the first tournament begins.</p>
       <p class="sub" id="deadline"></p>
     </div>
+    <button class="btn secondary sm themebtn" id="theme" type="button" aria-label="Switch between light and dark mode"></button>
   </header>
 
   <div id="provisional" class="banner amber" hidden>
@@ -542,6 +553,25 @@
 
   render();
 })();
+</script>
+<script>
+  // Light/dark toggle (same choice as the dashboard and home page).
+  (function () {
+    var b = document.getElementById("theme");
+    function cur() { return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
+    function paint() { b.textContent = cur() === "dark" ? "\u2600 Light" : "\u263E Dark"; }
+    b.onclick = function () {
+      var t = cur() === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", t);
+      try { localStorage.setItem("fgt-theme", t); } catch (e) {}
+      paint();
+    };
+    if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
+      var saved = null; try { saved = localStorage.getItem("fgt-theme"); } catch (x) {}
+      if (!saved) { document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light"); paint(); }
+    });
+    paint();
+  })();
 </script>
 </body>
 </html>

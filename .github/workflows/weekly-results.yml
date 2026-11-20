@@ -1,0 +1,56 @@
+name: Weekly results
+
+# Pulls each finished FGT event's results from pgatour.com, sends them to the Google Sheet, refreshes the dashboard
+# snapshot, and republishes the site. Runs Sunday evening and again Monday (for late or weather-delayed finishes).
+# Re-sending an event replaces its rows, so extra runs are harmless. Needs the repo secret FGT_RESULTS_TOKEN.
+on:
+  schedule:
+    - cron: "0 1 * * 1"    # Sunday ~6-7pm Mountain
+    - cron: "0 4 * * 1"    # Sunday ~9-10pm Mountain
+    - cron: "0 15 * * 1"   # Monday morning
+    - cron: "0 1 * * 2"    # Monday evening (Monday finishes)
+  workflow_dispatch:
+    inputs:
+      event:
+        description: "Load one event by its exact Schedule name (leave blank for 'finished in the last few days')"
+        required: false
+      days:
+        description: "How many days back to look"
+        required: false
+        default: "3"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: weekly-results
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Pull results and send them to the Sheet
+        env:
+          FGT_RESULTS_TOKEN: ${{ secrets.FGT_RESULTS_TOKEN }}
+          EVENT: ${{ inputs.event }}
+          DAYS: ${{ inputs.days || '3' }}
+        run: |
+          if [ -n "$EVENT" ]; then node tools/weekly-update.js --event "$EVENT"; else node tools/weekly-update.js --days "$DAYS"; fi
+      - name: Commit the new snapshot and republish the site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- site/data/dashboard.json; then echo "Snapshot unchanged."; exit 0; fi
+          git config user.name "fgt-results-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/data/dashboard.json
+          git commit -m "Update dashboard snapshot after results"
+          git pull --rebase
+          git push
+          gh workflow run pages.yml

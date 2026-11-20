@@ -11,8 +11,16 @@ var DEADLINE = null;
 
 var HEADERS = [
   'Timestamp', 'Name', 'Phone', 'Email', 'Address', 'Team Name',
-  'Points Used', '# Golfers', 'Golfers', 'Lineup Key', 'Duplicate Of Row', 'Points Version', 'Entry ID'
+  'Points Used', '# Golfers', 'Golfers', 'Lineup Key', 'Duplicate Of Row', 'Points Version', 'Entry ID', 'Paid'
 ];
+
+// Weekly prize money for the team that wins each event (rules sheet), by event type on the Schedule tab.
+// Majors also pay 2nd place. Teams tied on money split the prizes for the places they share.
+var PRIZES = { regular: [150], signature: [200], players: [200], major: [300, 100] };
+
+// Confirmation email sent to each player after they enter (from the Google account that owns this script).
+var VENMO_HANDLE = 'Thomas-E-OToole', ENTRY_FEE = 100, CONTACT = 'FGT_MT@outlook.com',
+    TRACKER_URL = 'https://fgt-mt.com/dashboard.html';
 
 // Other tabs. Only "Entries" holds contact info; Standings and Lineups carry team and name only,
 // so a dashboard can read them without seeing phones or emails.
@@ -23,12 +31,12 @@ var TABS = {
   Tournaments: ['Tournament', 'Date', 'Golfer', 'Finish', 'Earnings'],
   Lineups:     ['Entry ID', 'Team Name', 'Golfer', 'Points', 'Season Earnings'],
   // One row per event per team (made by "Update event scores"). Highest earnings wins the event.
-  EventScores: ['Tournament', 'Entry ID', 'Team Name', 'Earnings', 'Event Rank', 'Pot Share'],
-  Standings:   ['Rank', 'Entry ID', 'Team Name', 'Name', 'Points Used', '# Golfers', 'Season Earnings', 'Event Wins', 'Paid Spot'],
+  EventScores: ['Tournament', 'Entry ID', 'Team Name', 'Earnings', 'Event Rank', 'Pot Share', 'Prize'],
+  Standings:   ['Rank', 'Entry ID', 'Team Name', 'Name', 'Points Used', '# Golfers', 'Season Earnings', 'Event Wins', 'Paid Spot', 'Weekly Winnings'],
   Settings:    ['Setting', 'Value'],
   // The season's events, loaded from pgatour.com by the schedule feed. "Purse" stays blank until the Tour posts it;
   // "Reference Purse 2026" is last year's purse for the same event. Same-weekend events are separate rows.
-  Schedule:    ['Event', 'Finish Date', 'Purse', 'Reference Purse 2026', 'Counts for FGT', 'Notes']
+  Schedule:    ['Event', 'Finish Date', 'Purse', 'Reference Purse 2026', 'Counts for FGT', 'Notes', 'Type']
 };
 
 function doGet(e) {
@@ -54,14 +62,16 @@ function dashboardData_() {
     return v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(v || '');
   }
 
-  var standings = rows_('Standings', 9).filter(function (r) { return r[2]; }).map(function (r) {
-    return { rank: r[0], team: String(r[2]), earnings: Number(r[6]) || 0, wins: Number(r[7]) || 0, paid: r[8] === 'Yes' };
+  var standings = rows_('Standings', 10).filter(function (r) { return r[2]; }).map(function (r) {
+    return { rank: r[0], team: String(r[2]), earnings: Number(r[6]) || 0, wins: Number(r[7]) || 0, paid: r[8] === 'Yes',
+             winnings: Number(r[9]) || 0 };
   });
-  var schedule = rows_('Schedule', 6).filter(function (r) { return r[0]; }).map(function (r) {
-    return { event: String(r[0]), finish: day_(r[1]), purse: Number(r[2]) || 0, counts: String(r[4]) };
+  var schedule = rows_('Schedule', 7).filter(function (r) { return r[0]; }).map(function (r) {
+    return { event: String(r[0]), finish: day_(r[1]), purse: Number(r[2]) || 0, counts: String(r[4]), type: String(r[6] || 'regular') };
   });
-  var eventScores = rows_('EventScores', 6).filter(function (r) { return r[0]; }).map(function (r) {
-    return { event: String(r[0]), team: String(r[2]), earnings: Number(r[3]) || 0, rank: Number(r[4]) || 0, share: Number(r[5]) || 0 };
+  var eventScores = rows_('EventScores', 7).filter(function (r) { return r[0]; }).map(function (r) {
+    return { event: String(r[0]), team: String(r[2]), earnings: Number(r[3]) || 0, rank: Number(r[4]) || 0, share: Number(r[5]) || 0,
+             prize: Number(r[6]) || 0 };
   });
   var results = rows_('Tournaments', 5).filter(function (r) { return r[0]; }).map(function (r) {
     return { event: String(r[0]), date: day_(r[1]), golfer: String(r[2]), finish: String(r[3]), earnings: Number(r[4]) || 0 };
@@ -73,7 +83,7 @@ function dashboardData_() {
 
   return {
     ok: true, generated: new Date().toISOString(), closed: closed,
-    paidSpots: typeof paid === 'number' ? paid : 0,
+    paidSpots: typeof paid === 'number' ? paid : 0, prizes: PRIZES,
     standings: standings, schedule: schedule, eventScores: eventScores,
     results: results, golfers: golfers, lineups: lineups
   };
@@ -135,8 +145,9 @@ function doPost(e) {
     var entryId = Utilities.getUuid().slice(0, 8);
     sheet.appendRow([
       new Date(), name, phone, email, address, team,
-      total, golfers.length, list, key, '', clean_(d.pointsVersion), entryId
+      total, golfers.length, list, key, '', clean_(d.pointsVersion), entryId, false
     ]);
+    try { sheet.getRange(sheet.getLastRow(), 14).insertCheckboxes(); } catch (x) {}
 
     // The entry is already saved. A problem in the extra tabs must never lose it or fail the submit;
     // "FGT > Rebuild Lineups and Standings" repairs them from Entries.
@@ -144,6 +155,8 @@ function doPost(e) {
       addLineup_(entryId, team, golfers);
       addStanding_(entryId, team, name, total, golfers.length);
     } catch (x) {}
+    // Confirmation email. Never fails the entry (Gmail limits personal accounts to about 100 emails a day).
+    try { sendConfirmation_(email, name, team, list, total); } catch (x) {}
     return json_({ ok: true });
   } catch (err) {
     return json_({ ok: false, error: 'Server error. Please try again.' });
@@ -160,6 +173,7 @@ function onOpen() {
     .addItem('Refresh Golfers tab', 'refreshGolfers')
     .addItem('Update event scores', 'refreshEventScores')
     .addItem('Rebuild Lineups and Standings', 'rebuildLineupsAndStandings')
+    .addItem('Send me a test confirmation email', 'sendTestConfirmation')
     .addToUi();
 }
 
@@ -177,10 +191,46 @@ function tab_(name) {
 }
 
 // Safe to run any time: creates missing tabs, adds the Entry ID header, fills the Golfers tab.
+function sendConfirmation_(email, name, team, list, total) {
+  var first = String(name).split(' ')[0];
+  var body = [
+    'Hi ' + first + ',',
+    '',
+    'Your Fantasy Golf Tour team is in. Here is what we received:',
+    '',
+    'Team name: ' + team,
+    'Golfers: ' + list,
+    'Points used: ' + total + ' of ' + BUDGET,
+    '',
+    'Entry fee: $' + ENTRY_FEE + ' by Venmo to @' + VENMO_HANDLE + ' (please put your team name in the note).',
+    'Your team is final once the first tournament begins.',
+    '',
+    'Follow the season at ' + TRACKER_URL,
+    'Questions or a mistake in your team? Reply to this email or write to ' + CONTACT + '.',
+    '',
+    'Good luck!',
+    'Fantasy Golf Tour'
+  ].join('\n');
+  MailApp.sendEmail({ to: email, subject: 'FGT entry received: ' + team, body: body, name: 'Fantasy Golf Tour', replyTo: CONTACT });
+}
+
+// Sends one test confirmation to the script owner's own address, so Tom can see the email and approve Gmail access.
+function sendTestConfirmation() {
+  var me = Session.getEffectiveUser().getEmail();
+  sendConfirmation_(me, 'Test Player', 'Test Team (not a real entry)', 'Scottie Scheffler (6), Chad Ramey (3)', 9);
+  SpreadsheetApp.getUi().alert('Test email sent to ' + me + '.');
+}
+
 function setupSheets() {
   var entries = sheet_();
   if (entries.getRange(1, 13).getValue() !== 'Entry ID') {
     entries.getRange(1, 13).setValue('Entry ID').setFontWeight('bold');
+  }
+  // Paid: a checkbox per entry for tracking Venmo payments. Private: the dashboard never reads the Entries tab.
+  if (entries.getRange(1, 14).getValue() !== 'Paid') entries.getRange(1, 14).setValue('Paid').setFontWeight('bold');
+  if (entries.getLastRow() > 1) {
+    var pc = entries.getRange(2, 14, entries.getLastRow() - 1, 1);
+    if (!pc.getDataValidation()) pc.insertCheckboxes();
   }
   Object.keys(TABS).forEach(tab_);
   fixHeaders_();
@@ -239,13 +289,14 @@ function addLineup_(entryId, team, golfers) {
 function addStanding_(entryId, team, name, total, count) {
   var sh = tab_('Standings');
   var row = sh.getLastRow() + 1;
-  sh.getRange(row, 1, 1, 9).setValues([['', entryId, team, name, total, count, '', '', '']]);
+  sh.getRange(row, 1, 1, 10).setValues([['', entryId, team, name, total, count, '', '', '', '']]);
   var r = String(row);
   sh.getRange(row, 7).setFormula('=SUMIF(Lineups!$A:$A,B' + r + ',Lineups!$E:$E)').setNumberFormat('$#,##0');
   sh.getRange(row, 1).setFormula('=IF(B' + r + '="","",RANK(G' + r + ',$G$2:$G$1000))');
   sh.getRange(row, 8).setFormula('=SUMIF(EventScores!$B:$B,B' + r + ',EventScores!$F:$F)').setNumberFormat('0.0#');
   // Paid Spot: blank until Tom types the number of paid teams on the Settings tab (B2).
   sh.getRange(row, 9).setFormula('=IF(AND(ISNUMBER(Settings!$B$2),G' + r + '>0,A' + r + '<=Settings!$B$2),"Yes","")');
+  sh.getRange(row, 10).setFormula('=SUMIF(EventScores!$B:$B,B' + r + ',EventScores!$G:$G)').setNumberFormat('$#,##0');
 }
 
 // Receives one event's results: {action:'results', token, tournament, date:'YYYY-MM-DD', rows:[{golfer, finish, earnings}]}.
@@ -297,7 +348,8 @@ function saveResults_(d) {
   return json_({ ok: true, stored: fresh.length, notOnGolfersTabWithMoney: unmatched });
 }
 
-// Receives the season schedule: {action:'schedule', token, events:[{event, finish:'YYYY-MM-DD', purse, refPurse, counts, notes}]}.
+// Receives the season schedule: {action:'schedule', token, events:[{event, finish:'YYYY-MM-DD', purse, refPurse, counts, notes, type}]}.
+// type is regular, signature, players or major (sets the weekly prize; see PRIZES).
 // Same token as the results feed. Replaces the whole Schedule tab, so re-sending an updated list (for example once
 // purses are posted) is safe.
 function saveSchedule_(d) {
@@ -313,10 +365,11 @@ function saveSchedule_(d) {
       e.purse ? Number(e.purse) : '',
       e.refPurse ? Number(e.refPurse) : '',
       clean_(e.counts),
-      clean_(e.notes)
+      clean_(e.notes),
+      PRIZES[e.type] ? e.type : 'regular'
     ];
   });
-  sh.getRange(2, 1, rows.length, 6).setValues(rows);
+  sh.getRange(2, 1, rows.length, 7).setValues(rows);
   sh.getRange('B:B').setNumberFormat('yyyy-mm-dd');
   sh.getRange('C:D').setNumberFormat('$#,##0');
   return json_({ ok: true, stored: rows.length });
@@ -356,12 +409,23 @@ function refreshEventScores() {
     });
   }
 
-  var vals = [], f = [], row = 2;
+  // Event type from the Schedule tab (matched by name, ignoring case); unknown events count as regular.
+  var types = {}, sch = tab_('Schedule');
+  if (sch.getLastRow() > 1) sch.getRange(2, 1, sch.getLastRow() - 1, 7).getValues().forEach(function (r) {
+    if (r[0]) types[String(r[0]).trim().toLowerCase()] = PRIZES[r[6]] ? r[6] : 'regular';
+  });
+
+  var vals = [], f = [], prizeCol = [], row = 2;
   events.forEach(function (ev) {
-    teams.forEach(function (tm) {
+    var earnedBy = teams.map(function (tm) {
+      return (lineup[tm[0]] || []).reduce(function (sum, g) { return sum + (money[ev][g] || 0); }, 0);
+    });
+    var prize = prizesFor_(earnedBy, PRIZES[types[ev.toLowerCase()] || 'regular']);
+    teams.forEach(function (tm, k) {
       var r = String(row++);
-      var earned = (lineup[tm[0]] || []).reduce(function (sum, g) { return sum + (money[ev][g] || 0); }, 0);
+      var earned = earnedBy[k];
       vals.push([ev, tm[0], tm[1], earned]);
+      prizeCol.push([prize[k]]);
       f.push([
         '=1+COUNTIFS($A$2:$A$5000,A' + r + ',$D$2:$D$5000,">"&D' + r + ')',
         '=IF(AND(E' + r + '=1,D' + r + '>0),1/COUNTIFS($A$2:$A$5000,A' + r + ',$E$2:$E$5000,1),0)'
@@ -371,6 +435,26 @@ function refreshEventScores() {
   es.getRange(2, 1, vals.length, 4).setValues(vals);
   es.getRange(2, 5, f.length, 2).setFormulas(f);
   es.getRange(2, 4, vals.length, 1).setNumberFormat('$#,##0');
+  es.getRange(2, 7, prizeCol.length, 1).setValues(prizeCol).setNumberFormat('$#,##0');
+}
+
+// Prize money per team for one event. earned: each team's money, same order as the result. prizes: [1st, 2nd, ...].
+// Teams tied on money share the prizes for all the places they occupy (two tied for 1st at a major split $300 + $100).
+// Teams that earned nothing win nothing.
+function prizesFor_(earned, prizes) {
+  var out = earned.map(function () { return 0; });
+  var order = earned.map(function (v, i) { return i; }).filter(function (i) { return earned[i] > 0; })
+    .sort(function (a, b) { return earned[b] - earned[a]; });
+  var pos = 0;
+  while (pos < order.length && pos < prizes.length) {
+    var end = pos;
+    while (end + 1 < order.length && earned[order[end + 1]] === earned[order[pos]]) end++;
+    var pot = 0;
+    for (var p = pos; p <= end; p++) pot += prizes[p] || 0;
+    for (var q = pos; q <= end; q++) out[order[q]] = Math.round(pot / (end - pos + 1) * 100) / 100;
+    pos = end + 1;
+  }
+  return out;
 }
 
 // Rebuilds Lineups and Standings from the Entries tab. Gives Entry IDs to older entries that lack one.
