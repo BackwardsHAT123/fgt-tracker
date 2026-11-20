@@ -18,6 +18,10 @@ on:
         description: "How many days back to look"
         required: false
         default: "3"
+      check:
+        description: "Only test the token (resends the schedule, changes no results)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -40,7 +44,9 @@ jobs:
           FGT_RESULTS_TOKEN: ${{ secrets.FGT_RESULTS_TOKEN }}
           EVENT: ${{ inputs.event }}
           DAYS: ${{ inputs.days || '3' }}
+          CHECK: ${{ inputs.check }}
         run: |
+          if [ "$CHECK" = "true" ]; then node tools/weekly-update.js --check; exit $?; fi
           if [ -n "$EVENT" ]; then node tools/weekly-update.js --event "$EVENT"; else node tools/weekly-update.js --days "$DAYS"; fi
       - name: Commit the new snapshot and republish the site
         env:

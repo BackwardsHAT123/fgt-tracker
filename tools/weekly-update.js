@@ -3,7 +3,8 @@
 //   2. checks pgatour.com's schedule for their status, and for each one that is official (COMPLETED)
 //      pulls the full field and sends it to the Sheet (re-sending replaces that event's rows, so repeats are safe),
 //   3. saves the dashboard snapshot (site/data/dashboard.json) if anything was sent.
-// Usage: FGT_RESULTS_TOKEN=... node tools/weekly-update.js [--days 3] [--event "Exact Schedule name"] [--dry-run]
+// Usage: FGT_RESULTS_TOKEN=... node tools/weekly-update.js [--days 3] [--event "Exact Schedule name"] [--dry-run] [--check]
+// --check only tests the token by resending data/schedule-2027.json (no results change).
 const fs = require('fs');
 const { ROOT, pullResults, seasonTournaments, postToSheet, saveSnapshot } = require('./fgt-lib');
 const args = process.argv.slice(2);
@@ -15,6 +16,13 @@ const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const iso = d => d.toISOString().slice(0, 10);
 
 (async () => {
+  if (!process.env.FGT_RESULTS_TOKEN && !dry) { say('Stopped: the FGT_RESULTS_TOKEN secret is missing or empty.'); return finish(1); }
+  if (args.includes('--check')) {
+    // Token check: resend the schedule file (same data, so nothing changes) and report whether the Sheet accepted it.
+    const r = await postToSheet(JSON.parse(fs.readFileSync(ROOT + '/data/schedule-2027.json', 'utf8')), process.env.FGT_RESULTS_TOKEN);
+    say('Token check passed: the Sheet accepted the schedule (' + r.stored + ' events).');
+    return finish(0);
+  }
   const sched = JSON.parse(fs.readFileSync(opt('--schedule') || (ROOT + '/data/schedule-2027.json'), 'utf8')).events;   // --schedule: another file, for testing
   const now = new Date(), from = iso(new Date(now.getTime() - days * 86400000)), to = iso(now);
   const due = sched.filter(e => only ? e.event === only : (e.counts === 'Yes' && e.finish >= from && e.finish <= to));
