@@ -7,7 +7,8 @@
 // DataGolf allows 45 requests a minute; this makes 3-4 per run (rankings + one rounds request per calendar year).
 const fs = require('fs'), os = require('os');
 const ROOT = __dirname + '/..';
-const KEEP_EVENTS = 15;          // per golfer, for the trend line and the Recent Performance table
+const KEEP_EVENTS = 15;          // per golfer, for the Recent Performance table
+const KEEP_ROUNDS = 50;          // per golfer, bars on the SG Total chart; its line is the 50-round average
 const WINDOW_DAYS = 365;         // the Long vs Short Game averages use the last 12 months of rounds
 
 function apiKey() {
@@ -70,13 +71,15 @@ function ourGolfers() {
 
   const cutoff = new Date(now.getTime() - WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
   const out = {}, seenDg = new Set();
-  const slot = n => out[n] || (out[n] = { ev: [], sum: [0, 0, 0, 0, 0], cnt: [0, 0, 0, 0, 0] });
+  const slot = n => out[n] || (out[n] = { ev: [], rd: [], sum: [0, 0, 0, 0, 0], cnt: [0, 0, 0, 0, 0] });
   for (const e of events) {
     for (const s of e.scores) {
       const name = names.get(fold(flip(s.player_name)));
       if (!name) continue;
       seenDg.add(name);
-      const rs = Object.keys(s).filter(k => /^round_\d+$/.test(k)).map(k => s[k]).filter(r => r && typeof r === 'object');
+      const rk = Object.keys(s).filter(k => /^round_\d+$/.test(k) && s[k] && typeof s[k] === 'object')
+        .sort((a, b) => Number(a.slice(6)) - Number(b.slice(6)));
+      const rs = rk.map(k => s[k]);
       if (!rs.length) continue;
       const g = slot(name), evSum = [0, 0, 0, 0, 0], evCnt = [0, 0, 0, 0, 0];
       rs.forEach(r => CATS.forEach((c, i) => {
@@ -84,6 +87,7 @@ function ourGolfers() {
         evSum[i] += r[c]; evCnt[i]++;
         if (e.event_completed >= cutoff) { g.sum[i] += r[c]; g.cnt[i]++; }
       }));
+      rk.forEach(k => { if (typeof s[k].sg_total === 'number') g.rd.push([evIndex.get(e), Number(k.slice(6)), s[k].sg_total]); });
       if (!evCnt[4]) continue;   // no strokes gained recorded for this event
       g.ev.push([evIndex.get(e), String(s.fin_text || ''), rs.length].concat(evSum.map((v, i) => evCnt[i] ? r2(v / evCnt[i]) : null)));
     }
@@ -101,17 +105,21 @@ function ourGolfers() {
       rec.avg = g.sum.map((v, i) => g.cnt[i] ? r2(v / g.cnt[i]) : null);   // per round: OTT, APP, ARG, PUTT, Total
       rec.ev = g.ev.slice(-KEEP_EVENTS);
       rec.ev.forEach(x => usedEv.add(x[0]));
+      // Each round with the average of the 50 rounds up to and including it (fewer when there isn't that much history).
+      const all = g.rd, avg50 = all.map((_, i) => { const w = all.slice(Math.max(0, i - 49), i + 1); return w.reduce((t, r) => t + r[2], 0) / w.length; });
+      rec.rd = all.map((r, i) => [r[0], r[1], r2(r[2]), r2(avg50[i])]).slice(-KEEP_ROUNDS);
+      rec.rd.forEach(x => usedEv.add(x[0]));
     }
     golfers[name] = rec;
   }
   // Keep only the events someone uses, and renumber.
   const keep = evList.map((_, i) => i).filter(i => usedEv.has(i)), remap = new Map(keep.map((i, j) => [i, j]));
-  Object.values(golfers).forEach(g => (g.ev || []).forEach(x => { x[0] = remap.get(x[0]); }));
+  Object.values(golfers).forEach(g => (g.ev || []).concat(g.rd || []).forEach(x => { x[0] = remap.get(x[0]); }));
   const missing = [...names.values()].filter(n => !golfers[n] || !golfers[n].avg);
 
   const data = {
     generated: now.toISOString(), credit: 'Strokes gained, DG Rank and OWGR courtesy of DataGolf (datagolf.com)',
-    note: 'SG figures are per round. avg = last 12 months [OTT, APP, ARG, PUTT, Total]; ev = [event, finish, rounds, OTT, APP, ARG, PUTT, Total].',
+    note: 'SG figures are per round. avg = last 12 months [OTT, APP, ARG, PUTT, Total]; ev = [event, finish, rounds, OTT, APP, ARG, PUTT, Total]; rd = last 50 rounds [event, round, SG Total, 50-round average].',
     events: keep.map(i => evList[i]), golfers
   };
   const text = JSON.stringify(data);

@@ -1484,27 +1484,41 @@
     else wrap.appendChild(el("div", "cap", "Bubble size: season earnings. Hover or tap a bubble for details."));
     return wrap;
   }
+  // SG Total: a pale green bar for each of the golfer's last 50 rounds, and a line for the 50-round average at each one.
   function sgTrend(g) {
-    var ev = g.ev || [], n = ev.length;
-    if (!n) return el("div", "note", "No events with strokes gained yet.");
-    var W = 600, H = 240, L = 40, R = 12, T = 14, B = 26;
-    var vals = ev.map(function (e) { return e[7]; });
-    var m = 1; vals.forEach(function (v) { if (v != null) m = Math.max(m, Math.abs(v)); }); m = Math.ceil(m);
-    var x = function (k) { return n === 1 ? (L + W - R) / 2 : L + k * (W - L - R) / (n - 1); }, y = function (v) { return T + (m - v) / (2 * m) * (H - T - B); };
+    var rd = g.rd || [], n = rd.length;
+    if (!n) return el("div", "note", "No rounds with strokes gained yet.");
+    var W = 600, H = 250, L = 34, R = 10, T = 12, B = 28;
+    var m = 1; rd.forEach(function (r) { m = Math.max(m, Math.abs(r[2])); }); m = Math.ceil(m);
+    var slot = (W - L - R) / n, bw = Math.max(2, slot * 0.72);
+    var cx = function (k) { return L + slot * (k + 0.5); }, y = function (v) { return T + (m - v) / (2 * m) * (H - T - B); };
     var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "sgtr");
-    [-m, 0, m].forEach(function (v) {
+    var step = m <= 4 ? 2 : m <= 8 ? 4 : 5;
+    for (var v = -Math.floor(m / step) * step; v <= m; v += step) {
       svgEl(svg, "line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: v === 0 ? tc().axis : tc().zero, "stroke-width": 1 });
-      svgEl(svg, "text", { x: L - 6, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: tc().axis }, (v > 0 ? "+" : "") + v);
+      svgEl(svg, "text", { x: L - 5, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: tc().axis }, (v > 0 ? "+" : "") + v);
+    }
+    var lastLab = -1e9;
+    var bar = theme() === "dark" ? "#5c8f5f" : "#b9dcb5", line = theme() === "dark" ? "#a6e3a8" : "#2f7d32";
+    rd.forEach(function (r, k) {
+      var meta = SG.events[r[0]] || ["", ""], top = y(Math.max(0, r[2])), bot = y(Math.min(0, r[2]));
+      var b = svgEl(svg, "rect", { x: cx(k) - bw / 2, y: top, width: bw, height: Math.max(1, bot - top), fill: bar, rx: 1 });
+      attachTip(b, function () { return [meta[0], ["Round", String(r[1]) + " (" + meta[1] + ")"], ["SG Total", sg2(r[2])], ["50-round average", sg2(r[3])]]; });
+      // Event date under the first round of each event, when there is room.
+      if ((k === 0 || rd[k - 1][0] !== r[0]) && cx(k) - lastLab >= 34) {
+        lastLab = cx(k);
+        svgEl(svg, "text", { x: cx(k), y: H - 9, "text-anchor": "start", "font-size": 10, fill: tc().axis }, (meta[1] || "").slice(5).replace("-", "/"));
+      }
     });
-    if (n > 1) svgEl(svg, "polyline", { points: ev.map(function (e, k) { return x(k).toFixed(1) + "," + y(e[7]).toFixed(1); }).join(" "), fill: "none", stroke: tc().you, "stroke-width": 2.5 });
-    ev.forEach(function (e, k) {
-      var c = svgEl(svg, "circle", { cx: x(k), cy: y(e[7]), r: 5, fill: e[7] >= 0 ? tc().you : QUAD.bad.color });
-      var meta = SG.events[e[0]] || ["", ""];
-      attachTip(c, function () { return [meta[0], ["Date", meta[1]], ["Finish", e[1] || "-"], ["SG Total", sg2(e[7]) + " per round (" + e[2] + " rounds)"]]; });
-      svgEl(svg, "text", { x: x(k), y: H - 8, "text-anchor": "middle", "font-size": 10, fill: tc().axis }, (meta[1] || "").slice(5).replace("-", "/"));
-    });
+    if (n > 1) svgEl(svg, "polyline", { points: rd.map(function (r, k) { return cx(k).toFixed(1) + "," + y(r[3]).toFixed(1); }).join(" "),
+      fill: "none", stroke: line, "stroke-width": 2.5, "stroke-linejoin": "round", "pointer-events": "none" });
     var wrap = el("div", "sgwrap"); wrap.appendChild(svg);
-    wrap.appendChild(el("div", "cap", "Strokes gained total per round at each of the last " + n + " events (dates as month/day). Hover or tap a dot for the event."));
+    var lg = el("div", "legend");
+    var a = el("span"), sa = el("i"); sa.style.background = bar; a.appendChild(sa); a.appendChild(document.createTextNode("SG Total each round (last " + n + ")")); lg.appendChild(a);
+    var b2 = el("span"), sb = el("i"); sb.style.background = line; sb.style.height = "3px"; sb.style.verticalAlign = "middle"; b2.appendChild(sb);
+    b2.appendChild(document.createTextNode("50-round average")); lg.appendChild(b2);
+    wrap.appendChild(lg);
+    wrap.appendChild(el("div", "cap", "Dates (month/day) mark where each event starts. Hover or tap a bar for the round."));
     return wrap;
   }
   function recentTable(name, g, items) {

@@ -336,3 +336,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-20: Team Performance money card (Tom)
 
 - Removed the "Weekly prize money won" line from the Team Performance season-total card; "In line for $X at season's end" stays. Weekly winnings still show on Main, Weekly Results, Leaderboard and Winner List.
+
+## 2026-11-20: SG Total chart as rounds (Tom)
+
+- Tom: the SG Total chart should be pale green bars for each past round with a line for the 50-round average. `tools/datagolf.js` now stores `rd` per golfer: last 50 rounds [event, round, SG Total, average of the 50 rounds up to and including it (fewer if less history)]. sg.json grew to ~334 KB (loaded in the background). Chart: pale green bars (darker green in dark mode), dark green average line, event start dates under the bars, hover/tap per round, legend.
