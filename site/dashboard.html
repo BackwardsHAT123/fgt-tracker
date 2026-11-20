@@ -837,7 +837,11 @@
       k1.appendChild(el("div", "big", money(leader.earnings)));
     } else k1.appendChild(el("div", "small", "No results yet. The first event will show here."));
     t1.appendChild(k1);
-    if (leader && hasEvents) t1.appendChild(spark([{ v: series(leader.team), color: tc().leader }]));
+    if (leader && hasEvents) {
+      // An invisible line the same height as Your Team's caption, so the green and blue cards match in height.
+      var sp = el("div", "cap", "\u00a0"); sp.style.visibility = "hidden"; sp.setAttribute("aria-hidden", "true"); t1.appendChild(sp);
+      t1.appendChild(spark([{ v: series(leader.team), color: tc().leader }]));
+    }
     c1.appendChild(t1);
     if (leader && hasEvents) { c1.appendChild(D.closed ? bars(golferBars(leader.team, null), false, golferTip(null)) : lineupsNote()); c1.appendChild(pointsBlock("green", leader.team, null)); }
     wrap.appendChild(c1);
