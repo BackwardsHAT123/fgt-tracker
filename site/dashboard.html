@@ -290,6 +290,10 @@
   .tpf .sg-recent { grid-area: recent; }
   .tpf .sghd { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
   .tpf .sghd h5 { margin: 0; } .tpf .sghd .picker { max-width: 220px; }
+  .tpf .sghint { font-size: 12px; color: var(--muted); }
+  .tpf .sg-roster .bar.pick { cursor: pointer; border-radius: 6px; }
+  .tpf .sg-roster .bar.pick:hover { outline: 1px solid var(--border); outline-offset: -1px; }
+  .tpf .sg-roster .bar.sel { outline: 2px solid var(--ink); outline-offset: -2px; font-weight: 700; }
   @media (max-width: 1100px) { .tpf .sglay { grid-template-columns: minmax(230px, 0.9fr) 1fr; grid-template-areas: "roster xplot" "roster trend" "recent recent"; } }
   @media (max-width: 760px) { .tpf .sglay { grid-template-columns: 1fr; grid-template-areas: "roster" "xplot" "trend" "recent"; } }
   .tpf .sgwrap svg { display: block; width: 100%; height: auto; }
@@ -1419,9 +1423,27 @@
     var items = golferBars(team, null);
     items.forEach(function (i) { var ls = longShort(sgOf(i.label)); i.quad = ls ? ls.q : null; i.color = ls ? QUAD[ls.q].color : NO_SG; });
 
+    // The selected golfer (roster click/tap, a bubble, or the dropdown) is highlighted everywhere and drives the
+    // SG Total chart and Recent Performance. Defaults to the team's top earner with strokes gained data.
+    var hasSG = function (i) { var g = sgOf(i.label); return !!(g && ((g.rd && g.rd.length) || (g.ev && g.ev.length))); };
+    if (!state.sgGolfer || !items.some(function (i) { return i.label === state.sgGolfer; })) {
+      var first = items.filter(hasSG)[0] || items[0];
+      state.sgGolfer = first ? first.label : null;
+    }
+    var gname = state.sgGolfer;
+    function choose(name) { if (name === state.sgGolfer) return; state.sgGolfer = name; draw(); hideTip(); }
+
     var lay = el("div", "sglay");
-    var p1 = el("div", "panel grey sg-roster"); p1.appendChild(el("h5", null, "Total Earnings this season"));
-    p1.appendChild(bars(items, false, golferTip(null)));
+    var p1 = el("div", "panel grey sg-roster"), rh = el("div", "sghd");
+    rh.appendChild(el("h5", null, "Total Earnings this season")); rh.appendChild(el("span", "sghint", "Tap a golfer to highlight"));
+    p1.appendChild(rh);
+    var rb = bars(items, false, golferTip(null));
+    Array.prototype.forEach.call(rb.children, function (row, k) {
+      var it = items[k]; if (!it) return;
+      row.classList.add("pick"); if (it.label === gname) row.classList.add("sel");
+      row.addEventListener("click", function () { choose(it.label); });
+    });
+    p1.appendChild(rb);
     p1.appendChild(quadLegend());
     lay.appendChild(p1);
     var p2 = el("div", "panel sg-xplot"); p2.appendChild(el("h5", null, "Long Game vs Short Game"));
@@ -1429,20 +1451,16 @@
       p2.appendChild(el("div", "note", sgAsked ? "Loading strokes gained from DataGolf..." : "Strokes gained data is not available right now."));
       lay.appendChild(p2); box.appendChild(lay); return;
     }
-    p2.appendChild(sgScatter(items));
+    p2.appendChild(sgScatter(items, gname, choose));
 
-    // Golfer picker (in the SG Total panel) drives that chart and Recent Performance; defaults to the top earner with data.
-    var withData = items.filter(function (i) { var g = sgOf(i.label); return g && ((g.rd && g.rd.length) || (g.ev && g.ev.length)); });
-    if (!state.sgGolfer || !withData.some(function (i) { return i.label === state.sgGolfer; }))
-      state.sgGolfer = withData.length ? withData[0].label : null;
-    var gname = state.sgGolfer, g = gname ? sgOf(gname) : null;
+    var g = gname ? sgOf(gname) : null;
     var p3 = el("div", "panel sg-trend"), hd = el("div", "sghd");
     hd.appendChild(el("h5", null, "Strokes Gained Total"));
-    if (withData.length) hd.appendChild(picker(withData.map(function (i) { return { label: i.label, value: i.label }; }), gname,
-      function (v) { state.sgGolfer = v; draw(); }));
+    if (items.length) hd.appendChild(picker(items.map(function (i) { return { label: i.label, value: i.label }; }), gname, choose));
     p3.appendChild(hd);
     var p4 = el("div", "panel sg-recent"); p4.appendChild(el("h5", null, "Recent Performance" + (gname ? ": " + gname : "")));
-    if (!g) { p3.appendChild(el("div", "note", "No strokes gained data for this team's golfers.")); }
+    if (!g || !(g.rd || g.ev)) { p3.appendChild(el("div", "note", gname ? "DataGolf has no strokes gained for " + gname + "." : "No golfers on this team."));
+      p4.appendChild(el("div", "note", gname ? "No recent strokes gained for " + gname + "." : "")); }
     else { p3.appendChild(sgTrend(g)); p4.appendChild(recentTable(gname, g, items)); }
     lay.appendChild(p3); lay.appendChild(p2); lay.appendChild(p4);
     box.appendChild(lay);
@@ -1460,7 +1478,7 @@
     s.appendChild(document.createTextNode("No strokes gained data")); l.appendChild(s);
     return l;
   }
-  function sgScatter(items) {
+  function sgScatter(items, selName, onPick) {
     var pts = items.map(function (i) { var g = sgOf(i.label), ls = longShort(g); return ls ? { i: i, g: g, ls: ls } : null; }).filter(Boolean);
     if (!pts.length) return el("div", "note", "No strokes gained data for this team's golfers.");
     var W = 600, H = 440, P = 34;
@@ -1480,12 +1498,18 @@
     svgEl(svg, "text", { x: W / 2, y: H - 8, "text-anchor": "middle", "font-size": 12, fill: tc().axis }, "Long Game (off the tee + approach) →");
     var yl = svgEl(svg, "text", { x: 12, y: H / 2, "text-anchor": "middle", "font-size": 12, fill: tc().axis, transform: "rotate(-90 12 " + H / 2 + ")" }, "Short Game (around the green + putting) →");
     var maxE = pts.reduce(function (a, p) { return Math.max(a, p.i.value); }, 0) || 1;
-    pts.sort(function (a, b) { return b.i.value - a.i.value; }).forEach(function (p) {
-      var r = 5 + 15 * Math.sqrt(p.i.value / maxE), cx = x(p.ls.long), cy = y(p.ls.short);
-      var c = svgEl(svg, "circle", { cx: cx, cy: cy, r: r, fill: QUAD[p.ls.q].color, "fill-opacity": 0.75, stroke: theme() === "dark" ? "#121310" : "#fffeff", "stroke-width": 1 });
+    var anySel = pts.some(function (p) { return p.i.label === selName; });
+    var ink = theme() === "dark" ? "#f2eee8" : "#121310";
+    // Largest first so small bubbles sit on top; the selected golfer is drawn last, on top of everything.
+    pts.sort(function (a, b) { return (a.i.label === selName) - (b.i.label === selName) || b.i.value - a.i.value; }).forEach(function (p) {
+      var r = 5 + 15 * Math.sqrt(p.i.value / maxE), cx = x(p.ls.long), cy = y(p.ls.short), on = p.i.label === selName, dim = anySel && !on;
+      var c = svgEl(svg, "circle", { cx: cx, cy: cy, r: on ? r + 2 : r, fill: QUAD[p.ls.q].color, "fill-opacity": dim ? 0.3 : 0.85,
+        stroke: on ? ink : (theme() === "dark" ? "#121310" : "#fffeff"), "stroke-width": on ? 3 : 1 });
       var last = lastNm(p.i.label);
-      svgEl(svg, "text", { x: cx, y: cy - r - 3, "text-anchor": "middle", "font-size": 11, fill: tc().axis, "pointer-events": "none" }, last);
+      svgEl(svg, "text", { x: cx, y: cy - r - (on ? 6 : 3), "text-anchor": "middle", "font-size": on ? 13 : 11, "font-weight": on ? 700 : 400,
+        fill: on ? ink : tc().axis, opacity: dim ? 0.5 : 1, "pointer-events": "none" }, last);
       c.style.cursor = "pointer";
+      if (onPick) c.addEventListener("click", function () { onPick(p.i.label); });
       attachTip(c, function () {
         return [p.i.label, ["Group", QUAD[p.ls.q].name], ["Long Game", sg2(p.ls.long) + " per round"], ["Short Game", sg2(p.ls.short) + " per round"],
           ["SG Total", sg2(p.g.avg[4]) + " per round (" + p.g.n + " rounds)"], ["Season earnings", money(p.i.value)]];

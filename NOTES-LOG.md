@@ -344,3 +344,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-20: Stats layout (Tom)
 
 - Team Performance > Stats is now one grid: the roster (earnings bars + legend) runs down the left beside both rows; top right is the SG Total chart (golfer picker in its header) next to Long vs Short Game; Recent Performance spans the right below them. Under 1100px: roster | plot, roster | SG chart, table full width; under 760px: one column.
+
+## 2026-11-20: roster as highlight filter (Tom)
+
+- Stats: clicking/tapping a golfer in the roster, a bubble on the crossplot, or choosing in the dropdown selects that golfer: roster row outlined and bold, bubble enlarged with a dark outline and bold label (others faded), SG Total chart and Recent Performance switch to them. Dropdown now lists the whole roster; golfers without DataGolf data show a note instead of the chart/table. Outline instead of shadow (TAH: no shadows).
