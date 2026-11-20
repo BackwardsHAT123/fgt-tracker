@@ -168,7 +168,8 @@
   /* Grid items default to their content's width; the golfer table would otherwise stretch the page past the screen. */
   .wk.lv .split > div { min-width: 0; }
   @media (max-width: 600px) {
-    .wk.lv .wrow, .wk.lv .lvh { grid-template-columns: 22px minmax(0, 1fr) 76px 70px; column-gap: 4px; }
+    .wk.lv .wrow, .wk.lv .lvh { grid-template-columns: 30px minmax(0, 1fr) 76px 70px; column-gap: 4px; }
+    .lv .lvg th:nth-child(4), .lv .lvg td:nth-child(4) { display: none; }   /* Today: hidden on phones so the table fits */
     .lv .wrow .mv { font-size: 12.5px; } .wk.lv .wrow .track { min-height: 34px; }
     .wk.lv .wrow .nm { font-size: 13px; padding-top: 6px; }
     .lv table { font-size: 12px; } .lv th, .lv td { padding: 4px 3px; } .lv td.g { max-width: 120px; }
