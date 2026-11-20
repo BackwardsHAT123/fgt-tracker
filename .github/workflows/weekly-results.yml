@@ -1,10 +1,15 @@
 name: Weekly results
 
 # Pulls each finished FGT event's results from pgatour.com, sends them to the Google Sheet, refreshes the dashboard
-# snapshot, and republishes the site. Runs Sunday evening and again Monday (for late or weather-delayed finishes).
+# snapshot, and republishes the site. Runs Sunday 4pm, Sunday evening and night, and again Monday (for late or weather-delayed
+# finishes, and because pgatour.com's past-results page with the money often lags behind the event going official).
 # Re-sending an event replaces its rows, so extra runs are harmless. Needs the repo secret FGT_RESULTS_TOKEN.
 on:
   schedule:
+    # Sunday 4pm Mountain all year: GitHub runs on UTC, so both lines fire and the job skips the one that is
+    # not 4pm locally (22:00 UTC in summer time, 23:00 UTC in winter).
+    - cron: "0 22 * * 0"
+    - cron: "0 23 * * 0"
     - cron: "0 1 * * 1"    # Sunday ~6-7pm Mountain
     - cron: "0 4 * * 1"    # Sunday ~9-10pm Mountain
     - cron: "0 15 * * 1"   # Monday morning
@@ -45,7 +50,13 @@ jobs:
           EVENT: ${{ inputs.event }}
           DAYS: ${{ inputs.days || '3' }}
           CHECK: ${{ inputs.check }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
+          # The two Sunday-4pm lines: run only the one that is 4pm in Mountain time (summer -0600, winter -0700).
+          OFF=$(TZ=America/Denver date +%z)
+          if { [ "$SCHEDULE" = "0 22 * * 0" ] && [ "$OFF" != "-0600" ]; } || { [ "$SCHEDULE" = "0 23 * * 0" ] && [ "$OFF" != "-0700" ]; }; then
+            echo "This Sunday line is not 4pm Mountain at this time of year; skipping."; exit 0
+          fi
           if [ "$CHECK" = "true" ]; then node tools/weekly-update.js --check; exit $?; fi
           if [ -n "$EVENT" ]; then node tools/weekly-update.js --event "$EVENT"; else node tools/weekly-update.js --days "$DAYS"; fi
       - name: Commit the new snapshot and republish the site

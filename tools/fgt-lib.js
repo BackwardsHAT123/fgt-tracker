@@ -31,7 +31,12 @@ function finishDate(display) {
 }
 const money = s => Number(String(s || '0').replace(/[$,\s]/g, '')) || 0;
 
-// One finished event's full field. Throws (and writes nothing) if not official yet or the results are for another event/season.
+// "Not ready yet" errors: the event is not official, or pgatour.com's past-results page (the one with the money) has not
+// caught up. It often lags the event going official by hours. Callers can wait and retry instead of treating it as broken.
+const notReady = msg => Object.assign(new Error(msg), { notReady: true });
+
+// One finished event's full field. Throws (and writes nothing) if not official yet, the results are for another
+// event/season, or the money looks incomplete. opts.purse (the event's purse, or last year's) enables the money check.
 async function pullResults(url, opts) {
   opts = opts || {};
   const m = url.match(/\/tournaments\/(\d{4})\/[^/]+\/(R\d+)/);
@@ -41,13 +46,13 @@ async function pullResults(url, opts) {
   const t = (pick(queries, 'tournament', k => k && k.id === tid) || {}).data;
   const pr = (pick(queries, 'pastResults', k => k && k.tournamentPastResultsId === tid) || {}).data;
   if (!t || !pr) throw new Error('Could not find the tournament or its results in the page data.');
-  if (t.tournamentStatus !== 'COMPLETED') throw new Error('Not official yet: status is ' + t.tournamentStatus + '.');
-  if (pr.id !== tid) throw new Error('Results on the page are for ' + pr.id + ', not ' + tid + ' (probably last year).');
+  if (t.tournamentStatus !== 'COMPLETED') throw notReady('Not official yet: status is ' + t.tournamentStatus + '.');
+  if (pr.id !== tid) throw notReady('The past-results page still shows ' + pr.id + ', not ' + tid + ' (last year\'s results; pgatour.com has not updated it yet).');
   const seasons = (pr.availableSeasons || []).map(s => s.displaySeason);
-  if (seasons.length && !seasons.includes(String(t.seasonYear || year))) throw new Error('Results season ' + seasons.join(',') + ' does not match ' + (t.seasonYear || year) + '.');
+  if (seasons.length && !seasons.includes(String(t.seasonYear || year))) throw notReady('Results season ' + seasons.join(',') + ' does not match ' + (t.seasonYear || year) + '.');
   const hdr = pr.additionalDataHeaders || [];
   const mi = hdr.findIndex(h => /money/i.test(h));
-  if (mi < 0) throw new Error('No "Official Money" column in the results (headers: ' + hdr.join(', ') + ').');
+  if (mi < 0) throw notReady('No "Official Money" column on the past-results page yet (headers: ' + (hdr.join(', ') || 'none') + ').');
   const rows = (pr.players || []).map(p => {
     let e = money((p.additionalData || [])[mi]);
     if (opts.halve) e = Math.round(e / 2 * 100) / 100;
@@ -55,6 +60,14 @@ async function pullResults(url, opts) {
   });
   const out = { tournament: opts.name || t.tournamentName, date: finishDate(t.displayDate), rows };
   const paid = rows.filter(r => r.earnings > 0), total = paid.reduce((s, r) => s + r.earnings, 0);
+  // Money not (fully) posted yet: too few golfers paid, the winner shows $0, or far less than the purse paid out.
+  const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+  if (paid.length < 30 || !(rows[0] && rows[0].earnings > 0))
+    throw notReady('The past-results page lists ' + rows.length + ' golfers but only ' + paid.length + ' with money' +
+      (rows[0] && !rows[0].earnings ? ' and the winner at $0' : '') + '; the money is probably not posted yet.');
+  const purse = Number(opts.purse) || 0;   // team events: halved golfer shares still add up to the team purse
+  if (purse && total < 0.7 * purse)
+    throw notReady('Money on the past-results page adds up to ' + fmt(total) + ', under 70% of the ' + fmt(purse) + ' purse; probably not fully posted yet.');
   const by = f => rows.filter(r => r.finish === f).length;
   const summary = out.tournament + ' (' + out.date + '): ' + rows.length + ' golfers, ' + paid.length + ' with money ($' +
     total.toLocaleString('en-US') + '), ' + by('CUT') + ' cut, ' + by('W/D') + ' withdrew' + (opts.halve ? ', money halved (team event)' : '') +

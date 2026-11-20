@@ -39,22 +39,27 @@ const iso = d => d.toISOString().slice(0, 10);
   const bySeason = {}, done = new Set();
   let sent = 0;
   for (const e of due) {
-    if (e.finish < from) say('- ' + e.event + ' (finished ' + e.finish + ') has no results in the Sheet yet. Catching up.');
+    if (!only && e.finish < from) say('- ' + e.event + ' (finished ' + e.finish + ') has no results in the Sheet yet. Catching up.');
     const season = e.finish.slice(0, 4);
     bySeason[season] = bySeason[season] || await seasonTournaments(season);
     // Match on pgatour.com's full name (pgaName) when the Schedule uses a shorter one; results are stored under the short name.
     const t = bySeason[season].find(x => norm(x.name) === norm(e.pgaName || e.event));
     if (!t) { say('- ' + e.event + ': not found on pgatour.com\'s ' + season + ' schedule. Check the name.'); problems++; continue; }
-    if (t.status !== 'COMPLETED') { say('- ' + e.event + ': not official yet (' + t.status + '). Will try again on the next run.'); continue; }
+    if (t.status !== 'COMPLETED') { say('- ' + e.event + ': not official yet (' + t.status + '). Will try again on the next run.'); continue; }   // the MISSING check below catches it if this lasts
     try {
       const url = 'https://www.pgatour.com/tournaments/' + season + '/event/' + t.id + '/past-results';
-      const r = await pullResults(url, { name: e.event, halve: /team event/i.test(e.notes || '') });
+      const r = await pullResults(url, { name: e.event, halve: /team event/i.test(e.notes || ''), purse: e.purse || e.refPurse });
       if (dry) { say('- (dry run) ' + r.summary); continue; }
       const reply = await postToSheet(r.out, process.env.FGT_RESULTS_TOKEN);
       sent++; done.add(e.event);
       say('- Sent ' + r.summary + ' Sheet stored ' + reply.stored + ' rows' +
         (reply.notOnGolfersTabWithMoney && reply.notOnGolfersTabWithMoney.length ? '; golfers with money not on the points list: ' + reply.notOnGolfersTabWithMoney.join(', ') : '') + '.');
-    } catch (err) { say('- ' + e.event + ': ' + err.message); problems++; }
+    } catch (err) {
+      // pgatour.com's money page lagging is normal on Sunday: wait for the next run. The MISSING check below still
+      // fails the run if the event is 2+ days old and nothing has reached the Sheet.
+      if (err.notReady) say('- ' + e.event + ': results not ready yet. ' + err.message + ' Will try again on the next run.');
+      else { say('- ' + e.event + ': ' + err.message); problems++; }
+    }
   }
   if (sent) say(await saveSnapshot());
   // Alarm: anything still missing makes the run fail, so GitHub emails Tom.
