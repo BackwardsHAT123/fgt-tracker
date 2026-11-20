@@ -320,3 +320,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-20: control heights (Tom)
 
 - Weekly Results: the Select tournament dropdown and Highlight team search box were different heights. All search boxes and dropdowns on the dashboard now share the dropdown's height (32px, box-sizing border-box; search box appearance reset so Safari honours it).
+
+## 2026-11-20: DataGolf resubscribed (Tom)
+
+- Tom resubscribed. Key file `~/.config/fgt/datagolf.key` does not exist yet; asked Tom to save it from the clipboard (pbpaste) so it never shows in chat.
+- DataGolf terms (datagolf.com/terms-and-conditions, read today): clause 13 grants "personal, non-commercial use" and says "you will not redistribute or transfer" the services or content. No attribution rule, no explicit public-display policy. A public dashboard is a grey area; suggested Tom ask DataGolf for permission (or keep SG panels off the public page). API: 45 requests/min shared, 5-minute suspension; key goes in the query string, so fetch server-side (weekly job) and publish only the derived numbers.
