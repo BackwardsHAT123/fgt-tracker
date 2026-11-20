@@ -371,3 +371,4 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Checked live on the demo in Chrome (RSM snapshot and preview). Phone view for Tom.
 - Tom: Now/Proj team money ran together. Live team rows are now a grid: rank | bar with name | Now (104px) | Proj (96px, grey), with a small header row; narrower columns on phones.
 - Tom (phone): Live team list ran off the right edge. Cause: the golfer table stretched the one-column grid; split children now min-width 0. Phone columns 22px | name | 76px | 70px, smaller text, shorter rows, tighter golfer table.
+- Follow-ups: rank column 30px for T12; golfer table on phones hides Today and caps names at 112px (rules needed .wk.lv specificity). Checked in a 390px-wide frame in Chrome: page and both tables fit (no sideways scroll). Two deploys hit GitHub's transient artifact error; re-runs fixed them.
