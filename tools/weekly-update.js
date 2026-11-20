@@ -49,11 +49,11 @@ const iso = d => d.toISOString().slice(0, 10);
     try {
       const url = 'https://www.pgatour.com/tournaments/' + season + '/event/' + t.id + '/past-results';
       const r = await pullResults(url, { name: e.event, halve: /team event/i.test(e.notes || ''), purse: e.purse || e.refPurse });
-      if (dry) { say('- (dry run) ' + r.summary); continue; }
+      if (dry) { say('- (dry run) ' + r.summary + (r.out.story ? '\n  Story: ' + r.out.story : '')); continue; }
       const reply = await postToSheet(r.out, process.env.FGT_RESULTS_TOKEN);
       sent++; done.add(e.event);
       say('- Sent ' + r.summary + ' Sheet stored ' + reply.stored + ' rows' +
-        (reply.notOnGolfersTabWithMoney && reply.notOnGolfersTabWithMoney.length ? '; golfers with money not on the points list: ' + reply.notOnGolfersTabWithMoney.join(', ') : '') + '.');
+        (reply.notOnGolfersTabWithMoney && reply.notOnGolfersTabWithMoney.length ? '; golfers with money not on the points list: ' + reply.notOnGolfersTabWithMoney.join(', ') : '') + '.' + (r.out.story ? '\n  Story: ' + r.out.story : ''));
     } catch (err) {
       // pgatour.com's money page lagging is normal on Sunday: wait for the next run. The MISSING check below still
       // fails the run if the event is 2+ days old and nothing has reached the Sheet.

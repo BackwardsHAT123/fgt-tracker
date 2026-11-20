@@ -352,9 +352,35 @@ function buildRecap_(event) {
   }).sort(function (a, b) { return a.rank - b.rank || a.team.localeCompare(b.team); });
   var climber = hadBefore ? table.slice().sort(function (a, b) { return b.move - a.move; })[0] : null;
 
-  // Top golfers this week (and how many teams had them, once lineups are public).
-  var picks = {};
-  d.lineups.forEach(function (l) { picks[l.golfer] = (picks[l.golfer] || 0) + 1; });
+  // Season leader after each scheduled event up to this one, to call out a change at the top (or how long it has held).
+  var run = {}, leadersBy = [];
+  sched.forEach(function (e, i) {
+    if (i > myIdx) return;
+    var evRows = d.eventScores.filter(function (r) { return r.event.toLowerCase() === e.event.toLowerCase(); });
+    if (!evRows.length) return;
+    evRows.forEach(function (r) { run[r.team] = (run[r.team] || 0) + r.earnings; });
+    var top = Math.max.apply(null, Object.keys(run).map(function (t) { return run[t]; }));
+    leadersBy.push(Object.keys(run).filter(function (t) { return run[t] === top && top > 0; }).sort());
+  });
+  var leadNow = leadersBy.length ? leadersBy[leadersBy.length - 1] : [], leadPrev = leadersBy.length > 1 ? leadersBy[leadersBy.length - 2] : null;
+  var streak = 0;
+  for (var li = leadersBy.length - 1; li >= 0 && leadersBy[li].join('|') === leadNow.join('|'); li--) streak++;
+  var both = function (l) { return l.join(' and '); };
+  var leadLine = !leadNow.length ? '' : !leadPrev ? both(leadNow) + (leadNow.length > 1 ? ' share' : ' has') + ' the early season lead.'
+    : leadNow.join('|') !== leadPrev.join('|')
+      ? 'New season leader: ' + both(leadNow) + (leadNow.length > 1 ? ' now share the top spot' : ' takes over the top spot') + (leadPrev.length ? ' from ' + both(leadPrev.filter(function (t) { return leadNow.indexOf(t) < 0; })) : '') + '.'
+      : both(leadNow) + (leadNow.length > 1 ? ' stay level' : ' stays') + ' on top of the season standings (' + streak + ' weeks running).';
+  leadLine = leadLine.replace(' from .', '.');
+
+  // How many teams picked each golfer, counted straight from the Lineups tab (counts only, no team names), so the
+  // recap always has them even while the public feed still hides lineups.
+  var picks = {}, lin = tab_('Lineups');
+  if (lin.getLastRow() > 1) lin.getRange(2, 3, lin.getLastRow() - 1, 1).getValues().forEach(function (r) {
+    if (r[0]) { var g = fold_(r[0]); picks[g] = (picks[g] || 0) + 1; }
+  });
+  var story = PropertiesService.getScriptProperties().getProperty('STORY:' + key.slice(0, 200)) || '';
+
+  // Top golfers this week, with how many teams picked them.
   var golfers = d.results.filter(function (r) { return r.event.toLowerCase() === key && r.earnings > 0; })
     .sort(function (a, b) { return b.earnings - a.earnings; }).slice(0, 5);
 
@@ -377,22 +403,24 @@ function buildRecap_(event) {
     : winners.length === 1 ? winners[0].team + ' wins the ' + event + ' with ' + money_(winners[0].earnings) + ', taking home ' + money_(winners[0].prize) + '.'
     : winners.map(function (w) { return w.team; }).join(' and ') + ' tie for the win at ' + money_(winners[0].earnings) + ' and split the prize (' + money_(winners[0].prize) + ' each).';
   h2(title + (label[type] ? ' (' + label[type] + ')' : ''));
+  if (story) p(story);
   p(winLine);
   if (second.length) p('Second place: ' + second.map(function (r) { return r.team + ' (' + money_(r.earnings) + ', ' + money_(r.prize) + ')'; }).join(', ') + '.');
+  if (leadLine) p(leadLine);
+
+  if (golfers.length) {
+    h2('Golfers who paid off');
+    ol(golfers.map(function (g) {
+      var n = picks[fold_(g.golfer)] || 0;
+      return g.golfer + ' (' + g.finish + '): ' + money_(g.earnings) + ', picked by ' + (n ? n + ' team' + (n === 1 ? '' : 's') : 'no one');
+    }));
+  }
 
   h2('Top teams this week');
   var tie = function (list, v) { return list.filter(function (x) { return x === v; }).length > 1 ? 'T' : ''; };
   ranked(rows.slice(0, 5).map(function (r) {
     return tie(evMoney, r.earnings) + place(evMoney, r.earnings) + '. ' + r.team + ': ' + money_(r.earnings);
   }));
-
-  if (golfers.length) {
-    h2('Golfers who paid off');
-    ol(golfers.map(function (g) {
-      var n = picks[g.golfer];
-      return g.golfer + ' (' + g.finish + '): ' + money_(g.earnings) + (d.lineups.length ? ', on ' + (n || 0) + ' team' + (n === 1 ? '' : 's') : '');
-    }));
-  }
 
   h2('Season standings');
   var totals = table.map(function (t) { return t.total; });
@@ -600,6 +628,8 @@ function saveResults_(d) {
   if (all.length) t.getRange(2, 1, all.length, 5).setValues(all);
   t.getRange('B:B').setNumberFormat('yyyy-mm-dd');
   t.getRange('E:E').setNumberFormat('$#,##0');
+  // "How it was won" blurb for the recap, written by the weekly job from round scores (tools/fgt-lib.js storyFromRounds).
+  if (d.story) PropertiesService.getScriptProperties().setProperty('STORY:' + name.toLowerCase().slice(0, 200), String(d.story).slice(0, 2000));
   refreshEventScores();
   // Weekly recap for beehiiv: emailed to the owner the first time an event's results arrive (repeat runs don't resend).
   try { maybeSendRecap_(name); } catch (x) {}
