@@ -348,3 +348,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-20: roster as highlight filter (Tom)
 
 - Stats: clicking/tapping a golfer in the roster, a bubble on the crossplot, or choosing in the dropdown selects that golfer: roster row outlined and bold, bubble enlarged with a dark outline and bold label (others faded), SG Total chart and Recent Performance switch to them. Dropdown now lists the whole roster; golfers without DataGolf data show a note instead of the chart/table. Outline instead of shadow (TAH: no shadows).
+
+## 2026-11-20: housekeeping (#10, #11)
+
+- sg.json (~330 KB) now loads only the first time Team Performance > Stats opens.
+- CLAUDE.md trimmed 16.5 KB -> 13.8 KB by tightening the Domains, Sheet, dashboard and weekly-job lines (no rules dropped).

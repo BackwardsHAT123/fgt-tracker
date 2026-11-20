@@ -1420,6 +1420,7 @@
   // Long vs Short Game plot share the top row, with Recent Performance across the full width below them.
   function perfStats(box, team) {
     if (!D.closed) { box.appendChild(lineupsNote()); return; }
+    loadSG();
     var items = golferBars(team, null);
     items.forEach(function (i) { var ls = longShort(sgOf(i.label)); i.quad = ls ? ls.q : null; i.color = ls ? QUAD[ls.q].color : NO_SG; });
 
@@ -1810,8 +1811,8 @@
   function footer() {
     if (D && D.generated) document.getElementById("foot").textContent = "Updated " + new Date(D.generated).toLocaleString() + ". Earnings are official PGA Tour prize money.";
   }
-  // DataGolf strokes gained (site/data/sg.json, refreshed by the weekly job). Loaded once in the background; the
-  // Team Performance Stats panels use it when it arrives.
+  // DataGolf strokes gained (site/data/sg.json, ~330 KB, refreshed by the weekly job). Loaded only the first time
+  // someone opens Team Performance > Stats, so the other tabs stay quick.
   var SG = null, sgAsked = false;
   function loadSG() {
     if (sgAsked) return; sgAsked = true;
@@ -1822,7 +1823,6 @@
   function fold(s) { return String(s).toLowerCase().replace(/\u00f8/g, "o").replace(/\u00e6/g, "ae").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim(); }
 
   function start() {
-    loadSG();
     M = build();
     clear(document.getElementById("banners"));   // start() can run again when fresher data arrives
     if (D.demo) $b("demo", "DEMO DATA: 40 made-up teams, and real Austin Championship money (the other two events, including Demo Major, are invented).");
