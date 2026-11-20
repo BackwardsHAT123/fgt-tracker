@@ -287,3 +287,11 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 ## 2026-11-20: Monday morning run at 4:44am (Tom)
 
 - Replaced the Monday 15:00 UTC run (8-9am MT) with 4:44am Mountain year-round: pair "44 10 * * 1" (summer) and "44 11 * * 1" (winter). The skip step now uses a case list for all paired lines; unpaired lines and manual runs always run. Skip logic checked for every line and both offsets.
+
+## 2026-11-20: beehiiv weekly emails (Tom)
+
+- Tom's beehiiv account is on the free Launch plan. Per beehiiv's help centre, creating posts by API needs Max or Enterprise, so no automatic drafts. Tom chose: weekly recap emailed to him, and adding entrants to the list.
+- Recap: `buildRecap_(event)` in Code.gs, built only from `dashboardData_()` (public feed, team names only). Sections: winner + prize (ties split; Majors also 2nd), top 5 teams with real places (T for ties), top 5 golfers ("on N teams" once lineups are public), season top 10 through that event with up/down moves vs the event before, biggest climber, next event and its prize, dashboard link. Text + simple HTML (headings, line breaks; pastes cleanly into beehiiv). Season totals count only Schedule events with counts Yes (skips the 2026 Austin test data). `saveResults_` calls `maybeSendRecap_` after refreshEventScores: once per event (script property `RECAP_SENT:<event>`), never fails the results post. Menu: Email me the latest weekly recap (beehiiv) resends.
+- Entrants: menu Email me new entrants for beehiiv (CSV): one row per email, entrants since the last export (property BEEHIIV_EXPORTED_AT) or everyone; emailed to the owner only for Tom to import himself. No player data goes to beehiiv by script.
+- Tested in Node with demo data (vm-loaded Code.gs, stubbed MailApp/Properties): wording, ties, Major 2nd place, moves, once-per-event (2 deliveries = 1 email), no email/phone-like text in the recap.
+- Needs Tom: paste Code.gs, save, redeploy (New version; the recap runs inside the web app's results call). Not confirmed yet.

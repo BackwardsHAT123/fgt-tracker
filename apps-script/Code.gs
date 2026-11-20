@@ -188,6 +188,9 @@ function onOpen() {
     .addItem('Email me the unpaid list', 'emailUnpaidList')
     .addItem('Back up the Sheet now', 'backupNow')
     .addItem('Turn on weekly backups', 'turnOnWeeklyBackups')
+    .addSeparator()
+    .addItem('Email me the latest weekly recap (beehiiv)', 'emailLatestRecap')
+    .addItem('Email me new entrants for beehiiv (CSV)', 'emailNewEntrantsCsv')
     .addToUi();
 }
 
@@ -299,6 +302,171 @@ function turnOnWeeklyBackups() {
   ScriptApp.newTrigger('backupSheet').timeBased().onWeekDay(ScriptApp.WeekDay.TUESDAY).atHour(3).create();
   var name = backupSheet();
   SpreadsheetApp.getUi().alert('Weekly backups are on (Tuesdays about 3am). First copy saved now: "' + name + '" in "' + BACKUP_FOLDER + '".');
+}
+
+// ---- Weekly recap for the beehiiv newsletter ---------------------------------------------------
+// beehiiv's free plan can't take posts from a script, so the recap is emailed to the owner to paste into a new post.
+// Built only from dashboardData_() (the public feed): team names, no names, emails or phones of people.
+
+function money_(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
+function esc_(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+// Returns { subject, text, html } for one event, or null if it has no scores yet.
+function buildRecap_(event) {
+  SpreadsheetApp.flush();   // make sure the EventScores formulas just written are calculated
+  var d = dashboardData_();
+  var key = String(event).trim().toLowerCase();
+  var sched = d.schedule.filter(function (e) { return e.counts === 'Yes'; })
+    .sort(function (a, b) { return a.finish < b.finish ? -1 : a.finish > b.finish ? 1 : 0; });
+  var me = sched.filter(function (e) { return e.event.toLowerCase() === key; })[0];
+  var rows = d.eventScores.filter(function (r) { return r.event.toLowerCase() === key; });
+  if (!rows.length) return null;
+  var finish = me ? me.finish : '', type = me ? me.type : 'regular';
+  var week = me ? sched.indexOf(me) + 1 : 0;
+
+  // This event, best first. Ranks are recomputed from money so ties share a place.
+  rows.sort(function (a, b) { return b.earnings - a.earnings; });
+  var place = function (list, v) { return 1 + list.filter(function (x) { return x > v; }).length; };
+  var evMoney = rows.map(function (r) { return r.earnings; });
+  var winners = rows.filter(function (r) { return r.earnings > 0 && r.earnings === rows[0].earnings; });
+  var second = type === 'major' ? rows.filter(function (r) { return r.prize > 0 && winners.indexOf(r) < 0; }) : [];
+
+  // Season totals through this event and through the event before, for standings and movers.
+  var order = {}; sched.forEach(function (e, i) { order[e.event.toLowerCase()] = i; });
+  var myIdx = key in order ? order[key] : 1e9;
+  var now = {}, before = {}, wins = {}, winnings = {};
+  d.eventScores.forEach(function (r) {
+    var i = r.event.toLowerCase() in order ? order[r.event.toLowerCase()] : -1;
+    if (i > myIdx || (i < 0 && myIdx < 1e9)) return;   // only scheduled FGT events count (skips old test events like Austin)
+    now[r.team] = (now[r.team] || 0) + r.earnings;
+    if (i < myIdx) before[r.team] = (before[r.team] || 0) + r.earnings;
+    winnings[r.team] = (winnings[r.team] || 0) + (r.prize || 0);
+    if (r.share > 0) wins[r.team] = (wins[r.team] || 0) + 1;
+  });
+  var teams = Object.keys(now);
+  var nowVals = teams.map(function (t) { return now[t]; }), befVals = teams.map(function (t) { return before[t] || 0; });
+  var hadBefore = Object.keys(before).length > 0;
+  var table = teams.map(function (t) {
+    var r = place(nowVals, now[t]), b = place(befVals, before[t] || 0);
+    return { team: t, total: now[t], rank: r, move: hadBefore ? b - r : 0, wins: wins[t] || 0, winnings: winnings[t] || 0 };
+  }).sort(function (a, b) { return a.rank - b.rank || a.team.localeCompare(b.team); });
+  var climber = hadBefore ? table.slice().sort(function (a, b) { return b.move - a.move; })[0] : null;
+
+  // Top golfers this week (and how many teams had them, once lineups are public).
+  var picks = {};
+  d.lineups.forEach(function (l) { picks[l.golfer] = (picks[l.golfer] || 0) + 1; });
+  var golfers = d.results.filter(function (r) { return r.event.toLowerCase() === key && r.earnings > 0; })
+    .sort(function (a, b) { return b.earnings - a.earnings; }).slice(0, 5);
+
+  var next = sched.filter(function (e) { return e.finish > finish; })[0];
+  var nextPrize = next ? (d.prizes[next.type] || d.prizes.regular || [0])[0] : 0;
+  var label = { major: 'Major', signature: 'Signature Event', players: 'The Players', playoff: 'FedExCup Playoffs', regular: '' };
+  var prizeNow = (d.prizes[type] || d.prizes.regular || [0]);
+
+  // Plain lines (text) and the same as simple HTML (pastes cleanly into the beehiiv editor).
+  var H = [], T = [];
+  var h2 = function (s) { H.push('<h2 style="margin:22px 0 6px">' + esc_(s) + '</h2>'); T.push('', s.toUpperCase()); };
+  var p = function (s) { H.push('<p style="margin:6px 0">' + esc_(s) + '</p>'); T.push(s); };
+  // Ranked lines with their real place (ties show T2, T2, 4 ...), written out rather than as a numbered list.
+  var ranked = function (items) { H.push('<p style="margin:6px 0">' + items.map(esc_).join('<br>') + '</p>'); items.forEach(function (i) { T.push(i); }); };
+  var ol = function (items) { H.push('<ol style="margin:6px 0 6px 20px;padding:0">' + items.map(function (i) { return '<li>' + esc_(i) + '</li>'; }).join('') + '</ol>');
+    items.forEach(function (i, k) { T.push((k + 1) + '. ' + i); }); };
+
+  var title = (week ? 'Week ' + week + ': ' : '') + event;
+  var winLine = !winners.length ? 'No team earned money this week.'
+    : winners.length === 1 ? winners[0].team + ' wins the ' + event + ' with ' + money_(winners[0].earnings) + ', taking home ' + money_(winners[0].prize) + '.'
+    : winners.map(function (w) { return w.team; }).join(' and ') + ' tie for the win at ' + money_(winners[0].earnings) + ' and split the prize (' + money_(winners[0].prize) + ' each).';
+  h2(title + (label[type] ? ' (' + label[type] + ')' : ''));
+  p(winLine);
+  if (second.length) p('Second place: ' + second.map(function (r) { return r.team + ' (' + money_(r.earnings) + ', ' + money_(r.prize) + ')'; }).join(', ') + '.');
+
+  h2('Top teams this week');
+  var tie = function (list, v) { return list.filter(function (x) { return x === v; }).length > 1 ? 'T' : ''; };
+  ranked(rows.slice(0, 5).map(function (r) {
+    return tie(evMoney, r.earnings) + place(evMoney, r.earnings) + '. ' + r.team + ': ' + money_(r.earnings);
+  }));
+
+  if (golfers.length) {
+    h2('Golfers who paid off');
+    ol(golfers.map(function (g) {
+      var n = picks[g.golfer];
+      return g.golfer + ' (' + g.finish + '): ' + money_(g.earnings) + (d.lineups.length ? ', on ' + (n || 0) + ' team' + (n === 1 ? '' : 's') : '');
+    }));
+  }
+
+  h2('Season standings');
+  var totals = table.map(function (t) { return t.total; });
+  ranked(table.slice(0, 10).map(function (t) {
+    var mv = t.move > 0 ? ' (up ' + t.move + ')' : t.move < 0 ? ' (down ' + (-t.move) + ')' : '';
+    return tie(totals, t.total) + t.rank + '. ' + t.team + ': ' + money_(t.total) + (t.wins ? ', ' + t.wins + ' win' + (t.wins === 1 ? '' : 's') : '') + mv;
+  }));
+  if (climber && climber.move > 0) p('Biggest climb: ' + climber.team + ', up ' + climber.move + ' to #' + climber.rank + '.');
+
+  if (next) { h2('Next up'); p(next.event + ' (finishes ' + next.finish + ')' + (label[next.type] ? ', a ' + label[next.type] : '') + '. Weekly prize: ' + money_(nextPrize) + (next.type === 'major' ? ' plus ' + money_(d.prizes.major[1] || 0) + ' for 2nd' : '') + '.'); }
+  H.push('<p style="margin:18px 0 6px"><a href="' + TRACKER_URL + '">Full standings, lineups and stats on the 2027 Tracker</a></p>');
+  T.push('', 'Full standings, lineups and stats: ' + TRACKER_URL);
+
+  return { subject: 'FGT recap draft: ' + title, title: title, html: H.join('\n'), text: T.join('\n').trim() };
+}
+
+function sendRecap_(event) {
+  var r = buildRecap_(event);
+  if (!r) return null;
+  var me = Session.getEffectiveUser().getEmail();
+  var note = 'Draft for beehiiv: start a new post titled "FGT ' + r.title + '", then copy everything below the line into it and check it before sending.';
+  MailApp.sendEmail({ to: me, subject: r.subject, name: 'Fantasy Golf Tour', body: note + '\n\n----------\n\n' + r.text,
+    htmlBody: '<p style="color:#666;font-size:13px">' + esc_(note) + '</p><hr>' + r.html });
+  return me;
+}
+
+// Once per event: the first results delivery sends it; later re-sends of the same event do not.
+function maybeSendRecap_(event) {
+  var props = PropertiesService.getScriptProperties(), k = 'RECAP_SENT:' + String(event).trim().toLowerCase().slice(0, 200);
+  if (props.getProperty(k)) return;
+  if (sendRecap_(event)) props.setProperty(k, new Date().toISOString());
+}
+
+// Menu: resend the recap for the most recent event with results (for example after Monday's corrections).
+function emailLatestRecap() {
+  var d = dashboardData_(), have = {};
+  d.eventScores.forEach(function (r) { have[r.event.toLowerCase()] = r.event; });
+  var done = d.schedule.filter(function (e) { return have[e.event.toLowerCase()]; })
+    .sort(function (a, b) { return a.finish < b.finish ? 1 : -1; });
+  var ev = done.length ? done[0].event : Object.keys(have).map(function (k) { return have[k]; }).pop();
+  var ui = SpreadsheetApp.getUi();
+  if (!ev) { ui.alert('No event has results yet.'); return; }
+  var me = sendRecap_(ev);
+  ui.alert(me ? 'Recap for ' + ev + ' sent to ' + me + '.' : 'No team scores for ' + ev + ' yet.');
+}
+
+// Menu: a CSV of entrants since the last export (email, first name, last name, team) to import in beehiiv
+// (Subscribers > Add subscribers > Import CSV). Emailed to the owner only; nothing is sent to beehiiv.
+function emailNewEntrantsCsv() {
+  var ui = SpreadsheetApp.getUi(), props = PropertiesService.getScriptProperties();
+  var since = props.getProperty('BEEHIIV_EXPORTED_AT');
+  var all = !since || ui.alert('beehiiv export', 'Only entrants since the last export (' + since.slice(0, 10) +
+    ')?\n\nYes = only new ones. No = everyone.', ui.ButtonSet.YES_NO) === ui.Button.NO;
+  var sh = sheet_(), last = sh.getLastRow();
+  var rows = last < 2 ? [] : sh.getRange(2, 1, last - 1, 6).getValues();
+  var cut = since && !all ? new Date(since) : null, seen = {};
+  var out = rows.filter(function (r) {
+    var e = String(r[3]).trim().toLowerCase();
+    if (!e || !r[5] || seen[e] || (cut && !(r[0] instanceof Date && r[0] > cut))) return false;
+    return (seen[e] = true);
+  });
+  if (!out.length) { ui.alert('No new entrants since the last export.'); return; }
+  var q = function (v) { return '"' + String(v).replace(/^'/, '').replace(/"/g, '""') + '"'; };
+  var csv = ['email,first_name,last_name,team'].concat(out.map(function (r) {
+    var parts = String(r[1]).trim().split(/\s+/), first = parts.shift() || '';
+    return [r[3], first, parts.join(' '), r[5]].map(q).join(',');
+  })).join('\n');
+  var me = Session.getEffectiveUser().getEmail(), stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  MailApp.sendEmail({ to: me, subject: 'FGT entrants for beehiiv: ' + out.length + (all ? ' (everyone)' : ' new'), name: 'Fantasy Golf Tour',
+    body: out.length + ' entrant' + (out.length === 1 ? '' : 's') + ' attached as a CSV (email, first_name, last_name, team; one row per email).\n\n' +
+      'In beehiiv: Subscribers (Audience) > Add subscribers > Import CSV, and map the columns. Delete this email afterwards; it has players\' contact info.',
+    attachments: [Utilities.newBlob(csv, 'text/csv', 'fgt-entrants-' + stamp + '.csv')] });
+  props.setProperty('BEEHIIV_EXPORTED_AT', new Date().toISOString());
+  ui.alert('Sent ' + out.length + ' entrant' + (out.length === 1 ? '' : 's') + ' to ' + me + '.');
 }
 
 function setupSheets() {
@@ -433,6 +601,8 @@ function saveResults_(d) {
   t.getRange('B:B').setNumberFormat('yyyy-mm-dd');
   t.getRange('E:E').setNumberFormat('$#,##0');
   refreshEventScores();
+  // Weekly recap for beehiiv: emailed to the owner the first time an event's results arrive (repeat runs don't resend).
+  try { maybeSendRecap_(name); } catch (x) {}
   return json_({ ok: true, stored: fresh.length, notOnGolfersTabWithMoney: unmatched });
 }
 

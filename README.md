@@ -45,3 +45,8 @@ After changing `Code.gs`, redeploy it (Deploy > Manage deployments > edit > New 
 - **Email me the unpaid list**: emails only the script owner every entry whose Paid box is not ticked (team, name, phone, email, date entered) and the amount outstanding.
 - **Back up the Sheet now** / **Turn on weekly backups**: saves a dated copy of the whole Sheet in the Drive folder "FGT Sheet backups" (newest 12 kept). Weekly backups run Tuesdays about 3am. The copies include contact info; keep the folder private.
 - The weekly results job retries any FGT event that finished 2+ days ago but has no results in the Sheet, and fails (GitHub emails you) if it is still missing.
+
+## beehiiv newsletter (free Launch plan: no posting by API)
+
+- **Weekly recap:** the first time an event's results reach the Sheet, the script emails you a recap draft: winner and prize, top 5 teams that week, top golfers (and how many teams had them once lineups are public), season top 10 with moves, biggest climber, next event. Team names only. Paste it into a new beehiiv post and check it before sending. **FGT > Email me the latest weekly recap (beehiiv)** sends it again (for example after Monday corrections).
+- **FGT > Email me new entrants for beehiiv (CSV)**: emails you a CSV (email, first_name, last_name, team) of entrants since the last export, or everyone. Import it in beehiiv (Subscribers > Add subscribers > Import CSV), then delete the email. Nothing is sent to beehiiv automatically.
