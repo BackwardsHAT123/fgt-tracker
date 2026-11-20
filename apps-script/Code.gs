@@ -320,7 +320,8 @@ function buildRecap_(event) {
     .sort(function (a, b) { return a.finish < b.finish ? -1 : a.finish > b.finish ? 1 : 0; });
   var me = sched.filter(function (e) { return e.event.toLowerCase() === key; })[0];
   var rows = d.eventScores.filter(function (r) { return r.event.toLowerCase() === key; });
-  if (!rows.length) return null;
+  var hasResults = d.results.some(function (r) { return r.event.toLowerCase() === key; });
+  if (!rows.length && !hasResults) return null;   // no teams yet still gets a recap (story and golfers), e.g. for a test
   var finish = me ? me.finish : '', type = me ? me.type : 'regular';
   var week = me ? sched.indexOf(me) + 1 : 0;
 
@@ -328,7 +329,7 @@ function buildRecap_(event) {
   rows.sort(function (a, b) { return b.earnings - a.earnings; });
   var place = function (list, v) { return 1 + list.filter(function (x) { return x > v; }).length; };
   var evMoney = rows.map(function (r) { return r.earnings; });
-  var winners = rows.filter(function (r) { return r.earnings > 0 && r.earnings === rows[0].earnings; });
+  var winners = rows.filter(function (r) { return r.earnings > 0 && r.earnings === rows[0].earnings; });   // [] when no teams
   var second = type === 'major' ? rows.filter(function (r) { return r.prize > 0 && winners.indexOf(r) < 0; }) : [];
 
   // Season totals through this event and through the event before, for standings and movers.
@@ -399,7 +400,7 @@ function buildRecap_(event) {
     items.forEach(function (i, k) { T.push((k + 1) + '. ' + i); }); };
 
   var title = (week ? 'Week ' + week + ': ' : '') + event;
-  var winLine = !winners.length ? 'No team earned money this week.'
+  var winLine = !rows.length ? 'No FGT teams have scores yet.' : !winners.length ? 'No team earned money this week.'
     : winners.length === 1 ? winners[0].team + ' wins the ' + event + ' with ' + money_(winners[0].earnings) + ', taking home ' + money_(winners[0].prize) + '.'
     : winners.map(function (w) { return w.team; }).join(' and ') + ' tie for the win at ' + money_(winners[0].earnings) + ' and split the prize (' + money_(winners[0].prize) + ' each).';
   h2(title + (label[type] ? ' (' + label[type] + ')' : ''));
@@ -416,18 +417,22 @@ function buildRecap_(event) {
     }));
   }
 
-  h2('Top teams this week');
   var tie = function (list, v) { return list.filter(function (x) { return x === v; }).length > 1 ? 'T' : ''; };
+  if (rows.length) {
+  h2('Top teams this week');
   ranked(rows.slice(0, 5).map(function (r) {
     return tie(evMoney, r.earnings) + place(evMoney, r.earnings) + '. ' + r.team + ': ' + money_(r.earnings);
   }));
 
+  }
+  if (table.length) {
   h2('Season standings');
   var totals = table.map(function (t) { return t.total; });
   ranked(table.slice(0, 10).map(function (t) {
     var mv = t.move > 0 ? ' (up ' + t.move + ')' : t.move < 0 ? ' (down ' + (-t.move) + ')' : '';
     return tie(totals, t.total) + t.rank + '. ' + t.team + ': ' + money_(t.total) + (t.wins ? ', ' + t.wins + ' win' + (t.wins === 1 ? '' : 's') : '') + mv;
   }));
+  }
   if (climber && climber.move > 0) p('Biggest climb: ' + climber.team + ', up ' + climber.move + ' to #' + climber.rank + '.');
 
   if (next) { h2('Next up'); p(next.event + ' (finishes ' + next.finish + ')' + (label[next.type] ? ', a ' + label[next.type] : '') + '. Weekly prize: ' + money_(nextPrize) + (next.type === 'major' ? ' plus ' + money_(d.prizes.major[1] || 0) + ' for 2nd' : '') + '.'); }
@@ -457,7 +462,7 @@ function maybeSendRecap_(event) {
 // Menu: resend the recap for the most recent event with results (for example after Monday's corrections).
 function emailLatestRecap() {
   var d = dashboardData_(), have = {};
-  d.eventScores.forEach(function (r) { have[r.event.toLowerCase()] = r.event; });
+  d.eventScores.concat(d.results).forEach(function (r) { have[r.event.toLowerCase()] = r.event; });
   var done = d.schedule.filter(function (e) { return have[e.event.toLowerCase()]; })
     .sort(function (a, b) { return a.finish < b.finish ? 1 : -1; });
   var ev = done.length ? done[0].event : Object.keys(have).map(function (k) { return have[k]; }).pop();
