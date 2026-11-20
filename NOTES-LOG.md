@@ -283,3 +283,7 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - New Sunday 4pm Mountain run. GitHub cron is UTC only, so two lines (22:00 and 23:00 UTC Sunday) and the job step skips the one whose Mountain offset is wrong (-0600 summer, -0700 winter).
 - Tom: pgatour.com's past-results page (the money) often lags the event going official. `pullResults` now marks these as "not ready" (err.notReady) instead of errors: page still on last year's event or season, no Official Money column, fewer than 30 golfers with money or the winner at $0, or total money under 70% of the purse (weekly job passes `purse || refPurse`). The weekly job logs "results not ready yet ... will try again" and does not fail; the MISSING check still fails the run once the event is 2+ days old with nothing in the Sheet. Every later run in the window re-sends the event, so the Monday runs refresh Sunday's data.
 - Tested live: Austin passes with its $6M purse, flagged not ready against a fake $10M purse; RSM (in progress) waits; real schedule exits 0. The last-year-page case could not be tested live (RSM is not official yet).
+
+## 2026-11-20: Monday morning run at 4:44am (Tom)
+
+- Replaced the Monday 15:00 UTC run (8-9am MT) with 4:44am Mountain year-round: pair "44 10 * * 1" (summer) and "44 11 * * 1" (winter). The skip step now uses a case list for all paired lines; unpaired lines and manual runs always run. Skip logic checked for every line and both offsets.
