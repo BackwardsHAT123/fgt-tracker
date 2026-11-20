@@ -300,10 +300,8 @@
   .mybar .hint { color: var(--muted); font-size: 13px; }
   .nextup { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 8px 14px; margin-bottom: var(--space-4); font-size: 15px; }
   .nextup b { font-weight: 600; } .nextup .lbl { color: var(--muted); margin-right: 6px; } .nextup .pz { color: var(--success); font-weight: 600; }
-  /* "My team" tag (blue pill) in lists, instead of an outline */
-  .mytag { display: inline-block; font-size: 11px; line-height: 16px; font-weight: 700; padding: 0 7px; margin-right: 6px; border-radius: 999px;
-    background: var(--blue); color: #ffffff; vertical-align: 1px; }
-  :root[data-theme="dark"] .mytag { color: #121310; }
+  /* "My team" marker: a flag in front of the name (text colour, so it shows on any bar) */
+  .mytag { display: inline-block; font-size: 15px; line-height: 1; margin-right: 5px; color: inherit; }
   .row .won { color: var(--success); font-weight: 600; margin-right: 8px; }
   .pzb { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
   .pzb.major { border-color: #c55657; color: #c55657; } .pzb.signature, .pzb.players, .pzb.playoff { border-color: var(--purple); color: var(--purple); }
@@ -464,10 +462,11 @@
     draw();
   }
   function isMine(team) { return !!team && team === myTeam(); }
+  function myFlag() { var f = el("span", "mytag", "\u2691"); f.title = "My team"; f.setAttribute("aria-label", "My team"); return f; }
   // Team name with a "My team" tag in front when it is the visitor's team.
   function nameEl(cls, team, prefix) {
     var d = el("div", cls);
-    if (isMine(team)) d.appendChild(el("span", "mytag", "My team"));
+    if (isMine(team)) d.appendChild(myFlag());
     d.appendChild(document.createTextNode((prefix || "") + team));
     return d;
   }
@@ -479,7 +478,7 @@
       .map(function (t) { return { label: t.team, value: t.team }; }));
     var cur = M.teams.some(function (t) { return t.team === myTeam(); }) ? myTeam() : "";
     bar.appendChild(picker(opts, cur, setMyTeam));
-    bar.appendChild(el("span", "hint", cur ? "Shown first on every tab and tagged \u201cMy team\u201d in the lists. Saved on this device." : "Pick it once and every tab opens with it. Saved on this device."));
+    bar.appendChild(el("span", "hint", cur ? "Shown first on every tab and marked \u2691 in the lists. Saved on this device." : "Pick it once and every tab opens with it. Saved on this device."));
   }
 
   // ---- prizes (rules sheet): winner gets $150, $200 at The Players and Signature Events, $300 at Majors plus $100 for 2nd ----
@@ -1112,7 +1111,7 @@
       c.title = i >= pc.n ? "Just outside the money" : "";
       cards.push(c);
       c.appendChild(el("div", "nm", "#" + (t.rank || i + 1) + ". " + t.team));
-      if (isMine(t.team)) c.appendChild(el("span", "mytag", "My team"));
+      if (isMine(t.team)) { var mf = myFlag(); mf.textContent = "\u2691 My team"; mf.style.fontSize = "13px"; c.appendChild(mf); }
       c.appendChild(el("div", "am", money(t.earnings)));
       if (pays[t.team]) c.appendChild(el("div", "small pay", "in line for " + money2(pays[t.team])));
       c.appendChild(pie(golferBars(t.team, null), t.team, t.earnings));
