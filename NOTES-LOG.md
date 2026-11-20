@@ -270,7 +270,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - 5 Backups: Code.gs `backupSheet()` copies the whole Sheet into the Drive folder "FGT Sheet backups" (id saved in script property BACKUP_FOLDER_ID), named "<Sheet name> backup yyyy-MM-dd HHmm", newest 12 kept (older ones trashed). Menu: Back up the Sheet now; Turn on weekly backups (Tuesday ~3am trigger, replaces any earlier one, makes a first copy). Adds Drive access, so Google asks Tom to approve once.
 - 7 Unpaid list: menu Email me the unpaid list. Emails the script owner only: entries with the Paid box unticked (team, name, phone, email, date entered), count and $ outstanding; notes rows marked duplicate.
 - 6 Missing-results alarm: `weekly-update.js` reads the live feed; any Schedule event (counts Yes) that finished 2+ days ago with no rows in the feed's results is retried in that run, and if still missing the run fails with a MISSING line (GitHub emails Tom). The Monday-evening run is the first that checks a Sunday finish. `liveFeed()` added to fgt-lib. Dry run on a test schedule: Austin caught up and pulled, fake event flagged, not-counted and future events ignored; real schedule exits 0.
-- Tom must paste the new Code.gs, save, run FGT > Back up the Sheet now (approve Drive), then Turn on weekly backups, then redeploy (New version). Not confirmed yet.
+- Tom must paste the new Code.gs, save, run FGT > Back up the Sheet now (approve Drive), then Turn on weekly backups, then redeploy (New version).
+- Tom: done (Code.gs pasted, backups on, redeployed). Live feed checked afterwards: ok, 0 teams (test entry removed), 1 event.
 
 ## 2026-11-20: housekeeping (#10)
 
