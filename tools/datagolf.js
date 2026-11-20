@@ -44,6 +44,10 @@ function ourGolfers() {
     const snap = JSON.parse(fs.readFileSync(ROOT + '/site/data/dashboard.json', 'utf8'));
     (snap.lineups || []).concat(snap.results || []).forEach(r => { if (r.golfer && !names.has(fold(r.golfer))) names.set(fold(r.golfer), r.golfer); });
   } catch (e) {}
+  try {   // the made-up demo teams' golfers (real names), so the ?demo=1 preview has stats for its write-ins too
+    global.window = {}; require(ROOT + '/site/dashboard-demo.js');
+    (window.FGT_DEMO.lineups || []).forEach(r => { if (r.golfer && !names.has(fold(r.golfer))) names.set(fold(r.golfer), r.golfer); });
+  } catch (e) {}
   return names;
 }
 

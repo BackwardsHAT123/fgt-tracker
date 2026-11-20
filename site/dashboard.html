@@ -1391,6 +1391,9 @@
     short: { name: "Shortknockers who can putt", label: "SHORTKNOCKERS WHO CAN PUTT", color: "#8f9691" },
     bad:   { name: "Bad", label: "BAD", color: "#d0393f" }
   };
+  // No data: striped, so it can't be mistaken for the grey Shortknockers.
+  var NO_SG = "repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 45%, transparent) 0 4px, transparent 4px 8px)";
+  function lastNm(n) { var d = String(n).split(/\s+/), k = d.length - 1; if (/^(Jr\.?|Sr\.?|II|III|IV)$/i.test(d[k]) && k > 1) k--; while (k > 1 && /^[a-z]/.test(d[k - 1])) k--; return d.slice(k).join(" "); }
   function sgOf(name) { return SG && SG.byKey ? SG.byKey[fold(name)] || null : null; }
   function longShort(g) {
     if (!g || !g.avg || g.avg[0] == null || g.avg[1] == null || g.avg[2] == null || g.avg[3] == null) return null;
@@ -1403,7 +1406,7 @@
   function perfStats(box, team) {
     if (!D.closed) { box.appendChild(lineupsNote()); return; }
     var items = golferBars(team, null);
-    items.forEach(function (i) { var ls = longShort(sgOf(i.label)); i.quad = ls ? ls.q : null; i.color = ls ? QUAD[ls.q].color : null; });
+    items.forEach(function (i) { var ls = longShort(sgOf(i.label)); i.quad = ls ? ls.q : null; i.color = ls ? QUAD[ls.q].color : NO_SG; });
 
     var grid = el("div", "sgph");
     var p1 = el("div", "panel grey"); p1.appendChild(el("h5", null, "Total Earnings this season"));
@@ -1441,7 +1444,7 @@
     ["elite", "long", "short", "bad"].forEach(function (k) {
       var s = el("span"), sw = el("i"); sw.style.background = QUAD[k].color; s.appendChild(sw); s.appendChild(document.createTextNode(QUAD[k].name)); l.appendChild(s);
     });
-    var s = el("span"), sw = el("i"); sw.style.background = "color-mix(in srgb, var(--muted) 55%, transparent)"; s.appendChild(sw);
+    var s = el("span"), sw = el("i"); sw.style.background = NO_SG; s.appendChild(sw);
     s.appendChild(document.createTextNode("No strokes gained data")); l.appendChild(s);
     return l;
   }
@@ -1468,7 +1471,7 @@
     pts.sort(function (a, b) { return b.i.value - a.i.value; }).forEach(function (p) {
       var r = 5 + 15 * Math.sqrt(p.i.value / maxE), cx = x(p.ls.long), cy = y(p.ls.short);
       var c = svgEl(svg, "circle", { cx: cx, cy: cy, r: r, fill: QUAD[p.ls.q].color, "fill-opacity": 0.75, stroke: theme() === "dark" ? "#121310" : "#fffeff", "stroke-width": 1 });
-      var last = p.i.label.split(" ").slice(-1)[0];
+      var last = lastNm(p.i.label);
       svgEl(svg, "text", { x: cx, y: cy - r - 3, "text-anchor": "middle", "font-size": 11, fill: tc().axis, "pointer-events": "none" }, last);
       c.style.cursor = "pointer";
       attachTip(c, function () {
