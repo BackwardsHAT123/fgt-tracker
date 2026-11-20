@@ -282,7 +282,7 @@
   .row .won { color: var(--success); font-weight: 600; margin-right: 8px; }
   .pzb { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
   .pzb.major { border-color: #c55657; color: #c55657; } .pzb.signature, .pzb.players, .pzb.playoff { border-color: var(--purple); color: var(--purple); }
-  .hpf { display: inline-block; margin-left: 6px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: var(--radius-pill);
+  .hpf { display: inline-block; margin-left: 6px; font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: var(--radius-pill);
     background: var(--amber); color: var(--on-accent); white-space: nowrap; vertical-align: 1px; }
   .sch .srow.hp .ev { font-weight: 700; }
   .wl .wr .pzv { color: var(--success); font-weight: 600; font-size: 14px; }
@@ -451,7 +451,7 @@
     return resolveType(name, s && s.type);
   }
   function higher(type) { return type && type !== "regular"; }
-  function flag() { var f = el("span", "hpf", "\u2605 Higher payout"); f.title = "Pays more than a regular event"; return f; }
+  function flag() { var f = el("span", "hpf", "\u2605"); f.title = "Higher payout"; f.setAttribute("aria-label", "Higher payout"); return f; }
   function prizeText(type) {
     var p = (D.prizes && D.prizes[type]) || PRIZES[type] || PRIZES.regular;   // a Sheet without the newest type falls back to this page's list
     return "$" + p[0] + " to the winner" + (p[1] ? ", $" + p[1] + " for 2nd" : "");
@@ -1456,7 +1456,7 @@
     var sub = el("div", "sub");
     sub.appendChild(document.createTextNode("Weekly prizes: $150 to the winning team at a regular event. "));
     sub.appendChild(flag());
-    sub.appendChild(document.createTextNode(" events pay more: $200 at The Players, Signature Events and the FedExCup Playoffs; $300 to the winner of a Major and $100 for 2nd. Events on the same weekend are scored separately."));
+    sub.appendChild(document.createTextNode(" Starred events pay more: $200 at The Players, Signature Events and the FedExCup Playoffs; $300 to the winner of a Major and $100 for 2nd. Events on the same weekend are scored separately."));
     box.appendChild(sub);
     var list = (D.schedule || []).slice().sort(function (a, b) { return a.finish < b.finish ? -1 : a.finish > b.finish ? 1 : 0; });
     if (!list.length) { box.appendChild(el("div", "note", "The schedule has not been loaded yet.")); view.appendChild(box); return; }

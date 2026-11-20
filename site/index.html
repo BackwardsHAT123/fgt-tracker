@@ -105,7 +105,7 @@
       var b = document.createElement("b"); b.textContent = n.event; p.appendChild(b);
       var ty = PRIZE[n.type] && n.type !== "regular" ? n.type : (KNOWN[n.event.trim().toLowerCase()] || "regular");
       p.appendChild(document.createTextNode(", " + dates + ". " + PRIZE[ty] + "."));
-      if (ty !== "regular") { var f = document.createElement("span"); f.className = "hpf"; f.textContent = "\u2605 Higher payout"; p.appendChild(f); }
+      if (ty !== "regular") { var f = document.createElement("span"); f.className = "hpf"; f.textContent = "\u2605"; f.title = "Higher payout"; f.setAttribute("aria-label", "Higher payout"); p.appendChild(f); }
       p.hidden = false;
     }).catch(function () {});
   })();
