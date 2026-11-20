@@ -54,6 +54,7 @@
   .big:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 3px; }
   .nextup { color: var(--muted); font-size: 16px; line-height: 22px; max-width: 520px; }
   .nextup b { color: var(--ink); font-weight: 600; }
+  .hpf { display: inline-block; margin-left: 6px; font-size: 13px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: #eaa945; color: #121310; white-space: nowrap; }
   footer { text-align: center; color: var(--muted); font-size: 14px; padding: 16px; }
   footer b { color: var(--ink); font-weight: 600; }
   @media (max-width: 600px) { h1 { font-size: 32px; line-height: 38px; } .big { font-size: 22px; min-height: 64px; } }
@@ -85,6 +86,10 @@
   (function () {
     var PRIZE = { regular: "$150 to the winning team", signature: "$200 to the winning team", players: "$200 to the winning team",
                   major: "$300 to the winning team, $100 for 2nd" };
+    var KNOWN = { "masters tournament": "major", "pga championship": "major", "u.s. open": "major", "the open championship": "major",
+      "the players championship": "players", "at&t pebble beach pro-am": "signature", "the genesis invitational": "signature",
+      "cadillac championship": "signature", "arnold palmer invitational presented by mastercard": "signature", "rbc heritage": "signature",
+      "truist championship": "signature", "the memorial tournament presented by workday": "signature", "travelers championship": "signature" };
     fetch("data/dashboard.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) {
       var done = {}; (d.results || []).forEach(function (r) { done[String(r.event).toLowerCase()] = 1; });
       var now = new Date(), t = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
@@ -97,7 +102,9 @@
       var p = document.getElementById("nextup");
       p.appendChild(document.createTextNode("Next up: "));
       var b = document.createElement("b"); b.textContent = n.event; p.appendChild(b);
-      p.appendChild(document.createTextNode(", " + dates + ". " + (PRIZE[n.type] || PRIZE.regular) + "."));
+      var ty = PRIZE[n.type] && n.type !== "regular" ? n.type : (KNOWN[n.event.trim().toLowerCase()] || "regular");
+      p.appendChild(document.createTextNode(", " + dates + ". " + PRIZE[ty] + "."));
+      if (ty !== "regular") { var f = document.createElement("span"); f.className = "hpf"; f.textContent = "\u2605 Higher payout"; p.appendChild(f); }
       p.hidden = false;
     }).catch(function () {});
   })();

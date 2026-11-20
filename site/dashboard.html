@@ -281,6 +281,9 @@
   .row .won { color: var(--success); font-weight: 600; margin-right: 8px; }
   .pzb { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
   .pzb.major { border-color: #c55657; color: #c55657; } .pzb.signature, .pzb.players { border-color: var(--purple); color: var(--purple); }
+  .hpf { display: inline-block; margin-left: 6px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: var(--radius-pill);
+    background: var(--amber); color: var(--on-accent); white-space: nowrap; vertical-align: 1px; }
+  .sch .srow.hp .ev { font-weight: 700; }
   .wl .wr .pzv { color: var(--success); font-weight: 600; font-size: 14px; }
   .wl .wr { grid-template-columns: minmax(180px, 38%) 1fr auto auto; }
   .wl .wr .second { color: var(--muted); font-size: 13px; }
@@ -429,10 +432,24 @@
   // ---- prizes (rules sheet): winner gets $150, $200 at The Players and Signature Events, $300 at Majors plus $100 for 2nd ----
   var PRIZES = { regular: [150], signature: [200], players: [200], major: [300, 100] };
   var TYPE_NAME = { regular: "Regular", signature: "Signature", players: "Players", major: "Major" };
+  // Higher-paying events by name, used when the Sheet's Schedule tab has no type yet (or says regular).
+  var KNOWN_TYPES = {
+    "masters tournament": "major", "pga championship": "major", "u.s. open": "major", "the open championship": "major",
+    "the players championship": "players",
+    "at&t pebble beach pro-am": "signature", "the genesis invitational": "signature", "cadillac championship": "signature",
+    "arnold palmer invitational presented by mastercard": "signature", "rbc heritage": "signature", "truist championship": "signature",
+    "the memorial tournament presented by workday": "signature", "travelers championship": "signature"
+  };
+  function resolveType(name, given) {
+    if (PRIZES[given] && given !== "regular") return given;
+    return KNOWN_TYPES[String(name).trim().toLowerCase()] || "regular";
+  }
   function eventType(name) {
     var k = String(name).trim().toLowerCase(), s = (D.schedule || []).filter(function (e) { return e.event.trim().toLowerCase() === k; })[0];
-    return s && PRIZES[s.type] ? s.type : "regular";
+    return resolveType(name, s && s.type);
   }
+  function higher(type) { return type && type !== "regular"; }
+  function flag() { var f = el("span", "hpf", "\u2605 Higher payout"); f.title = "Pays more than a regular event"; return f; }
   function prizeText(type) {
     var p = (D.prizes || PRIZES)[type] || PRIZES.regular;
     return "$" + p[0] + " to the winner" + (p[1] ? ", $" + p[1] + " for 2nd" : "");
@@ -470,11 +487,13 @@
     var b = el("div", "nextup"); b.appendChild(el("span", "lbl", "Next up:"));
     b.appendChild(el("b", null, n.event)); b.appendChild(document.createTextNode(" · " + dateRange(n.finish) + " · "));
     b.appendChild(el("span", "pz", prizeText(n.type)));
+    if (higher(n.type)) b.appendChild(flag());
     if (n.purse) b.appendChild(document.createTextNode(" · purse " + money(n.purse)));
     return b;
   }
 
   function build() {
+    (D.schedule || []).forEach(function (e) { e.type = resolveType(e.event, e.type); });
     var ev = {};
     D.results.forEach(function (r) {
       var e = ev[r.event] || (ev[r.event] = { name: r.event, date: r.date || "" });
@@ -846,7 +865,8 @@
     var ev = state.wEvent;
     box.appendChild(el("h3", null, "Team performance at " + ev));
     var et = eventType(ev);
-    var ph = el("div", "hint"); ph.appendChild(el("span", "pzb " + et, TYPE_NAME[et])); ph.appendChild(document.createTextNode(" " + prizeText(et) + ". If your team had no one in this week's event, your team will not show up in the list."));
+    var ph = el("div", "hint"); ph.appendChild(el("span", "pzb " + et, TYPE_NAME[et])); if (higher(et)) ph.appendChild(flag());
+    ph.appendChild(document.createTextNode(" " + prizeText(et) + ". If your team had no one in this week's event, your team will not show up in the list."));
     box.appendChild(ph);
 
     var rows = (M.perEvent[ev] || []).filter(function (r) { return r.earnings > 0; })
@@ -1409,7 +1429,10 @@
   function schedule(view) {
     var box = el("div", "sch");
     box.appendChild(el("h3", null, "2027 Schedule"));
-    var sub = el("div", "sub", "Weekly prizes: $150 to the winner of a regular event; $200 at The Players and Signature Events; $300 to the winner of a Major and $100 for 2nd. Events on the same weekend are scored separately.");
+    var sub = el("div", "sub");
+    sub.appendChild(document.createTextNode("Weekly prizes: $150 to the winning team at a regular event. "));
+    sub.appendChild(flag());
+    sub.appendChild(document.createTextNode(" events pay more: $200 at The Players and Signature Events; $300 to the winner of a Major and $100 for 2nd. Events on the same weekend are scored separately."));
     box.appendChild(sub);
     var list = (D.schedule || []).slice().sort(function (a, b) { return a.finish < b.finish ? -1 : a.finish > b.finish ? 1 : 0; });
     if (!list.length) { box.appendChild(el("div", "note", "The schedule has not been loaded yet.")); view.appendChild(box); return; }
@@ -1420,9 +1443,9 @@
     var n = 0;
     list.forEach(function (e) {
       var counts = e.counts !== "No", scored = done[e.event.toLowerCase()];
-      var r = el("div", "srow" + (nx && e.event === nx.event ? " next" : "") + (counts ? "" : " off"));
+      var r = el("div", "srow" + (nx && e.event === nx.event ? " next" : "") + (counts ? "" : " off") + (counts && higher(e.type) ? " hp" : ""));
       r.appendChild(el("div", null, counts && e.counts !== "TBD" ? String(++n) : ""));
-      r.appendChild(el("div", "ev", e.event));
+      var evc = el("div", "ev", e.event); if (counts && higher(e.type)) evc.appendChild(flag()); r.appendChild(evc);
       r.appendChild(el("div", null, dateRange(e.finish)));
       var tcell = el("div"); tcell.appendChild(el("span", "pzb " + e.type, TYPE_NAME[e.type] || "Regular"));
       if (counts) tcell.appendChild(el("div", "st", prizeText(e.type))); r.appendChild(tcell);

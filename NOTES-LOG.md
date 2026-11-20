@@ -224,3 +224,4 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Tom declined showing point numbers on bars/slices (#11 part).
 - `data/schedule-2027.json` now in the repo with event types; it is the schedule source for the automation.
 - Needs from Tom: paste Code.gs + redeploy (new Gmail permission prompt), run Set up tabs, set the repo secret, resend the schedule.
+- Higher-paying events (Tom): Schedule rows, the Next up line (Tracker and home page) and the Weekly Results header now carry an amber "★ Higher payout" flag for Majors, The Players and Signature Events, and the Schedule note explains the higher amounts. The live site showed every event as $150 because the Sheet's Schedule tab has no Type until Code.gs is redeployed and the schedule resent; the page now works the type out from the event name when the Sheet has none (13 events flagged), so it is right either way.
