@@ -98,7 +98,7 @@
   .green { --c: var(--green); --c-bar: var(--green-bar); --c-tint: var(--green-tint); }
   .purple { --c: var(--purple); --c-bar: var(--purple-bar); --c-tint: var(--purple-tint); }
   .blue { --c: var(--blue); --c-bar: var(--blue-bar); --c-tint: var(--blue-tint); }
-  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }   /* minmax(0,...) keeps long names from widening a column */
   @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
   .hd { height: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; }
   .hd h2 { font-size: 18px; line-height: 24px; font-weight: 600; margin: 0; color: var(--c); }
