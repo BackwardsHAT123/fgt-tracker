@@ -158,7 +158,14 @@
   .livebn .lnk { margin-left: auto; font: 600 14px/18px var(--sans); border: 1px solid var(--border); background: transparent; color: var(--ink); border-radius: var(--radius-pill); padding: 5px 14px; cursor: pointer; }
   .lv .lvx { color: var(--muted); font-size: 13px; margin: 6px 0 12px; }
   .lv .wrow .am .pj, .lv .pj { color: var(--muted); }
-  .lv .wrow.sel .am .pj { color: inherit; opacity: 0.8; }
+  /* Live team rows: rank | bar with name | Now | Proj, the two money columns fixed and right-aligned. */
+  .lv .wrow, .lv .lvh { grid-template-columns: 30px minmax(0, 1fr) 104px 96px; column-gap: 10px; }
+  .lv .lvh { display: grid; font-size: 12px; font-weight: 600; color: var(--muted); padding: 2px 0 4px; }
+  .lv .lvh .n, .lv .wrow .mv { text-align: right; font-variant-numeric: tabular-nums; }
+  .lv .wrow .mv { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .lv .wrow .mv.pj { font-weight: 400; color: var(--muted); }
+  .lv .wrow .nm { max-width: calc(100% - 16px); }
+  @media (max-width: 600px) { .lv .wrow, .lv .lvh { grid-template-columns: 26px minmax(0, 1fr) 88px 80px; column-gap: 6px; } .lv .wrow .mv { font-size: 13px; } }
   .lv table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
   .lv th { text-align: left; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .lv td { padding: 5px 6px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
@@ -1882,7 +1889,9 @@
     if (!state.lTeam || !rows.some(function (r) { return r.team === state.lTeam; }))
       state.lTeam = rows.some(function (r) { return r.team === myTeam(); }) ? myTeam() : (rows.length ? rows[0].team : null);
     var split = el("div", "split"), left = el("div"), right = el("div");
-    left.appendChild(el("div", "side-h", "Teams if it ended now (projected in grey). Click one for its golfers."));
+    left.appendChild(el("div", "side-h", "Teams if it ended now. Click one for its golfers."));
+    var lh = el("div", "lvh"); lh.appendChild(el("span")); lh.appendChild(el("span", null, "Team")); lh.appendChild(el("span", "n", "Now")); lh.appendChild(el("span", "n", "Proj"));
+    left.appendChild(lh);
     var list = el("div", "list"), max = rows.length ? Math.max(rows[0].now, 1) : 1;
     var nows = rows.map(function (r) { return r.now; });
     rows.forEach(function (r) {
@@ -1890,9 +1899,8 @@
       var d = el("div", "wrow" + (r.team === state.lTeam ? " sel" : "") + (isMine(r.team) ? " mine" : ""));
       d.appendChild(el("div", "rk", (tied ? "T" : "") + place));
       var t = el("div", "track"), f = el("div", "fill"); f.style.width = Math.max(1, Math.round(r.now / max * 100)) + "%";
-      t.appendChild(f); t.appendChild(nameEl("nm", r.team));
-      var am = el("div", "am"); am.appendChild(document.createTextNode(money(r.now) + " ")); am.appendChild(el("span", "pj", money(r.proj)));
-      t.appendChild(am); d.appendChild(t);
+      t.appendChild(f); t.appendChild(nameEl("nm", r.team)); d.appendChild(t);
+      d.appendChild(el("div", "mv", money(r.now))); d.appendChild(el("div", "mv pj", money(r.proj)));
       d.title = r.alive + " of " + r.size + " golfers still playing";
       d.onclick = function () { state.lTeam = r.team; draw(); };
       list.appendChild(d);
