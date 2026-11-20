@@ -353,3 +353,10 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 
 - sg.json (~330 KB) now loads only the first time Team Performance > Stats opens.
 - CLAUDE.md trimmed 16.5 KB -> 13.8 KB by tightening the Domains, Sheet, dashboard and weekly-job lines (no rules dropped).
+
+## 2026-11-20: recap extras and snark (#8), weekly unpaid list (#9)
+
+- Recap tone: winner, new-leader / still-on-top, 2nd place and biggest-climb lines get a playful tag, picked from a few phrasings by a seed from the event name (a resend reads the same). Teams get ribbed, never people's names. The "how it was won" story stays factual.
+- "Odds and ends" section: best value (picked golfer with the most money per point; points from Lineups col D), low round by a picked golfer (the weekly job now sends `lowRounds`, the 15 lowest single rounds from pgatour.com, stored as script property `LOWROUNDS:<event>`), the winner nobody picked, biggest bust (most-picked golfer who missed the cut or withdrew, 2+ teams).
+- Weekly unpaid list: `weeklyUnpaidList` (Monday ~9am trigger, menu "Turn on weekly unpaid list (Mondays)"): emails the owner only once entries are closed (Settings B5 = Yes or DEADLINE passed) and only if someone still owes.
+- Tested in the vm harness with demo data. Needs Tom: paste Code.gs, save, redeploy, run the new menu item once.

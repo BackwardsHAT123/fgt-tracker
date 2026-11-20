@@ -64,7 +64,8 @@ async function pullResults(url, opts) {
   const topPro = rows.find((r, i) => !isAm[i]);
   const ams = rows.filter((r, i) => isAm[i]);
   const out = { tournament: opts.name || t.tournamentName, date: finishDate(t.displayDate), rows,
-    story: opts.halve || (pr.teams && pr.teams.length) ? '' : storyFromRounds(pr.players, opts.name || t.tournamentName) };
+    story: opts.halve || (pr.teams && pr.teams.length) ? '' : storyFromRounds(pr.players, opts.name || t.tournamentName),
+    lowRounds: opts.halve ? [] : lowRounds(pr.players) };
   const paid = rows.filter(r => r.earnings > 0), total = paid.reduce((s, r) => s + r.earnings, 0);
   // Money not (fully) posted yet: too few golfers paid, the winner shows $0, or far less than the purse paid out.
   const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
@@ -165,6 +166,16 @@ function storyFromRounds(players, eventName) {
     if (pro) { const m = String(pro.pos).match(/^(T?)(\d+)$/); out.push('Amateurs can\'t take prize money, so the pros were paid as if ' + w.last + ' weren\'t in the field: ' + pro.last + ' (' + (m ? placeText(Number(m[2]), !!m[1]) : pro.pos) + ') got the winner\'s share.'); }
   }
   return out.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+// The 15 lowest single rounds of the week (for the recap's "low round by someone you picked" line).
+function lowRounds(players) {
+  const out = [];
+  (players || []).forEach(p => (p.rounds || []).forEach((r, i) => {
+    const sc = Number(r.score), par = String(r.parRelativeScore || '').trim();
+    if (sc > 0) out.push({ golfer: p.player.displayName, round: i + 1, score: sc, par: par === 'E' ? 0 : Number(par.replace('+', '')) || 0 });
+  }));
+  return out.sort((a, b) => a.par - b.par || a.score - b.score).slice(0, 15);
 }
 
 // The season's tournaments from pgatour.com: [{ id, name, status, displayDate }].

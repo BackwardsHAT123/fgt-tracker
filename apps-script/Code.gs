@@ -186,6 +186,7 @@ function onOpen() {
     .addItem('Send me a test confirmation email', 'sendTestConfirmation')
     .addSeparator()
     .addItem('Email me the unpaid list', 'emailUnpaidList')
+    .addItem('Turn on weekly unpaid list (Mondays)', 'turnOnWeeklyUnpaidList')
     .addItem('Back up the Sheet now', 'backupNow')
     .addItem('Turn on weekly backups', 'turnOnWeeklyBackups')
     .addSeparator()
@@ -240,8 +241,22 @@ function sendTestConfirmation() {
 
 // ---- Unpaid list (private: emailed only to the script owner) --------------------------------------
 
+// Weekly unpaid list (Tom's #9): a Monday 9am trigger that emails the owner only once entries have closed
+// (Settings B5 = Yes or the DEADLINE has passed) and only if someone still hasn't paid. Menu item installs it.
+function weeklyUnpaidList() {
+  var flag = String(tab_('Settings').getRange(5, 2).getValue() || '').trim().toLowerCase();
+  if (!(flag === 'yes' || (DEADLINE && new Date() > DEADLINE))) return;
+  emailUnpaidList({ skipIfNone: true });
+}
+function turnOnWeeklyUnpaidList() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'weeklyUnpaidList') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('weeklyUnpaidList').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
+  SpreadsheetApp.getUi().alert('Weekly unpaid list is on: Mondays about 9am, once entries are closed (Settings B5 = Yes or the deadline has passed), and only when someone still owes.');
+}
+
 // Emails the script owner every entry whose Paid box (Entries column N) is not ticked, oldest first.
-function emailUnpaidList() {
+function emailUnpaidList(opts) {
+  opts = opts && typeof opts === 'object' && !opts.authMode ? opts : {};   // menu and trigger runs pass an event object
   var sh = sheet_(), last = sh.getLastRow();
   var rows = last < 2 ? [] : sh.getRange(2, 1, last - 1, 14).getValues();
   var tz = Session.getScriptTimeZone();
@@ -252,6 +267,7 @@ function emailUnpaidList() {
     return (i + 1) + '. ' + r[5] + ' - ' + r[1] + ' - ' + r[2] + ' - ' + r[3] + (when ? ' (entered ' + when + ')' : '') +
       (r[10] ? ' [marked duplicate of row ' + r[10] + ']' : '');
   });
+  if (opts.skipIfNone && !unpaid.length) return;
   var me = Session.getEffectiveUser().getEmail();
   var subject = 'FGT unpaid entries: ' + unpaid.length + ' of ' + entered.length;
   var body = unpaid.length
@@ -375,10 +391,11 @@ function buildRecap_(event) {
 
   // How many teams picked each golfer, counted straight from the Lineups tab (counts only, no team names), so the
   // recap always has them even while the public feed still hides lineups.
-  var picks = {}, lin = tab_('Lineups');
-  if (lin.getLastRow() > 1) lin.getRange(2, 3, lin.getLastRow() - 1, 1).getValues().forEach(function (r) {
-    if (r[0]) { var g = fold_(r[0]); picks[g] = (picks[g] || 0) + 1; }
+  var picks = {}, ptsOf = {}, lin = tab_('Lineups');
+  if (lin.getLastRow() > 1) lin.getRange(2, 3, lin.getLastRow() - 1, 2).getValues().forEach(function (r) {
+    if (r[0]) { var g = fold_(r[0]); picks[g] = (picks[g] || 0) + 1; if (Number(r[1])) ptsOf[g] = Number(r[1]); }
   });
+  var lowRds = []; try { lowRds = JSON.parse(PropertiesService.getScriptProperties().getProperty('LOWROUNDS:' + key.slice(0, 200)) || '[]'); } catch (x) {}
   var story = PropertiesService.getScriptProperties().getProperty('STORY:' + key.slice(0, 200)) || '';
 
   // Top golfers this week, with how many teams picked them.
@@ -400,13 +417,24 @@ function buildRecap_(event) {
     items.forEach(function (i, k) { T.push((k + 1) + '. ' + i); }); };
 
   var title = (week ? 'Week ' + week + ': ' : '') + event;
-  var winLine = !rows.length ? 'No FGT teams have scores yet.' : !winners.length ? 'No team earned money this week.'
-    : winners.length === 1 ? winners[0].team + ' wins the ' + event + ' with ' + money_(winners[0].earnings) + ', taking home ' + money_(winners[0].prize) + '.'
-    : winners.map(function (w) { return w.team; }).join(' and ') + ' tie for the win at ' + money_(winners[0].earnings) + ' and split the prize (' + money_(winners[0].prize) + ' each).';
+  // A little snark (Tom): each line picks one of a few phrasings, chosen by the event name so a resend reads the same.
+  var seed = 0; for (var si = 0; si < event.length; si++) seed = (seed * 31 + event.charCodeAt(si)) % 100003;
+  var say = function (opts) { seed = (seed * 7 + 13) % 100003; return opts[seed % opts.length]; };
+  var w0 = winners[0];
+  var winLine = !rows.length ? 'No FGT teams have scores yet. Riveting stuff.' : !winners.length ? 'No team earned a cent this week. Impressive, in its own way.'
+    : winners.length === 1 ? say([
+        w0.team + ' takes the ' + event + ' with ' + money_(w0.earnings) + ' and pockets ' + money_(w0.prize) + '. Drinks are presumably on them.',
+        w0.team + ' wins the week with ' + money_(w0.earnings) + '. That\'s ' + money_(w0.prize) + ' richer and insufferable until next Sunday.',
+        'Take a bow, ' + w0.team + ': ' + money_(w0.earnings) + ' at the ' + event + ' and ' + money_(w0.prize) + ' in prize money. Everyone else, there\'s always next week.'])
+    : winners.map(function (w) { return w.team; }).join(' and ') + ' tie for the win at ' + money_(w0.earnings) + ' and split the prize (' + money_(w0.prize) + ' each). Nobody likes a tie, but here we are.';
+  if (leadLine) {
+    if (/^New season leader/.test(leadLine)) leadLine = leadLine.replace(/\.$/, '') + '. ' + say(['Enjoy the view while it lasts.', 'The crown is heavy. Don\'t drop it.', 'Somebody check on the old leader.']);
+    else if (/stays? on top|stay level/.test(leadLine)) leadLine = leadLine.replace(/\.$/, '') + '. ' + say(['The rest of you might want to try harder.', 'Anyone planning to do something about this?', 'At this point it\'s a pattern.']);
+  }
   h2(title + (label[type] ? ' (' + label[type] + ')' : ''));
   if (story) p(story);
   p(winLine);
-  if (second.length) p('Second place: ' + second.map(function (r) { return r.team + ' (' + money_(r.earnings) + ', ' + money_(r.prize) + ')'; }).join(', ') + '.');
+  if (second.length) p('Second place: ' + second.map(function (r) { return r.team + ' (' + money_(r.earnings) + ', ' + money_(r.prize) + ')'; }).join(', ') + '. So close.');
   if (leadLine) p(leadLine);
 
   if (golfers.length) {
@@ -416,6 +444,28 @@ function buildRecap_(event) {
       return g.golfer + ' (' + g.finish + '): ' + money_(g.earnings) + ', picked by ' + (n ? n + ' team' + (n === 1 ? '' : 's') : 'no one');
     }));
   }
+
+  // Extras (Tom's #8): best value, low round by a picked golfer, the winner nobody picked, the most-picked bust.
+  var extra = [];
+  var allRes = d.results.filter(function (r) { return r.event.toLowerCase() === key; });
+  var value = allRes.filter(function (r) { var k = fold_(r.golfer); return r.earnings > 0 && picks[k] && ptsOf[k]; })
+    .map(function (r) { var k = fold_(r.golfer); return { g: r.golfer, m: r.earnings, pts: ptsOf[k], n: picks[k], per: r.earnings / ptsOf[k] }; })
+    .sort(function (a, b) { return b.per - a.per; })[0];
+  if (value) extra.push('Best value: ' + value.g + ' made ' + money_(value.m) + ' as a ' + value.pts + '-pointer (' + money_(value.per) + ' per point) for ' +
+    value.n + ' team' + (value.n === 1 ? '' : 's') + '. ' + say(['The economists among you are nodding.', 'Smart money.', 'Bargain bin, top shelf.']));
+  var lowPicked = lowRds.filter(function (r) { return picks[fold_(r[0])]; })[0];
+  if (lowPicked) { var ln = picks[fold_(lowPicked[0])];
+    extra.push('Low round by a picked golfer: ' + lowPicked[0] + ' shot ' + lowPicked[2] + ' (' + (lowPicked[3] > 0 ? '+' + lowPicked[3] : lowPicked[3] || 'E') +
+      ') in round ' + lowPicked[1] + '. ' + ln + ' team' + (ln === 1 ? '' : 's') + ' enjoyed that one.'); }
+  var champ = allRes.filter(function (r) { return String(r.finish) === '1'; })[0];
+  if (champ && rows.length && !picks[fold_(champ.golfer)]) extra.push(say(['Nobody picked ' + champ.golfer + '. Not one of you.', champ.golfer + ' won it, and was on exactly zero FGT teams. Bold strategy, everyone.']));
+  var bust = allRes.filter(function (r) { var f = String(r.finish).toUpperCase(); return (f === 'CUT' || f === 'MC' || f === 'W/D' || f === 'WD') && picks[fold_(r.golfer)]; })
+    .sort(function (a, b) { return picks[fold_(b.golfer)] - picks[fold_(a.golfer)]; })[0];
+  if (bust && picks[fold_(bust.golfer)] >= 2) {
+    var bn = picks[fold_(bust.golfer)], wd = /W/.test(String(bust.finish).toUpperCase());
+    extra.push('Biggest bust: ' + bust.golfer + ' was on ' + bn + ' teams and ' + (wd ? 'withdrew' : 'missed the cut') + '. ' + say(['Thoughts and prayers.', 'Weekend plans, ruined.', 'We don\'t talk about it.']));
+  }
+  if (extra.length) { h2('Odds and ends'); extra.forEach(function (x) { p(x); }); }
 
   var tie = function (list, v) { return list.filter(function (x) { return x === v; }).length > 1 ? 'T' : ''; };
   if (rows.length) {
@@ -433,7 +483,7 @@ function buildRecap_(event) {
     return tie(totals, t.total) + t.rank + '. ' + t.team + ': ' + money_(t.total) + (t.wins ? ', ' + t.wins + ' win' + (t.wins === 1 ? '' : 's') : '') + mv;
   }));
   }
-  if (climber && climber.move > 0) p('Biggest climb: ' + climber.team + ', up ' + climber.move + ' to #' + climber.rank + '.');
+  if (climber && climber.move > 0) p('Biggest climb: ' + climber.team + ', up ' + climber.move + ' to #' + climber.rank + '. ' + say(['Look who showed up.', 'Momentum is a thing.', 'Rocket fuel.']));
 
   if (next) { h2('Next up'); p(next.event + ' (finishes ' + next.finish + ')' + (label[next.type] ? ', a ' + label[next.type] : '') + '. Weekly prize: ' + money_(nextPrize) + (next.type === 'major' ? ' plus ' + money_(d.prizes.major[1] || 0) + ' for 2nd' : '') + '.'); }
   H.push('<p style="margin:18px 0 6px"><a href="' + TRACKER_URL + '">Full standings, lineups and stats on the 2027 Tracker</a></p>');
@@ -635,6 +685,8 @@ function saveResults_(d) {
   t.getRange('E:E').setNumberFormat('$#,##0');
   // "How it was won" blurb for the recap, written by the weekly job from round scores (tools/fgt-lib.js storyFromRounds).
   if (d.story) PropertiesService.getScriptProperties().setProperty('STORY:' + name.toLowerCase().slice(0, 200), String(d.story).slice(0, 2000));
+  if (d.lowRounds && d.lowRounds.length) PropertiesService.getScriptProperties().setProperty('LOWROUNDS:' + name.toLowerCase().slice(0, 200),
+    JSON.stringify(d.lowRounds.slice(0, 15).map(function (r) { return [clean_(r.golfer), Number(r.round) || 0, Number(r.score) || 0, Number(r.par) || 0]; })).slice(0, 4000));
   refreshEventScores();
   // Weekly recap for beehiiv: emailed to the owner the first time an event's results arrive (repeat runs don't resend).
   try { maybeSendRecap_(name); } catch (x) {}
