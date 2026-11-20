@@ -158,6 +158,7 @@
   .livebn .lnk { margin-left: auto; font: 600 14px/18px var(--sans); border: 1px solid var(--border); background: transparent; color: var(--ink); border-radius: var(--radius-pill); padding: 5px 14px; cursor: pointer; }
   .lv .lvx { color: var(--muted); font-size: 13px; margin: 6px 0 12px; }
   .lv .wrow .am .pj, .lv .pj { color: var(--muted); }
+  .lv .wrow.sel .am .pj { color: inherit; opacity: 0.8; }
   .lv table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
   .lv th { text-align: left; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .lv td { padding: 5px 6px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
@@ -1826,6 +1827,7 @@
   }
   function agoText() {
     var t = Date.parse(LIVE.generated || ""); if (!t) return "";
+    if (LIVE.demo) return "saved snapshot from " + new Date(t).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
     var m = Math.max(0, Math.round((Date.now() - t) / 60000));
     return m < 2 ? "updated just now" : m < 90 ? "updated " + m + " min ago" : "updated " + Math.round(m / 60) + " h ago";
   }
