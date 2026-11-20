@@ -3,3 +3,8 @@
 # Entry exports contain personal contact info
 *.csv
 exports/
+
+# Rules sheet (Word/PDF) and Workbench folder: never commit
+*.docx
+*.pdf
+.bench/

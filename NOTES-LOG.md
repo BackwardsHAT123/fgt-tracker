@@ -271,3 +271,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - 7 Unpaid list: menu Email me the unpaid list. Emails the script owner only: entries with the Paid box unticked (team, name, phone, email, date entered), count and $ outstanding; notes rows marked duplicate.
 - 6 Missing-results alarm: `weekly-update.js` reads the live feed; any Schedule event (counts Yes) that finished 2+ days ago with no rows in the feed's results is retried in that run, and if still missing the run fails with a MISSING line (GitHub emails Tom). The Monday-evening run is the first that checks a Sunday finish. `liveFeed()` added to fgt-lib. Dry run on a test schedule: Austin caught up and pulled, fake event flagged, not-counted and future events ignored; real schedule exits 0.
 - Tom must paste the new Code.gs, save, run FGT > Back up the Sheet now (approve Drive), then Turn on weekly backups, then redeploy (New version). Not confirmed yet.
+
+## 2026-11-20: housekeeping (#10)
+
+- `.gitignore` now covers `*.docx`, `*.pdf` and `.bench/` (rules sheet and Workbench folder). Closed the open item.
+- CLAUDE.md trimmed under 15 KB: dropped the dashboard "Built so far" list (repeats the tab list), the 37 payout amounts (they are `PAYOUTS_2026` in Code.gs), and tidied the public-dashboard and DNS lines. No rules changed.
