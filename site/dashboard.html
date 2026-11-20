@@ -159,13 +159,13 @@
   .lv .lvx { color: var(--muted); font-size: 13px; margin: 6px 0 12px; }
   .lv .wrow .am .pj, .lv .pj { color: var(--muted); }
   /* Live team rows: rank | bar with name | Now | Proj, the two money columns fixed and right-aligned. */
-  .lv .wrow, .lv .lvh { grid-template-columns: 30px minmax(0, 1fr) 104px 96px; column-gap: 10px; }
+  .wk.lv .wrow, .wk.lv .lvh { grid-template-columns: 30px minmax(0, 1fr) 104px 96px; column-gap: 10px; }
   .lv .lvh { display: grid; font-size: 12px; font-weight: 600; color: var(--muted); padding: 2px 0 4px; }
   .lv .lvh .n, .lv .wrow .mv { text-align: right; font-variant-numeric: tabular-nums; }
   .lv .wrow .mv { font-size: 14px; font-weight: 600; white-space: nowrap; }
   .lv .wrow .mv.pj { font-weight: 400; color: var(--muted); }
   .lv .wrow .nm { max-width: calc(100% - 16px); }
-  @media (max-width: 600px) { .lv .wrow, .lv .lvh { grid-template-columns: 26px minmax(0, 1fr) 88px 80px; column-gap: 6px; } .lv .wrow .mv { font-size: 13px; } }
+  @media (max-width: 600px) { .wk.lv .wrow, .wk.lv .lvh { grid-template-columns: 26px minmax(0, 1fr) 88px 80px; column-gap: 6px; } .lv .wrow .mv { font-size: 13px; } }
   .lv table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
   .lv th { text-align: left; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .lv td { padding: 5px 6px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
