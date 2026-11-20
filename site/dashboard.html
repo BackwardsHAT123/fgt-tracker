@@ -176,6 +176,7 @@
   .tp .pies { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--space-4); margin-top: var(--space-3); }
   .tp .pc { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-3); text-align: center; }
   .tp .pc .nm { font-weight: 600; font-size: 14px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tp .pc .pay { color: var(--muted); font-size: 12px; margin-top: -4px; margin-bottom: 4px; }
   .tp .pc .am { color: var(--green); font-weight: 600; font-size: 14px; margin-bottom: 6px; }
   .tp .pc { position: relative; }
   .tp .pc.bubble { opacity: .45; }
@@ -814,6 +815,8 @@
         k3.appendChild(el("div", "big", money(me ? me.earnings : 0)));
         k3.appendChild(el("div", "small", "last event (" + last + "): " + money((M.perTeam[state.team] || {})[last] || 0)));
         if (me && me.winnings) k3.appendChild(el("div", "small", "weekly prize money won: " + money2(me.winnings)));
+        var myPay = seasonPayouts()[state.team];
+        if (myPay) k3.appendChild(el("div", "small", "in line for " + money2(myPay) + " if the season ended today"));
       } else k3.appendChild(el("div", "small", "No results yet."));
     }
     t3.appendChild(k3);
@@ -832,13 +835,14 @@
     box.appendChild(el("h3", null, "Leaderboard through " + M.events.length + " event" + (M.events.length === 1 ? "" : "s")));
     var pc = paidCount();
     box.appendChild(el("div", "sub", "Top " + pc.n + " teams at the end of the season earn a payout" +
-      (pc.placeholder ? " (placeholder: about " + ASSUMED_TEAMS + " teams x 17.5%, until the paid spots are set)." : ".")));
+      (pc.placeholder ? ". Until the 2027 number is set, this uses the 2026 payout table (" + pc.n + " places and amounts)." : "." + payoutNote())));
     var f = el("div", "find"); var inp = el("input"); inp.type = "search"; inp.placeholder = "Highlight a team";
     inp.value = state.find;
     inp.oninput = function () { state.find = inp.value; paintRows(); };
     f.appendChild(inp); box.appendChild(f);
     var list = el("div"); box.appendChild(list);
     var max = M.teams.reduce(function (m, t) { return Math.max(m, t.earnings); }, 0) || 1;
+    var pays = M.events.length ? seasonPayouts() : {};
     function paintRows() {
       clear(list);
       var q = key(state.find).trim();
@@ -848,7 +852,8 @@
         var tr = el("div", "track");
         var fl = el("div", "fill"); fl.style.width = Math.max(1, Math.round(t.earnings / max * 100)) + "%";
         tr.appendChild(fl); tr.appendChild(el("div", "nm", t.team));
-        var am = el("div", "am"); if (t.winnings) am.appendChild(el("span", "won", "won " + money2(t.winnings))); am.appendChild(document.createTextNode(money(t.earnings)));
+        var am = el("div", "am"); if (pays[t.team]) am.appendChild(el("span", "won", "in line for " + money2(pays[t.team])));
+        if (t.winnings) am.appendChild(el("span", "won", "won " + money2(t.winnings))); am.appendChild(document.createTextNode(money(t.earnings)));
         tr.appendChild(am);
         r.appendChild(tr); list.appendChild(r);
         if (i === pc.n - 1 && M.teams.length > pc.n) list.appendChild(el("div", "cut", "Payout line: top " + pc.n + " paid"));
@@ -934,10 +939,24 @@
   }
 
   // Number of paid teams: Settings B2 once Tom sets it. Until then a placeholder: 17.5% of an assumed 215 teams (Tom's estimate).
-  var ASSUMED_TEAMS = 215, PAID_SHARE = 0.175;
+  // Year-end payouts by place: the Sheet's Payouts tab (starts as the 2026 table). "final" once Tom marks it so.
+  var PAYOUTS_2026 = [1500, 1200, 1100, 900, 750, 700, 600, 550, 500, 450, 425, 410, 400, 390, 370, 350, 320, 310, 300,
+    290, 280, 270, 260, 240, 225, 210, 200, 190, 180, 170, 160, 150, 140, 130, 120, 110, 100];
+  function payoutTable() { return D.payouts && D.payouts.length ? D.payouts : PAYOUTS_2026; }
+  // Paid spots: Settings B2 if set; else the length of the payout table (37 places in 2026).
   function paidCount() {
     if (D.paidSpots) return { n: D.paidSpots, placeholder: false };
-    return { n: Math.round(ASSUMED_TEAMS * PAID_SHARE), placeholder: true };
+    return { n: payoutTable().length, placeholder: true };
+  }
+  // What each team would collect if the season ended today (ties share the amounts for the places they occupy).
+  function seasonPayouts() {
+    var pc = paidCount(), table = payoutTable().slice(0, pc.n);
+    var amounts = prizesFor(M.teams.map(function (t) { return t.earnings; }), table), out = {};
+    M.teams.forEach(function (t, i) { out[t.team] = amounts[i]; });
+    return out;
+  }
+  function payoutNote() {
+    return D.payoutsFinal ? "" : " (2026 payout amounts shown until the 2027 amounts are set)";
   }
   // Popup for a pie slice (Tom's template): team and total, the golfer's details, then the team's golfers.
   function pieTip(team, teamTotal, items, cur) {
@@ -1028,10 +1047,11 @@
     var pc = paidCount(), box = el("div", "tp");
     box.appendChild(el("h3", null, "Top " + pc.n + " Teams"));
     box.appendChild(el("div", "sub", pc.placeholder
-      ? "Paid spots aren't set yet. Placeholder: about " + ASSUMED_TEAMS + " teams, top 17.5% = " + pc.n + " teams."
+      ? "Paid spots aren't set yet. Placeholder: the 2026 payout table (" + pc.n + " places and amounts)."
       : "The teams currently in a payout spot, and which golfers their money comes from."));
     if (!M.events.length) { box.appendChild(el("div", "note", "No results yet.")); view.appendChild(box); return; }
     if (!D.closed) { box.appendChild(lineupsNote()); view.appendChild(box); return; }
+    var pays = seasonPayouts();
     // Teams just outside the money fill out the last row of pies; how many depends on how many pies fit across.
     var grid = el("div", "pies"), MAXB = 12, cards = [];
     M.teams.slice(0, pc.n + MAXB).forEach(function (t, i) {
@@ -1040,6 +1060,7 @@
       cards.push(c);
       c.appendChild(el("div", "nm", "#" + (t.rank || i + 1) + ". " + t.team));
       c.appendChild(el("div", "am", money(t.earnings)));
+      if (pays[t.team]) c.appendChild(el("div", "small pay", "in line for " + money2(pays[t.team])));
       c.appendChild(pie(golferBars(t.team, null), t.team, t.earnings));
       grid.appendChild(c);
     });
@@ -1176,6 +1197,8 @@
     var k2 = el("div", "kc"); k2.appendChild(el("div", "money", money(me ? me.earnings : 0)));
     k2.appendChild(el("div", "lbl", "Total through " + M.events.length + " event" + (M.events.length === 1 ? "" : "s")));
     if (me && me.winnings) k2.appendChild(el("div", "lbl", "Weekly prize money won: " + money2(me.winnings)));
+    var pp = M.events.length ? seasonPayouts()[team] : 0;
+    if (pp) k2.appendChild(el("div", "lbl", "In line for " + money2(pp) + " at season's end"));
     var tr = el("div", "trend"), vals = series(team); tr.appendChild(trendChart(vals, team)); tr.appendChild(trendLabels(vals));
     cards.appendChild(k1); cards.appendChild(k2); cards.appendChild(tr); box.appendChild(cards);
 

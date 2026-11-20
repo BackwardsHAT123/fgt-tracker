@@ -20,6 +20,10 @@ var HEADERS = [
 var PRIZES = { regular: [150], signature: [200], players: [200], playoff: [200], major: [300, 100] };
 
 // Confirmation email sent to each player after they enter (from the Google account that owns this script).
+// 2026 year-end payouts (37 places, $14,950), used as the starting Payouts tab until the 2027 amounts are set.
+var PAYOUTS_2026 = [1500, 1200, 1100, 900, 750, 700, 600, 550, 500, 450, 425, 410, 400, 390, 370, 350, 320, 310, 300,
+  290, 280, 270, 260, 240, 225, 210, 200, 190, 180, 170, 160, 150, 140, 130, 120, 110, 100];
+
 var VENMO_HANDLE = 'Thomas-E-OToole', ENTRY_FEE = 100, CONTACT = 'FGT_MT@outlook.com',
     TRACKER_URL = 'https://fgt-mt.com/dashboard.html';
 
@@ -37,7 +41,9 @@ var TABS = {
   Settings:    ['Setting', 'Value'],
   // The season's events, loaded from pgatour.com by the schedule feed. "Purse" stays blank until the Tour posts it;
   // "Reference Purse 2026" is last year's purse for the same event. Same-weekend events are separate rows.
-  Schedule:    ['Event', 'Finish Date', 'Purse', 'Reference Purse 2026', 'Counts for FGT', 'Notes', 'Type']
+  Schedule:    ['Event', 'Finish Date', 'Purse', 'Reference Purse 2026', 'Counts for FGT', 'Notes', 'Type'],
+  // Year-end payouts by final season place. Starts as the 2026 table; Tom edits it and types Yes in Settings B6 when final.
+  Payouts:     ['Place', 'Amount']
 };
 
 function doGet(e) {
@@ -53,6 +59,7 @@ function dashboardData_() {
   var flag = String(set.getRange(5, 2).getValue() || '').trim().toLowerCase();
   var closed = flag === 'yes' || !!(DEADLINE && new Date() > DEADLINE);
   var paid = set.getRange(2, 2).getValue();
+  var payoutsFinal = String(set.getRange(6, 2).getValue() || '').trim().toLowerCase() === 'yes';
 
   function rows_(name, cols) {
     var sh = tab_(name), last = sh.getLastRow();
@@ -85,6 +92,8 @@ function dashboardData_() {
   return {
     ok: true, generated: new Date().toISOString(), closed: closed,
     paidSpots: typeof paid === 'number' ? paid : 0, prizes: PRIZES,
+    payouts: rows_('Payouts', 2).map(function (r) { return Number(r[1]) || 0; }).filter(function (a) { return a > 0; }),
+    payoutsFinal: payoutsFinal,
     standings: standings, schedule: schedule, eventScores: eventScores,
     results: results, golfers: golfers, lineups: lineups
   };
@@ -246,6 +255,14 @@ function setupSheets() {
     set.getRange(3, 2).setFormula('=COUNTA(Standings!$B$2:$B$1000)');
     set.getRange(4, 2).setFormula('=ROUND(B3*0.175,0)');
     set.getRange(2, 2).setNumberFormat('0'); // leave blank until the number of paid teams is decided
+  }
+  if (!set.getRange(6, 1).getValue()) {
+    set.getRange(6, 1).setValue('Payouts final (type Yes once the Payouts tab has the 2027 amounts)');
+  }
+  var pay = tab_('Payouts');
+  if (pay.getLastRow() < 2) {
+    pay.getRange(2, 1, PAYOUTS_2026.length, 2).setValues(PAYOUTS_2026.map(function (a, i) { return [i + 1, a]; }));
+    pay.getRange('B:B').setNumberFormat('$#,##0');
   }
   if (!set.getRange(5, 1).getValue()) {
     set.getRange(5, 1).setValue('Entries closed (type Yes to show lineups on the dashboard)');
