@@ -1935,7 +1935,8 @@
     var field = LIVE.players || [];
     box.appendChild(el("div", "lvx", field.length + " golfers in the field. Tee times are course local time."));
     if (!D.closed) { box.appendChild(lineupsNote()); return; }
-    if (!state.lTeam || !M.teams.some(function (t) { return t.team === state.lTeam; })) state.lTeam = myTeam() || (M.teams[0] && M.teams[0].team);
+    var known = function (t) { return M.teams.some(function (x) { return x.team === t; }); };
+    if (!state.lTeam || !known(state.lTeam)) state.lTeam = known(myTeam()) ? myTeam() : (M.teams[0] && M.teams[0].team);
     var ctl = el("div", "ctl"), c1 = el("div"); c1.appendChild(el("label", null, "Team"));
     c1.appendChild(picker(M.teams.slice().sort(function (a, b) { return a.team.localeCompare(b.team); }).map(function (t) { return { label: t.team, value: t.team }; }),
       state.lTeam, function (v) { state.lTeam = v; draw(); }));
