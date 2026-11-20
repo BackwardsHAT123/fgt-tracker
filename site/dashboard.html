@@ -865,13 +865,11 @@
       var me = M.teams.filter(function (t) { return t.team === state.team; })[0];
       k3.appendChild(el("div", "team", state.team));
       if (hasEvents) {
-        var last = M.events[M.events.length - 1].name;
-        k3.appendChild(el("div", "small", "season total, rank " + (me && me.rank ? "#" + me.rank : "-") + " of " + M.teams.length));
-        k3.appendChild(el("div", "big", money(me ? me.earnings : 0)));
-        k3.appendChild(el("div", "small", "last event (" + last + "): " + money((M.perTeam[state.team] || {})[last] || 0)));
-        if (me && me.winnings) k3.appendChild(el("div", "small", "weekly prize money won: " + money2(me.winnings)));
-        var myPay = seasonPayouts()[state.team];
-        if (myPay) k3.appendChild(el("div", "small", "in line for " + money2(myPay) + " if the season ended today"));
+        // Tom: just "made $X at the <event>", for the event picked in the Weekly Winner column.
+        var ev = state.event || M.events[M.events.length - 1].name;
+        k3.appendChild(el("div", "small", "made"));
+        k3.appendChild(el("div", "big", money((M.perTeam[state.team] || {})[ev] || 0)));
+        k3.appendChild(el("div", "small", "at " + (/^the /i.test(ev) ? "" : "the ") + ev));
       } else k3.appendChild(el("div", "small", "No results yet."));
     }
     t3.appendChild(k3);
