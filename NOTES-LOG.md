@@ -372,3 +372,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Tom: Now/Proj team money ran together. Live team rows are now a grid: rank | bar with name | Now (104px) | Proj (96px, grey), with a small header row; narrower columns on phones.
 - Tom (phone): Live team list ran off the right edge. Cause: the golfer table stretched the one-column grid; split children now min-width 0. Phone columns 22px | name | 76px | 70px, smaller text, shorter rows, tighter golfer table.
 - Follow-ups: rank column 30px for T12; golfer table on phones hides Today and caps names at 112px (rules needed .wk.lv specificity). Checked in a 390px-wide frame in Chrome: page and both tables fit (no sideways scroll). Two deploys hit GitHub's transient artifact error; re-runs fixed them.
+
+## 2026-11-23: RSM Monday finish; GitHub scheduled runs badly late
+
+- RSM Classic went to a Monday finish (Saturday washed out). The weekly job ignores it anyway (2026 event, not on schedule-2027); weekend runs all said "No FGT events finished ... Nothing to do." The point-value lock-in has to wait until the RSM is final and pgatour.com's Fall standings update.
+- Problem found: GitHub ran the scheduled jobs hours late or not at all. Weekly results: "0 22 * * 0" ran 02:06 UTC (+4 h), "0 23" 03:37 (+4.6 h), "0 1 * * 1" 08:44 (+7.7 h), "0 4 * * 1" 14:18 (+10 h). Live scores: about one run every 4-6 hours all weekend instead of every 10 minutes. Skip logic for the summer/winter pairs worked. Proposed to Tom: a reliable trigger (Apps Script time-driven trigger calling GitHub's workflow_dispatch with a fine-grained token limited to Actions on this repo), and moving crons off the top of the hour.
