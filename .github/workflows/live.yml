@@ -7,9 +7,9 @@ name: Live scores
 # Needs the repo secret DATAGOLF_KEY. Outside an FGT event week the job writes "no event" once and goes quiet.
 on:
   schedule:
-    - cron: "*/10 11-23 * * 0,4,5,6"   # Thu-Sun daytime (UTC)
-    - cron: "*/10 0-3 * * 0,1,5,6"     # Thu-Sun evenings in the US (early UTC next day)
-    - cron: "*/15 12-23 * * 1"         # Monday finishes
+    - cron: "7,37 11-23 * * 0,4,5,6"   # Thu-Sun daytime (UTC); backup only, the Sheet's timer runs it every 10 min
+    - cron: "7,37 0-3 * * 0,1,5,6"     # Thu-Sun evenings in the US (early UTC next day)
+    - cron: "7,37 12-23 * * 1"         # Monday finishes
     - cron: "17 */4 * * 1,2,3"         # event week preview (field, tee times)
   workflow_dispatch:
     inputs:

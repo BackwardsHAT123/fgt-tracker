@@ -190,6 +190,9 @@ function onOpen() {
     .addItem('Back up the Sheet now', 'backupNow')
     .addItem('Turn on weekly backups', 'turnOnWeeklyBackups')
     .addSeparator()
+    .addItem('Test the GitHub timer token', 'testGithubTimer')
+    .addItem('Turn on the live and results timer', 'turnOnTimer')
+    .addSeparator()
     .addItem('Email me the latest weekly recap (beehiiv)', 'emailLatestRecap')
     .addItem('Email me new entrants for beehiiv (CSV)', 'emailNewEntrantsCsv')
     .addToUi();
@@ -550,6 +553,84 @@ function emailNewEntrantsCsv() {
     attachments: [Utilities.newBlob(csv, 'text/csv', 'fgt-entrants-' + stamp + '.csv')] });
   props.setProperty('BEEHIIV_EXPORTED_AT', new Date().toISOString());
   ui.alert('Sent ' + out.length + ' entrant' + (out.length === 1 ? '' : 's') + ' to ' + me + '.');
+}
+
+// ---- Timer for the GitHub jobs ----------------------------------------------------------------
+// GitHub's own scheduler runs hours late on busy weekends, so this script's 10-minute timer (Apps Script timers run
+// on time) asks GitHub to start the jobs instead:
+//   - Live scores (live.yml): every 10 minutes from 5am to 10pm Mountain on play days (finish - 3 to finish + 1),
+//     and every 4 hours earlier in event week (field and tee times).
+//   - Weekly results (weekly-results.yml): Sunday 4pm, 6pm and 9pm, Monday 4:44am and 6pm Mountain, when an FGT event
+//     finished in the last 2 days.
+// Needs Script Property GITHUB_DISPATCH_TOKEN: a GitHub fine-grained token for this repo only, with
+// "Actions: Read and write" (it can start workflows; it can't read or change code). GitHub's schedules stay as backup.
+var GH_REPO = 'BackwardsHAT123/fgt-tracker', TZ_MT = 'America/Denver';
+
+function dispatch_(workflow, inputs) {
+  var token = PropertiesService.getScriptProperties().getProperty('GITHUB_DISPATCH_TOKEN');
+  if (!token) return { ok: false, code: 0, msg: 'No GITHUB_DISPATCH_TOKEN in Script Properties.' };
+  var res = UrlFetchApp.fetch('https://api.github.com/repos/' + GH_REPO + '/actions/workflows/' + workflow + '/dispatches', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+    payload: JSON.stringify({ ref: 'main', inputs: inputs || {} })
+  });
+  var code = res.getResponseCode();
+  return { ok: code === 204, code: code, msg: code === 204 ? 'started' : String(res.getContentText()).slice(0, 200) };
+}
+
+// What the timer should start at time `now` (a Date). Pure logic, so it can be tested: returns a list of workflow files.
+function timerPlan_(now, schedule) {
+  var f = function (pat) { return Utilities.formatDate(now, TZ_MT, pat); };
+  var today = f('yyyy-MM-dd'), dow = Number(f('u')), hr = Number(f('H')), mn = Number(f('m'));   // u: 1 = Monday ... 7 = Sunday
+  var dayDiff = function (iso) {   // days from today to iso (both Mountain dates)
+    return Math.round((Date.parse(iso + 'T12:00:00Z') - Date.parse(today + 'T12:00:00Z')) / 86400000);
+  };
+  var out = [], live = false, preview = false, finishedRecently = false;
+  schedule.forEach(function (e) {
+    if (!e.finish || e.counts !== 'Yes') return;
+    var d = dayDiff(e.finish);              // finish - today
+    if (d >= -1 && d <= 3) live = true;      // play days: Thursday (finish - 3) to the day after the finish
+    else if (d >= 4 && d <= 6) preview = true;
+    if (d <= 0 && d >= -2) finishedRecently = true;
+  });
+  if (live && hr >= 5 && hr <= 22) out.push('live.yml');
+  else if (preview && hr % 4 === 0 && mn < 10) out.push('live.yml');
+  var at = function (h, m0, m1) { return hr === h && mn >= m0 && mn < m1; };
+  if (finishedRecently && ((dow === 7 && (at(16, 0, 10) || at(18, 0, 10) || at(21, 0, 10))) || (dow === 1 && (at(4, 40, 50) || at(18, 0, 10)))))
+    out.push('weekly-results.yml');
+  return out;
+}
+
+function timerTick() {
+  var sch = tab_('Schedule'), rows = sch.getLastRow() < 2 ? [] : sch.getRange(2, 1, sch.getLastRow() - 1, 7).getValues();
+  var schedule = rows.filter(function (r) { return r[0]; }).map(function (r) {
+    return { event: String(r[0]), finish: r[1] instanceof Date ? Utilities.formatDate(r[1], TZ_MT, 'yyyy-MM-dd') : String(r[1] || ''), counts: String(r[4]) };
+  });
+  timerPlan_(new Date(), schedule).forEach(function (wf) {
+    var r = dispatch_(wf);
+    if (!r.ok && (r.code === 401 || r.code === 403 || r.code === 404 || r.code === 0)) {
+      // Tell Tom once a day if the token has expired or lost access.
+      var props = PropertiesService.getScriptProperties(), k = 'TIMER_WARNED', day = Utilities.formatDate(new Date(), TZ_MT, 'yyyy-MM-dd');
+      if (props.getProperty(k) !== day) {
+        props.setProperty(k, day);
+        MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'FGT timer: GitHub token problem',
+          'The FGT timer could not start ' + wf + ' on GitHub (' + r.code + ': ' + r.msg + ').\n\nThe token in Apps Script > Project Settings > Script Properties > GITHUB_DISPATCH_TOKEN has probably expired. ' +
+          'Make a new one (fine-grained, this repo only, Actions: Read and write), paste it there, and run FGT > Test the GitHub timer token. GitHub\'s own (slower) schedules keep running meanwhile.');
+      }
+    }
+  });
+}
+
+function testGithubTimer() {
+  var r = dispatch_('live.yml');
+  SpreadsheetApp.getUi().alert(r.ok ? 'Token works: GitHub started the Live scores job (it takes a minute; it writes "no event" outside event weeks).'
+    : 'GitHub said ' + r.code + ': ' + r.msg);
+}
+
+function turnOnTimer() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'timerTick') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('timerTick').timeBased().everyMinutes(10).create();
+  SpreadsheetApp.getUi().alert('Timer is on: every 10 minutes it checks the Schedule and starts the Live scores and Weekly results jobs on GitHub when they are due.');
 }
 
 function setupSheets() {

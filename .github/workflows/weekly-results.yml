@@ -4,17 +4,19 @@ name: Weekly results
 # snapshot, and republishes the site. Runs Sunday 4pm, Sunday evening and night, Monday 4:44am and Monday evening (for late or weather-delayed
 # finishes, and because pgatour.com's past-results page with the money often lags behind the event going official).
 # Re-sending an event replaces its rows, so extra runs are harmless. Needs the repo secret FGT_RESULTS_TOKEN.
+# The Sheet's script (FGT > Turn on the live and results timer) starts this job on time; these GitHub schedules
+# (often hours late on weekends, so set a few minutes past the hour) are the backup.
 on:
   schedule:
     # GitHub runs on UTC (no daylight saving). For a fixed Mountain time, a pair of lines one hour apart both fire
     # and the job skips the one that is wrong for the time of year (first line = summer time, second = winter).
-    - cron: "0 22 * * 0"    # Sunday 4pm Mountain (summer)
-    - cron: "0 23 * * 0"    # Sunday 4pm Mountain (winter)
+    - cron: "7 22 * * 0"    # Sunday 4pm Mountain (summer)
+    - cron: "7 23 * * 0"    # Sunday 4pm Mountain (winter)
     - cron: "44 10 * * 1"   # Monday 4:44am Mountain (summer)
     - cron: "44 11 * * 1"   # Monday 4:44am Mountain (winter)
-    - cron: "0 1 * * 1"    # Sunday ~6-7pm Mountain
-    - cron: "0 4 * * 1"    # Sunday ~9-10pm Mountain
-    - cron: "0 1 * * 2"    # Monday evening (Monday finishes)
+    - cron: "7 1 * * 1"    # Sunday ~6-7pm Mountain
+    - cron: "7 4 * * 1"    # Sunday ~9-10pm Mountain
+    - cron: "7 1 * * 2"    # Monday evening (Monday finishes)
   workflow_dispatch:
     inputs:
       event:
@@ -56,8 +58,8 @@ jobs:
           # Paired lines (fixed Mountain time): run only the one that matches the time of year (summer -0600, winter -0700).
           OFF=$(TZ=America/Denver date +%z)
           case "$SCHEDULE" in
-            "0 22 * * 0"|"44 10 * * 1") WANT=-0600 ;;
-            "0 23 * * 0"|"44 11 * * 1") WANT=-0700 ;;
+            "7 22 * * 0"|"44 10 * * 1") WANT=-0600 ;;
+            "7 23 * * 0"|"44 11 * * 1") WANT=-0700 ;;
             *) WANT="$OFF" ;;
           esac
           if [ "$OFF" != "$WANT" ]; then echo "This line is the other half of a summer/winter pair; skipping."; exit 0; fi
