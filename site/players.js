@@ -1,15 +1,15 @@
 // FGT 2027 point values and page layout.
 // Source: pgatour.com FedExCup standings (ranks 1-50: final 2026 season; 51+: FedExCup Fall),
-// DP World Tour Race to Dubai (Nov 9, 2026), FedExCup Fall projected standings after the Austin Championship (Nov 16, 2026), and the final 2026 Korn Ferry Tour points list.
+// DP World Tour Race to Dubai (Nov 9, 2026), final FedExCup Fall standings after the RSM Classic (Nov 23, 2026), and the final 2026 Korn Ferry Tour points list.
 // Tiers: rank 1-10 = 6, 11-35 = 5, 36-60 = 4, 61-80 = 3, 81-100 = 2, everyone else = 1.
-// PROVISIONAL until the RSM Classic ends (Sun Nov 22, 2026). Set provisional:false once finalized.
+// FINAL: locked Nov 23, 2026 after the RSM Classic.
 //
 // Layout: three columns of sections, shown top to bottom. "more" holds the remaining 1-pointers,
 // shown in a collapsed list below the columns (still searchable). Any golfer not listed is a 1-pointer
 // via the write-in box.
 window.FGT_DATA = {
   season: 2027,
-  provisional: true,
+  provisional: false,
   budget: 25,
   // Hover/focus popups keyed by golfer name.
   tips: {
@@ -38,28 +38,28 @@ window.FGT_DATA = {
     [
       { points: 4, label: "4-pointers (cont.)", note: "Fall ranks 51-60", players: [
         "Austin Smotherman", "Keith Mitchell", "Ben James", "Andrew Novak", "Blades Brown",
-        "Jordan Smith", "Michael Kim", "Steven Fisk", "Pierceson Coody", "Max Homa"
+        "Jordan Smith", "Doug Ghim", "Pierceson Coody", "Michael Kim", "Ben Kohles"
       ]},
       { points: 3, label: "3-pointers", note: "Ranks 61-80", players: [
-        "Ben Kohles", "Doug Ghim", "Harry Hall", "Corey Conners", "Jordan Spieth",
-        "Sudarshan Yellamaraju", "Seamus Power", "Chad Ramey", "Harris English", "Ricky Castillo",
-        "Brian Harman", "Sam Stevens", "Jackson Koivun", "Kristoffer Ventura", "Nick Taylor",
-        "Daniel Berger", "Patrick Rodgers", "Johnny Keefer", "Denny McCarthy", "Shane Lowry"
+        "Steven Fisk", "Harry Hall", "Max Homa", "Marco Penge", "Corey Conners",
+        "Harris English", "Jackson Koivun", "Jordan Spieth", "Sudarshan Yellamaraju", "Ricky Castillo",
+        "Chad Ramey", "Seamus Power", "Brian Harman", "Sam Stevens", "Max Greyserman",
+        "Kristoffer Ventura", "Denny McCarthy", "Nick Taylor", "Daniel Berger", "Patrick Rodgers"
       ]},
       { points: 2, label: "2-pointers", note: "Ranks 81-100", players: [
-        "Stephan Jaeger", "Mac Meissner", "Zach Bauchou", "Beau Hossler", "Aldrich Potgieter",
-        "Jackson Suber", "Trace Crowe", "Matti Schmid", "Tom Hoge", "Andrew Putnam",
-        "Max Greyserman", "Kevin Yu", "Kevin Roy", "Keegan Bradley", "Matt Wallace",
-        "John Parry", "David Lipsky", "Taylor Moore", "Davis Thompson", "Christiaan Bezuidenhout"
+        "Johnny Keefer", "Shane Lowry", "Stephan Jaeger", "Mac Meissner", "Zach Bauchou",
+        "Beau Hossler", "Aldrich Potgieter", "Jackson Suber", "Trace Crowe", "Matti Schmid",
+        "Tom Hoge", "Christiaan Bezuidenhout", "Andrew Putnam", "Keegan Bradley", "Kevin Yu",
+        "Kevin Roy", "Taylor Moore", "Matt Wallace", "Davis Thompson", "John Parry"
       ]}
     ],
     [
       { points: 1, label: "1-pointers", note: "Ranks 101+", players: [
-        "Jon Rahm", "Bryson DeChambeau", "Tyrrell Hatton", "Patrick Reed", "Billy Horschel",
-        "Chandler Phillips", "Jason Day", "A.J. Ewart", "Lee Hodges", "Rasmus Neergaard-Petersen",
-        "Chris Kirk", "Mackenzie Hughes", "Taylor Pendrith", "Brandt Snedeker", "Rico Hoey",
-        "Chandler Blanchet", "Emiliano Grillo", "Tony Finau", "Brooks Koepka", "David Ford",
-        "Lucas Glover", "Zecheng Dou", "Zac Blair", "Marco Penge", "Ben Silverman"
+        "Jon Rahm", "Bryson DeChambeau", "Tyrrell Hatton", "Patrick Reed", "Rasmus Neergaard-Petersen",
+        "David Lipsky", "Haotong Li", "Billy Horschel", "Chandler Phillips", "Taylor Pendrith",
+        "Rasmus Højgaard", "Brooks Koepka", "Lee Hodges", "Emiliano Grillo", "Jason Day",
+        "A.J. Ewart", "Chris Kirk", "Mackenzie Hughes", "Brandt Snedeker", "Rico Hoey",
+        "Chandler Blanchet", "Tony Finau", "David Ford", "Adrien Dumont de Chassart", "Lucas Glover"
       ]},
       { points: 1, label: "Korn Ferry Tour top 20", note: "2026 final points list, 1 point each (Blades Brown, KFT #9, is a 4-pointer)", players: [
         "Ross Steelman", "Sandy Scott", "Ian Holt", "Alistair Docherty", "Alvaro Ortiz",
@@ -70,8 +70,8 @@ window.FGT_DATA = {
     ]
   ],
   more: { points: 1, label: "More 1-pointers", note: "Everyone else we list. Any golfer not shown is also a 1-pointer: use the write-in box.", players: [
-    "Rasmus Højgaard", "Neal Shipley", "Austin Eckroat", "Adrien Dumont de Chassart", "Davis Riley",
-    "Luke Clanton", "Keita Nakajima", "Max McGreevy", "Jesper Svensson", "Haotong Li",
+    "Zecheng Dou", "Neal Shipley", "Zac Blair", "Ben Silverman", "Austin Eckroat", "Davis Riley",
+    "Luke Clanton", "Keita Nakajima", "Max McGreevy", "Jesper Svensson",
     "Matthieu Pavon", "William Mouw", "Kensei Hirata", "Mark Hubbard", "Joel Dahmen",
     "Gordon Sargent", "Brice Garnett", "Karl Vilips", "Erik van Rooyen", "Hayden Springer",
     "David Skinns", "Takumi Kanaya", "Kevin Streelman", "S.H. Kim", "Davis Chatfield",
