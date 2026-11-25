@@ -190,9 +190,11 @@
   .pf .seg button { font: 500 15px/20px var(--sans); background: transparent; color: var(--ink); border: 0; padding: 6px 14px; cursor: pointer; }
   .pf .seg button.on { background: var(--success); color: var(--on-success); font-weight: 600; }
   .pf .stat { padding: 8px 0; border-bottom: 1px solid var(--hair); font-size: 15px; }
+  .pf .stat > * { display: inline; }
+  .pf .stat .tnm { font-weight: 600; }
   .pf .stat b { font-family: var(--head); font-size: 20px; font-weight: 600; }
   .pf .stat .sm { color: var(--muted); font-size: 13px; }
-  .pf .cl { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; font-size: 14px; padding: 4px 0; border-bottom: 1px solid var(--hair); }
+  .pf .cl { display: grid; grid-template-columns: minmax(0, 1fr) 96px 92px; gap: 4px 12px; font-size: 14px; padding: 4px 0; border-bottom: 1px solid var(--hair); }
   .pf .cl.h { font-size: 12px; font-weight: 600; color: var(--muted); }
   .pf .cl .n { text-align: right; font-variant-numeric: tabular-nums; }
   .pf .cl.mine { font-weight: 600; }
@@ -1150,7 +1152,7 @@
     var stat = function (label, t) {
       var d = el("div", "stat");
       d.appendChild(document.createTextNode(label + " "));
-      d.appendChild(nameEl(null, t));
+      d.appendChild(nameEl("tnm", t));
       d.appendChild(document.createTextNode(": ")); d.appendChild(el("b", null, pct(teamMoney[t] || 0)));
       d.appendChild(document.createTextNode(" of perfect "));
       var extra = money(Math.max(0, P.total - (teamMoney[t] || 0))) + " short" + (D.closed ? " · " + shared(t) + " of " + P.golfers.length + " perfect picks" : "");
