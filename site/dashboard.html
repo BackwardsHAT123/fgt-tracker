@@ -184,6 +184,18 @@
   .lv .lvp .it { display: flex; justify-content: space-between; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--hair); font-size: 14px; }
   .lv .lvp .it .nm { font-weight: 600; } .lv .lvp .it .tt { color: var(--muted); font-variant-numeric: tabular-nums; }
   .lv .lvp .it.off .nm { color: var(--muted); font-weight: 400; }
+  .pf { margin-top: var(--space-5); padding-top: var(--space-3); border-top: 1px solid var(--hair); }
+  .pf .pfh { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .pf .seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-pill); overflow: hidden; }
+  .pf .seg button { font: 500 15px/20px var(--sans); background: transparent; color: var(--ink); border: 0; padding: 6px 14px; cursor: pointer; }
+  .pf .seg button.on { background: var(--success); color: var(--on-success); font-weight: 600; }
+  .pf .stat { padding: 8px 0; border-bottom: 1px solid var(--hair); font-size: 15px; }
+  .pf .stat b { font-family: var(--head); font-size: 20px; font-weight: 600; }
+  .pf .stat .sm { color: var(--muted); font-size: 13px; }
+  .pf .cl { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; font-size: 14px; padding: 4px 0; border-bottom: 1px solid var(--hair); }
+  .pf .cl.h { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .pf .cl .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .pf .cl.mine { font-weight: 600; }
   .wk .side-h { font-weight: 600; font-size: 16px; padding: 6px 0; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
   .wk .list { max-height: 560px; overflow-y: auto; }
   .wk .wrow { display: grid; grid-template-columns: 30px 1fr; align-items: center; cursor: pointer; border-bottom: 1px solid var(--hair); }
@@ -628,6 +640,7 @@
   };
   function shortName(n) { return SHORT_NAMES[String(n).trim().toLowerCase()] || n; }
   function build() {
+    golferPts = null;   // points lookup for the perfect lineup, rebuilt with each data load
     (D.results || []).forEach(function (r) { r.event = shortName(r.event); });
     (D.eventScores || []).forEach(function (r) { r.event = shortName(r.event); });
     (D.schedule || []).forEach(function (e) { e.event = shortName(e.event); });
@@ -1056,7 +1069,117 @@
       if (gb.length) right.appendChild(legend());
     }
     split.appendChild(left); split.appendChild(right); box.appendChild(split);
+    box.appendChild(perfectPanel(ev));
     view.appendChild(box);
+  }
+
+  // ---- perfect lineup (Tom): the best 25 points with hindsight, for one event or the season through it ----
+  // Same math as the weekly recap (perfectLineup_ in Code.gs): 0/1 knapsack on money, points from the Golfers list,
+  // unlisted golfers count as 1-pointers (the write-in rule).
+  var golferPts = null;
+  function ptsFor(g) {
+    if (!golferPts) { golferPts = {}; (D.golfers || []).forEach(function (x) { golferPts[fold(x.golfer)] = x.points; }); }
+    return golferPts[fold(g)] || 1;
+  }
+  function perfectLineup(gm) {   // gm: golfer(lower) -> earnings
+    var items = Object.keys(gm).filter(function (g) { return gm[g] > 0; }).map(function (g) {
+      var name = M.names[g] || g; return { g: g, label: name, points: ptsFor(name), value: gm[g] };
+    }).sort(function (a, b) { return b.value - a.value || (a.label < b.label ? -1 : 1); });
+    var B = 25, best = [], take = [];
+    for (var b = 0; b <= B; b++) best.push(0);
+    items.forEach(function (it, i) {
+      take.push({});
+      for (var b = B; b >= it.points; b--) {
+        var v = best[b - it.points] + it.value;
+        if (v > best[b] + 0.001) { best[b] = v; take[i][b] = true; }
+      }
+    });
+    var out = [], left = B;
+    for (var i = items.length - 1; i >= 0; i--) if (take[i][left]) { out.push(items[i]); left -= items[i].points; }
+    out.sort(function (a, b) { return b.value - a.value; });
+    return { total: out.reduce(function (s, x) { return s + x.value; }, 0), golfers: out };
+  }
+  function perfectPanel(ev) {
+    var box = el("div", "pf");
+    var idx = M.events.map(function (e) { return e.name; }).indexOf(ev);
+    var season = state.pfMode === "season" && idx >= 1;
+    var upto = M.events.slice(0, idx + 1).map(function (e) { return e.name; });
+    var gm = {};
+    (season ? upto : [ev]).forEach(function (e) {
+      var src = M.golferEvent[e] || {};
+      Object.keys(src).forEach(function (g) { gm[g] = (gm[g] || 0) + src[g]; });
+    });
+    var P = perfectLineup(gm);
+    var h = el("div", "pfh"); h.appendChild(el("h3", null, "Perfect lineup"));
+    if (idx >= 1) {   // a season view only makes sense from the second event on
+      var seg = el("div", "seg");
+      [["week", "This week"], ["season", "Season so far"]].forEach(function (o) {
+        var b = el("button", (season ? "season" : "week") === o[0] ? "on" : null, o[1]); b.type = "button";
+        b.onclick = function () { state.pfMode = o[0]; draw(); };
+        seg.appendChild(b);
+      });
+      h.appendChild(seg);
+    }
+    box.appendChild(h);
+    if (!P.golfers.length) { box.appendChild(el("div", "note", "No golfer money for this event yet.")); return box; }
+    box.appendChild(el("div", "hint", season
+      ? "One team picked on day one with hindsight: the best 25 points using season money through " + ev + " (" + upto.length + " events). Golfers not on the list count as 1 point."
+      : "The best 25 points with hindsight at " + ev + ". Golfers not on the list count as 1 point."));
+
+    // Team money in the same window, and which perfect golfers each team has (once lineups are public).
+    var teamMoney = {};
+    Object.keys(M.perTeam).forEach(function (t) {
+      teamMoney[t] = (season ? upto : [ev]).reduce(function (s, e) { return s + ((M.perTeam[t] || {})[e] || 0); }, 0);
+    });
+    var shared = function (t) { var mine = {}; (M.lineup[t] || []).forEach(function (g) { mine[key(g)] = 1; }); return P.golfers.filter(function (x) { return mine[x.g]; }).length; };
+    var sel = state.wTeam && D.closed ? {} : null;
+    if (sel) (M.lineup[state.wTeam] || []).forEach(function (g) { sel[key(g)] = 1; });
+
+    var split = el("div", "split"), left = el("div", "pts"), right = el("div");
+    left.appendChild(el("div", "side-h", money(P.total) + " from " + P.golfers.length + " golfers" + (sel ? " (✓ = on " + state.wTeam + ")" : "")));
+    left.appendChild(bars(P.golfers.map(function (x) {
+      return { label: x.label + " (" + x.points + ")" + (sel && sel[x.g] ? " ✓" : ""), value: x.value, points: x.points };
+    }), true));
+    left.appendChild(legend());
+
+    right.appendChild(el("div", "side-h", "How close teams came"));
+    var vals = Object.keys(teamMoney).map(function (t) { return teamMoney[t]; });
+    var top = vals.length ? Math.max.apply(null, vals) : 0;
+    var lead = Object.keys(teamMoney).filter(function (t) { return teamMoney[t] === top && top > 0; });
+    var pct = function (v) { return P.total ? Math.round(v / P.total * 100) + "%" : "0%"; };
+    var stat = function (label, t) {
+      var d = el("div", "stat");
+      d.appendChild(document.createTextNode(label + " "));
+      d.appendChild(nameEl(null, t));
+      d.appendChild(document.createTextNode(": ")); d.appendChild(el("b", null, pct(teamMoney[t] || 0)));
+      d.appendChild(document.createTextNode(" of perfect "));
+      var extra = money(Math.max(0, P.total - (teamMoney[t] || 0))) + " short" + (D.closed ? " · " + shared(t) + " of " + P.golfers.length + " perfect picks" : "");
+      d.appendChild(el("span", "sm", "(" + extra + ")"));
+      right.appendChild(d);
+    };
+    lead.slice(0, 2).forEach(function (t) { stat(season ? "Season leader" : "Winner", t); });
+    if (state.wTeam && lead.indexOf(state.wTeam) < 0) stat("Selected", state.wTeam);
+    if (myTeam() && myTeam() !== state.wTeam && lead.indexOf(myTeam()) < 0 && teamMoney[myTeam()] != null) stat("Your team", myTeam());
+
+    if (!D.closed) { right.appendChild(lineupsNote()); }
+    else {
+      var close = Object.keys(M.lineup).map(function (t) { return { t: t, k: shared(t), m: teamMoney[t] || 0 }; })
+        .filter(function (c) { return c.k > 0; })
+        .sort(function (a, b) { return b.k - a.k || b.m - a.m || (a.t < b.t ? -1 : 1); });
+      var half = Math.ceil(P.golfers.length / 2), nHalf = close.filter(function (c) { return c.k >= half; }).length;
+      right.appendChild(el("div", "side-h", "Closest by picks"));
+      var hh = el("div", "cl h"); hh.appendChild(el("div", null, "Team")); hh.appendChild(el("div", "n", "Perfect picks")); hh.appendChild(el("div", "n", "% of perfect"));
+      right.appendChild(hh);
+      close.slice(0, 8).forEach(function (c) {
+        var r = el("div", "cl" + (isMine(c.t) ? " mine" : ""));
+        r.appendChild(nameEl(null, c.t)); r.appendChild(el("div", "n", c.k + " of " + P.golfers.length)); r.appendChild(el("div", "n", pct(c.m)));
+        right.appendChild(r);
+      });
+      right.appendChild(el("div", "hint", nHalf ? nHalf + " team" + (nHalf === 1 ? " has" : "s have") + " at least half of the perfect lineup."
+        : close.length ? "No team has even half of the perfect lineup." : "No team picked any of these golfers."));
+    }
+    split.appendChild(left); split.appendChild(right); box.appendChild(split);
+    return box;
   }
 
   function winners(view) {
