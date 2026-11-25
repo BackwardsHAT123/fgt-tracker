@@ -19,7 +19,13 @@ var HEADERS = [
 // team-picker.html?edit=<code>, that reopens the picker with the team loaded; saving replaces that entry instead of
 // adding one. Links stop working once entries close (Settings B5 = Yes, or the DEADLINE has passed).
 var EDIT_URL = 'https://fgt-mt.com/team-picker.html?edit=';
-var COL_CODE = 15, COL_EDITED = 16;
+
+// The script finds each Entries column by its header text, so Tom can move columns around, insert his own, or
+// hide some. Headers must keep these exact names (any capitals). Set up tabs adds Edit Code / Last Edited if missing
+// and stops with a message naming any other missing header.
+var ENTRY_COLS = { time: 'Timestamp', name: 'Name', phone: 'Phone', email: 'Email', address: 'Address', team: 'Team Name',
+  points: 'Points Used', count: '# Golfers', golfers: 'Golfers', key: 'Lineup Key', dup: 'Duplicate Of Row',
+  version: 'Points Version', id: 'Entry ID', paid: 'Paid', code: 'Edit Code', edited: 'Last Edited' };
 
 // Weekly prize money for the team that wins each event (rules sheet), by event type on the Schedule tab.
 // FedExCup playoff events (FedEx St. Jude, BMW) pay $200 like Signature Events (Tom, Nov 20 2026).
@@ -122,10 +128,10 @@ function doPost(e) {
     if (entriesClosed_()) return json_({ ok: false, closed: true, error: 'Entries are closed.' });
     if (d.action === 'links') return sendLinks_(d); // "lost your link?" form
 
-    var sheet = sheet_();
+    var E = entries_();
     var editRow = 0;
     if (d.action === 'edit') {
-      editRow = findByCode_(sheet, d.code);
+      editRow = findByCode_(E, d.code);
       if (!editRow) return json_({ ok: false, badCode: true, error: 'That edit link is not valid.' });
     }
 
@@ -152,21 +158,19 @@ function doPost(e) {
     // One person may enter several teams, but no two teams may share a team name (ignoring case, spaces and
     // punctuation) or the exact same lineup (first one in keeps it). Runs inside the script lock, so two identical
     // teams sent at the same moment can't both get in. An edit is not compared with its own row.
-    var last = sheet.getLastRow();
-    if (last > 1) {
-      var rows = sheet.getRange(2, 6, last - 1, 5).getValues(); // F Team Name .. J Lineup Key
-      for (var i = 0; i < rows.length; i++) {
-        if (i + 2 === editRow || !rows[i][0]) continue;
-        if (teamKey_(rows[i][0]) === teamKey) {
-          return json_({ ok: false, teamTaken: true, error: 'Another team already has that name. Pick a different team name.' });
-        }
-        if (rows[i][4] === key) {
-          return json_({
-            ok: false,
-            duplicate: true,
-            error: 'Another team has this exact lineup. Change at least one golfer (up to 10 points\' worth).'
-          });
-        }
+    var rows = E.rows();
+    for (var i = 0; i < rows.length; i++) {
+      var o = E.obj(rows[i]);
+      if (i + 2 === editRow || !o.team) continue;
+      if (teamKey_(o.team) === teamKey) {
+        return json_({ ok: false, teamTaken: true, error: 'Another team already has that name. Pick a different team name.' });
+      }
+      if (o.key === key) {
+        return json_({
+          ok: false,
+          duplicate: true,
+          error: 'Another team has this exact lineup. Change at least one golfer (up to 10 points\' worth).'
+        });
       }
     }
 
@@ -174,14 +178,14 @@ function doPost(e) {
       .sort(function (a, b) { return b.points - a.points || a.name.localeCompare(b.name); })
       .map(function (g) { return g.name + ' (' + g.points + ')'; }).join(', ');
 
-    if (editRow) return saveEdit_(sheet, editRow, d, name, phone, email, address, team, total, golfers, list, key);
+    var vals = { name: name, phone: phone, email: email, address: address, team: team, points: total,
+                 count: golfers.length, golfers: list, key: key, version: clean_(d.pointsVersion) };
+    if (editRow) return saveEdit_(E, editRow, vals, golfers);
 
     var entryId = Utilities.getUuid().slice(0, 8), code = newCode_();
-    sheet.appendRow([
-      new Date(), name, phone, email, address, team,
-      total, golfers.length, list, key, '', clean_(d.pointsVersion), entryId, false, code, ''
-    ]);
-    try { sheet.getRange(sheet.getLastRow(), 14).insertCheckboxes(); } catch (x) {}
+    vals.time = new Date(); vals.id = entryId; vals.paid = false; vals.code = code;
+    E.sh.appendRow(E.toRow(vals));
+    try { E.sh.getRange(E.sh.getLastRow(), E.c.paid).insertCheckboxes(); } catch (x) {}
 
     // The entry is already saved. A problem in the extra tabs must never lose it or fail the submit;
     // "FGT > Rebuild Lineups and Standings" repairs them from Entries.
@@ -215,12 +219,12 @@ function teamKey_(t) {
 }
 
 // Entries row (2+) whose Edit Code matches, or 0.
-function findByCode_(sheet, code) {
+function findByCode_(E, code) {
   code = String(code || '').trim().toLowerCase();
   if (!/^[0-9a-f]{32}$/.test(code)) return 0;
-  var last = sheet.getLastRow();
+  var last = E.sh.getLastRow();
   if (last < 2) return 0;
-  var codes = sheet.getRange(2, COL_CODE, last - 1, 1).getValues();
+  var codes = E.sh.getRange(2, E.c.code, last - 1, 1).getValues();
   for (var i = 0; i < codes.length; i++) if (String(codes[i][0]) === code) return i + 2;
   return 0;
 }
@@ -237,41 +241,40 @@ function editLink_(code) { return EDIT_URL + code; }
 
 // The team behind an edit link, so the page can load it. Only someone holding the link gets the data.
 function loadEntry_(d) {
-  var sheet = sheet_(), row = findByCode_(sheet, d.code);
+  var E = entries_(), row = findByCode_(E, d.code);
   if (!row) return json_({ ok: false, badCode: true, error: 'That edit link is not valid.' });
-  var r = sheet.getRange(row, 1, 1, COL_CODE).getValues()[0];
+  var o = E.obj(E.sh.getRange(row, 1, 1, E.c.width).getValues()[0]);
   var plain = function (v) { return String(v == null ? '' : v).replace(/^'/, ''); };
   return json_({
-    ok: true, closed: entriesClosed_(), paid: r[13] === true,
-    entry: { name: plain(r[1]), phone: plain(r[2]), email: plain(r[3]), address: plain(r[4]), teamName: plain(r[5]),
-             golfers: golfersFromList_(r[8]) }
+    ok: true, closed: entriesClosed_(), paid: o.paid === true,
+    entry: { name: plain(o.name), phone: plain(o.phone), email: plain(o.email), address: plain(o.address), teamName: plain(o.team),
+             golfers: golfersFromList_(o.golfers) }
   });
 }
 
-// Replaces an entry in place. Keeps its first-entered time (A), Entry ID, Paid box, Edit Code and
+// Replaces an entry in place. Keeps its first-entered time, Entry ID, Paid box, Edit Code and
 // anything Tom typed in "Duplicate Of Row".
-function saveEdit_(sheet, row, d, name, phone, email, address, team, total, golfers, list, key) {
-  var old = sheet.getRange(row, 1, 1, COL_EDITED).getValues()[0];
-  sheet.getRange(row, 2, 1, 9).setValues([[name, phone, email, address, team, total, golfers.length, list, key]]);
-  sheet.getRange(row, 12).setValue(clean_(d.pointsVersion));
-  sheet.getRange(row, COL_EDITED).setValue(new Date());
-  var entryId = old[12], code = String(old[14]);
+function saveEdit_(E, row, vals, golfers) {
+  var old = E.obj(E.sh.getRange(row, 1, 1, E.c.width).getValues()[0]);
+  vals.edited = new Date();
+  Object.keys(vals).forEach(function (k) { if (E.c[k]) E.sh.getRange(row, E.c[k]).setValue(vals[k]); });
+  var entryId = old.id, code = String(old.code);
   try {
-    replaceLineup_(entryId, team, golfers);
-    updateStanding_(entryId, team, name, total, golfers.length);
+    replaceLineup_(entryId, vals.team, golfers);
+    updateStanding_(entryId, vals.team, vals.name, vals.points, golfers.length);
   } catch (x) {}
-  try { sendConfirmation_(email, name, team, list, total, code, true); } catch (x) {}
+  try { sendConfirmation_(vals.email, vals.name, vals.team, vals.golfers, vals.points, code, true); } catch (x) {}
   // If the email address changed, tell the old address too, so a forwarded link can't quietly take a team.
-  var oldEmail = String(old[3]).trim();
-  if (oldEmail && oldEmail.toLowerCase() !== email.toLowerCase()) {
+  var oldEmail = String(old.email).trim();
+  if (oldEmail && oldEmail.toLowerCase() !== String(vals.email).toLowerCase()) {
     try {
       MailApp.sendEmail({ to: oldEmail, name: 'Fantasy Golf Tour', replyTo: CONTACT,
-        subject: 'FGT team changed: ' + team,
-        body: 'The FGT team "' + old[5] + '" was just changed and its email address is now ' + email + '.\n\n' +
+        subject: 'FGT team changed: ' + vals.team,
+        body: 'The FGT team "' + old.team + '" was just changed and its email address is now ' + vals.email + '.\n\n' +
           'If that was not you, write to ' + CONTACT + ' right away.\n\nFantasy Golf Tour' });
     } catch (x) {}
   }
-  return json_({ ok: true, edited: true, paid: old[13] === true });
+  return json_({ ok: true, edited: true, paid: old.paid === true });
 }
 
 function replaceLineup_(entryId, team, golfers) {
@@ -314,14 +317,13 @@ function sendLinks_(d) {
   var cache = CacheService.getScriptCache(), ck = 'links:' + email.slice(0, 200);
   if (cache.get(ck)) return answer;
   cache.put(ck, '1', 600);
-  var sheet = sheet_(), last = sheet.getLastRow();
-  if (last < 2) return answer;
-  var rows = sheet.getRange(2, 1, last - 1, COL_CODE).getValues(), mine = [];
-  rows.forEach(function (r, i) {
-    if (!r[5] || String(r[3]).trim().toLowerCase() !== email) return;
-    var code = String(r[14] || '');
-    if (!code) { code = newCode_(); sheet.getRange(i + 2, COL_CODE).setValue(code); }
-    mine.push({ team: String(r[5]).replace(/^'/, ''), name: String(r[1]), code: code });
+  var E = entries_(), mine = [];
+  E.rows().forEach(function (r, i) {
+    var o = E.obj(r);
+    if (!o.team || String(o.email).trim().toLowerCase() !== email) return;
+    var code = String(o.code || '');
+    if (!code) { code = newCode_(); E.sh.getRange(i + 2, E.c.code).setValue(code); }
+    mine.push({ team: String(o.team).replace(/^'/, ''), name: String(o.name), code: code });
   });
   if (!mine.length) return answer;
   var first = mine[0].name.split(' ')[0];
@@ -341,12 +343,13 @@ function sendLinks_(d) {
 function showEditLink() {
   var ui = SpreadsheetApp.getUi(), sh = SpreadsheetApp.getActiveSheet();
   var row = sh.getActiveRange() ? sh.getActiveRange().getRow() : 0;
-  if (sh.getName() !== SHEET_NAME || row < 2 || !sh.getRange(row, 6).getValue()) {
+  var E = sh.getName() === SHEET_NAME ? entries_() : null;
+  if (!E || row < 2 || !sh.getRange(row, E.c.team).getValue()) {
     ui.alert('Click a cell in a team\'s row on the Entries tab first.'); return;
   }
-  var code = String(sh.getRange(row, COL_CODE).getValue() || '');
-  if (!code) { code = newCode_(); sh.getRange(row, COL_CODE).setValue(code); }
-  ui.alert('Edit link for ' + sh.getRange(row, 6).getValue(),
+  var code = String(sh.getRange(row, E.c.code).getValue() || '');
+  if (!code) { code = newCode_(); sh.getRange(row, E.c.code).setValue(code); }
+  ui.alert('Edit link for ' + sh.getRange(row, E.c.team).getValue(),
     editLink_(code) + '\n\nSend it only to that team\'s owner: anyone with the link can change the team until entries close.',
     ui.ButtonSet.OK);
 }
@@ -438,18 +441,17 @@ function turnOnWeeklyUnpaidList() {
   SpreadsheetApp.getUi().alert('Weekly unpaid list is on: Mondays about 9am, once entries are closed (Settings B5 = Yes or the deadline has passed), and only when someone still owes.');
 }
 
-// Emails the script owner every entry whose Paid box (Entries column N) is not ticked, oldest first.
+// Emails the script owner every entry whose Paid box (Entries "Paid" column) is not ticked, oldest first.
 function emailUnpaidList(opts) {
   opts = opts && typeof opts === 'object' && !opts.authMode ? opts : {};   // menu and trigger runs pass an event object
-  var sh = sheet_(), last = sh.getLastRow();
-  var rows = last < 2 ? [] : sh.getRange(2, 1, last - 1, 14).getValues();
+  var E = entries_();
   var tz = Session.getScriptTimeZone();
-  var entered = rows.filter(function (r) { return r[5]; });
-  var unpaid = entered.filter(function (r) { return r[13] !== true; });
-  var lines = unpaid.map(function (r, i) {
-    var when = r[0] instanceof Date ? Utilities.formatDate(r[0], tz, 'MMM d') : '';
-    return (i + 1) + '. ' + r[5] + ' - ' + r[1] + ' - ' + r[2] + ' - ' + r[3] + (when ? ' (entered ' + when + ')' : '') +
-      (r[10] ? ' [marked duplicate of row ' + r[10] + ']' : '');
+  var entered = E.rows().map(E.obj).filter(function (o) { return o.team; });
+  var unpaid = entered.filter(function (o) { return o.paid !== true; });
+  var lines = unpaid.map(function (o, i) {
+    var when = o.time instanceof Date ? Utilities.formatDate(o.time, tz, 'MMM d') : '';
+    return (i + 1) + '. ' + o.team + ' - ' + o.name + ' - ' + o.phone + ' - ' + o.email + (when ? ' (entered ' + when + ')' : '') +
+      (o.dup ? ' [marked duplicate of row ' + o.dup + ']' : '');
   });
   if (opts.skipIfNone && !unpaid.length) return;
   var me = Session.getEffectiveUser().getEmail();
@@ -713,8 +715,8 @@ function emailNewEntrantsCsv() {
   var since = props.getProperty('BEEHIIV_EXPORTED_AT');
   var all = !since || ui.alert('beehiiv export', 'Only entrants since the last export (' + since.slice(0, 10) +
     ')?\n\nYes = only new ones. No = everyone.', ui.ButtonSet.YES_NO) === ui.Button.NO;
-  var sh = sheet_(), last = sh.getLastRow();
-  var rows = last < 2 ? [] : sh.getRange(2, 1, last - 1, 6).getValues();
+  var E = entries_();
+  var rows = E.rows().map(function (r) { var o = E.obj(r); return [o.time, o.name, o.phone, o.email, o.address, o.team]; });
   var cut = since && !all ? new Date(since) : null, seen = {};
   var out = rows.filter(function (r) {
     var e = String(r[3]).trim().toLowerCase();
@@ -815,22 +817,25 @@ function turnOnTimer() {
 }
 
 function setupSheets() {
-  var entries = sheet_();
-  if (entries.getRange(1, 13).getValue() !== 'Entry ID') {
-    entries.getRange(1, 13).setValue('Entry ID').setFontWeight('bold');
+  // Finds the Entries columns by header (adding any that are missing at the right end). Headers are never
+  // rewritten by position, so Tom's own column order is kept.
+  var E = entries_(['code', 'edited']), n = E.sh.getLastRow() - 1;
+  if (E.missing.length) {
+    var m = 'Stopped: the Entries tab has no column headed ' + E.missing.map(function (h) { return '"' + h + '"'; }).join(', ') +
+      '. Type that header above the right column (exact name), then run Set up tabs again. Nothing was changed.';
+    try { SpreadsheetApp.getUi().alert(m); } catch (x) {}
+    throw new Error(m);
   }
-  // Paid: a checkbox per entry for tracking Venmo payments. Private: the dashboard never reads the Entries tab.
-  if (entries.getRange(1, 14).getValue() !== 'Paid') entries.getRange(1, 14).setValue('Paid').setFontWeight('bold');
-  // Edit Code (private: the secret part of each team's edit link) and Last Edited. Older entries get a code here.
-  entries.getRange(1, COL_CODE, 1, 2).setValues([['Edit Code', 'Last Edited']]).setFontWeight('bold');
-  if (entries.getLastRow() > 1) {
-    var cr = entries.getRange(2, COL_CODE, entries.getLastRow() - 1, 1), cv = cr.getValues(), teams = entries.getRange(2, 6, cv.length, 1).getValues();
-    var filled = cv.map(function (c, i) { return [c[0] || !teams[i][0] ? c[0] : newCode_()]; });
-    cr.setValues(filled);
-  }
-  if (entries.getLastRow() > 1) {
-    var pc = entries.getRange(2, 14, entries.getLastRow() - 1, 1);
-    if (!pc.getDataValidation()) pc.insertCheckboxes();
+  if (n > 0) {
+    // Edit Code: the secret part of each team's edit link. Older entries get one here.
+    var cr = E.sh.getRange(2, E.c.code, n, 1), cv = cr.getValues(), teams = E.sh.getRange(2, E.c.team, n, 1).getValues();
+    if (cv.some(function (c, i) { return !c[0] && teams[i][0]; })) {
+      cr.setValues(cv.map(function (c, i) { return [c[0] || !teams[i][0] ? c[0] : newCode_()]; }));
+    }
+    // Paid: a checkbox per entry for tracking Venmo payments. Only added to cells that are empty, so it can
+    // never wipe out data. Private: the dashboard never reads the Entries tab.
+    var pr = E.sh.getRange(2, E.c.paid, n, 1);
+    if (!pr.getDataValidation() && pr.getValues().every(function (v) { return v[0] === '' || v[0] === false; })) pr.insertCheckboxes();
   }
   Object.keys(TABS).forEach(tab_);
   fixHeaders_();
@@ -888,6 +893,7 @@ function lineupFormula_(row) {
 function addLineup_(entryId, team, golfers) {
   var sh = tab_('Lineups');
   var start = sh.getLastRow() + 1;
+  if (!golfers.length) return;
   var vals = golfers.map(function (g) { return [entryId, team, g.name, g.points]; });
   sh.getRange(start, 1, vals.length, 4).setValues(vals);
   var f = golfers.map(function (g, i) { return [lineupFormula_(start + i)]; });
@@ -1074,20 +1080,45 @@ function prizesFor_(earned, prizes) {
 // Rebuilds Lineups and Standings from the Entries tab. Gives Entry IDs to older entries that lack one.
 // Does not touch Entries data other than filling blank Entry IDs, and never touches Tournaments.
 function rebuildLineupsAndStandings() {
-  var entries = sheet_();
-  var last = entries.getLastRow();
+  var E = entries_();
+  if (E.missing.length) {
+    var m = 'Stopped: the Entries tab has no column headed ' + E.missing.map(function (h) { return '"' + h + '"'; }).join(', ') +
+      '. Fix the header, then try again. Nothing was changed.';
+    try { SpreadsheetApp.getUi().alert(m); } catch (x) {}
+    throw new Error(m);
+  }
+  var data = E.rows().map(E.obj);
+  // Read everything first and stop before clearing anything if the Golfers column doesn't look right
+  // (for example a header that no longer matches its column), so a bad layout can't empty the tabs.
+  var teams = data.filter(function (o) { return o.team; });
+  var bad = teams.filter(function (o) { return !golfersFromList_(o.golfers).length; });
+  var seenId = {}, dupId = teams.filter(function (o) {
+    var id = String(o.id === true || o.id === false ? '' : o.id).trim();
+    if (!id) return false;
+    if (seenId[id]) return true;
+    seenId[id] = 1; return false;
+  });
+  if (bad.length || dupId.length) {
+    var msg = 'Stopped: ' + (bad.length
+      ? bad.length + ' team(s) have no readable golfers in the "Golfers" column (first: "' + bad[0].team + '").'
+      : 'two teams share the Entry ID "' + dupId[0].id + '".') +
+      ' Check that each Entries header sits above the right data. Nothing was changed.';
+    try { SpreadsheetApp.getUi().alert(msg); } catch (x) {}
+    throw new Error(msg);
+  }
   var lin = tab_('Lineups'), st = tab_('Standings');
   [lin, st].forEach(function (sh) {
     if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).clearContent();
   });
-  if (last < 2) return;
-  var data = entries.getRange(2, 1, last - 1, 13).getValues();
-  data.forEach(function (r, i) {
-    var id = r[12];
-    if (!id) { id = Utilities.getUuid().slice(0, 8); entries.getRange(i + 2, 13).setValue(id); }
-    var golfers = golfersFromList_(r[8]);
-    addLineup_(id, r[5], golfers);
-    addStanding_(id, r[5], r[1], r[6], r[7]);
+  data.forEach(function (o, i) {
+    if (!o.team) return;
+    var id = o.id;
+    if (!id || id === true) {
+      id = Utilities.getUuid().slice(0, 8);
+      E.sh.getRange(i + 2, E.c.id).clearDataValidations().setValue(id); // drops a stray checkbox, if any
+    }
+    addLineup_(id, o.team, golfersFromList_(o.golfers));
+    addStanding_(id, o.team, o.name, o.points, o.count);
   });
   refreshEventScores();
 }
@@ -1103,6 +1134,36 @@ function sheet_() {
     sh.getRange('C:C').setNumberFormat('@'); // keep phone numbers as text
   }
   return sh;
+}
+
+// The Entries tab and where each of its columns is (see ENTRY_COLS). E.c.team is the Team Name column number,
+// E.rows() the data rows, E.obj(row) a row as {team, email, ...}, E.toRow(obj) a row array for appendRow.
+// E.missing lists headers not found (their column number is 0). addKeys: keys that may be added at the right end.
+function entries_(addKeys) {
+  var sh = sheet_();
+  var width = Math.max(sh.getLastColumn(), 1);
+  var head = sh.getRange(1, 1, 1, width).getValues()[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var c = {}, missing = [];
+  Object.keys(ENTRY_COLS).forEach(function (k) {
+    var i = head.indexOf(ENTRY_COLS[k].toLowerCase());
+    if (i < 0 && !(addKeys && addKeys.indexOf(k) >= 0)) { c[k] = 0; missing.push(ENTRY_COLS[k]); return; }
+    if (i < 0) {
+      width++; head.push(ENTRY_COLS[k].toLowerCase());
+      sh.getRange(1, width).setValue(ENTRY_COLS[k]).setFontWeight('bold');
+      i = width - 1;
+    }
+    c[k] = i + 1;
+  });
+  c.width = width;
+  var E = { sh: sh, c: c, missing: missing };
+  E.rows = function () { var last = sh.getLastRow(); return last < 2 ? [] : sh.getRange(2, 1, last - 1, width).getValues(); };
+  E.obj = function (r) { var o = {}; Object.keys(ENTRY_COLS).forEach(function (k) { o[k] = c[k] ? r[c[k] - 1] : ''; }); return o; };
+  E.toRow = function (o) {
+    var row = []; for (var i = 0; i < width; i++) row.push('');
+    Object.keys(o).forEach(function (k) { if (c[k]) row[c[k] - 1] = o[k]; });
+    return row;
+  };
+  return E;
 }
 
 // Case-, accent- and punctuation-insensitive form of a golfer name, used only for the lineup key.
