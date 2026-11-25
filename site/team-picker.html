@@ -67,6 +67,15 @@
   .card { background: var(--raised); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-4) 0; }
   .banner { border-radius: var(--radius-md); padding: 10px var(--space-4); margin: var(--space-3) 0; font-size: 15px; line-height: 20px; }
   .banner.amber { background: var(--amber); color: var(--on-accent); }
+  .banner.info { background: var(--raised); border: 1px solid var(--success); }
+  .banner.bad { background: var(--raised); border: 1px solid var(--danger); }
+  .banner a { font-weight: 600; }
+  .links { padding: 0; }
+  .links summary { cursor: pointer; padding: 12px var(--space-4); font-weight: 600; }
+  .links .body { padding: 0 var(--space-4) var(--space-4); }
+  .links .body p { margin: 0 0 10px; color: var(--muted); }
+  .links .row { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+  .links .row input { flex: 1 1 240px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .grid .full { grid-column: 1 / -1; }
   .contact { padding: 12px var(--space-4) 10px; }
@@ -190,6 +199,21 @@
     Point values are provisional until the FedExCup Fall finishes (RSM Classic, Nov 22). A few golfers ranked 51-100 could change tiers.
   </div>
 
+  <div id="editBanner" class="banner info" role="status" hidden></div>
+
+  <details class="card links" id="linksCard">
+    <summary>Already entered? Change your team</summary>
+    <div class="body">
+      <p>Enter the email you used. We'll email you a private link for each of your teams, good until entries close.</p>
+      <form class="row" id="linksForm" novalidate>
+        <label for="linksEmail" class="vh">Email you entered with</label>
+        <input id="linksEmail" type="email" autocomplete="email" placeholder="you@example.com">
+        <button type="submit" class="btn secondary sm" id="linksBtn">Email my link</button>
+      </form>
+      <div class="status" id="linksStatus" role="status"></div>
+    </div>
+  </details>
+
   <div id="entry">
     <form id="form" novalidate>
       <section class="card contact" aria-labelledby="contactH">
@@ -269,8 +293,9 @@
   </div>
 
   <div id="thanks" class="card done" hidden>
-    <h2>Team submitted</h2>
-    <p>Thanks, <strong id="thanksName"></strong>. <strong id="thanksTeam"></strong> has been received. Payment details are below.</p>
+    <h2 id="thanksH">Team submitted</h2>
+    <p id="thanksMsg">Thanks, <strong id="thanksName"></strong>. <strong id="thanksTeam"></strong> has been received.<span id="thanksPayNote"> Payment details are below.</span></p>
+    <p class="sub" id="thanksLink">We emailed you a confirmation with a private link to change your team until entries close.</p>
     <div class="pay" id="payBox" hidden>
       <h3>Pay your $<span id="payFee">100</span> entry fee</h3>
       <p>Send it by Venmo to <a id="payLink" href="#" target="_blank" rel="noopener noreferrer">@<span id="payHandle"></span></a>.
@@ -293,7 +318,7 @@
 
 <dialog id="dupDlg" aria-labelledby="dupH">
   <h2 id="dupH">That lineup is already taken</h2>
-  <p>Another team has this exact lineup, and the first team in keeps it. <strong>Your entry was not submitted.</strong></p>
+  <p>Another team has this exact lineup, and the first team in keeps it. <strong id="dupNot">Your entry was not submitted.</strong></p>
   <p>Change at least one golfer (up to 10 points' worth) and submit again. Your picks and info are still here.</p>
   <div class="row">
     <button type="button" class="btn" id="dupBack">Back to lineup picker</button>
@@ -311,6 +336,10 @@
   var chipEls = new Map();    // name -> button
   var pointsByName = new Map();
   var submitting = false;
+  // Edit mode: team-picker.html?edit=<code> (the private link in the confirmation email) loads that team,
+  // and saving replaces it instead of adding a new entry.
+  var editCode = (new URLSearchParams(location.search).get("edit") || "").trim().toLowerCase();
+  var editing = false, editPaid = false, loading = !!editCode;
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -397,7 +426,7 @@
       li.append(s, x); ul.append(li);
     });
     $("teamEmpty").hidden = selected.size > 0;
-    $("submitBtn").disabled = over || submitting;
+    $("submitBtn").disabled = over || submitting || loading;
     setStatus(over ? "Over 25 points: can't submit." : "", over ? "bad" : "");
   }
 
@@ -504,6 +533,8 @@
 
   function payload() {
     return {
+      action: editing ? "edit" : undefined,
+      code: editing ? editCode : undefined,
       name: field("name").value.trim(),
       phone: field("phone").value.trim(),
       email: field("email").value.trim(),
@@ -524,6 +555,13 @@
     fetch(C.SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
       .then(function (r) { return r.json(); })
       .then(function (res) {
+        if (res && res.teamTaken) {
+          submitting = false; render();
+          setErr("teamName", "Another team already has that name. Pick a different one.");
+          field("teamName").focus();
+          setStatus("That team name is taken.", "bad");
+          return;
+        }
         if (res && res.duplicate) {
           submitting = false; render();
           setStatus("That exact lineup is already taken. Change at least one golfer.", "bad");
@@ -531,6 +569,7 @@
           return;
         }
         if (!res || !res.ok) throw new Error((res && res.error) || "The server rejected the entry.");
+        if (res.edited) editPaid = !!res.paid;
         showThanks(body);
       })
       .catch(function (err) {
@@ -544,7 +583,16 @@
     $("provisional").hidden = true;
     $("thanksName").textContent = body.name;
     $("thanksTeam").textContent = body.teamName;
-    if (C.VENMO_HANDLE) {
+    if (editing) {
+      $("thanksH").textContent = "Changes saved";
+      $("thanksMsg").firstChild.textContent = "Done, ";
+      $("thanksTeam").nextSibling.textContent = " has been updated.";
+      $("thanksLink").textContent = "We emailed you the new lineup. Your link keeps working until entries close.";
+    }
+    $("thanksPayNote").hidden = editing && editPaid;
+    $("linksCard").hidden = true;
+    $("editBanner").hidden = true;
+    if (C.VENMO_HANDLE && !(editing && editPaid)) {
       var handle = String(C.VENMO_HANDLE).replace(/^@/, "");
       var fee = Number(C.ENTRY_FEE) || 100;
       var url = "https://venmo.com/u/" + encodeURIComponent(handle) +
@@ -566,7 +614,76 @@
     window.scrollTo(0, 0);
   }
 
+  // ---- "lost your link?" ----
+  $("linksForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var email = $("linksEmail").value.trim(), st = $("linksStatus");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { st.textContent = "Enter a valid email address."; st.className = "status bad"; return; }
+    if (!C.SCRIPT_URL) return;
+    $("linksBtn").disabled = true; st.textContent = "Sending..."; st.className = "status";
+    post({ action: "links", email: email })
+      .then(function (res) {
+        if (!res || !res.ok) throw new Error((res && res.error) || "Something went wrong.");
+        st.textContent = res.message; st.className = "status ok";
+      })
+      .catch(function (err) { st.textContent = err.message + " Please try again."; st.className = "status bad"; $("linksBtn").disabled = false; });
+  });
+
+  function post(obj) {
+    return fetch(C.SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(obj) })
+      .then(function (r) { return r.json(); });
+  }
+
+  function banner(html, cls) {
+    var b = $("editBanner"); b.innerHTML = html; b.className = "banner " + cls; b.hidden = false;
+  }
+  function esc(t) { var d = document.createElement("div"); d.textContent = t; return d.innerHTML; }
+
+  // ---- edit mode ----
+  function loadEdit() {
+    $("linksCard").hidden = true;
+    banner("Loading your team...", "info");
+    post({ action: "load", code: editCode })
+      .then(function (res) {
+        loading = false;
+        if (res && res.badCode) {
+          banner("That edit link isn't valid. Use the link in your latest FGT email, or get a new one below. " +
+            "You can also enter a new team on this page.", "bad");
+          $("linksCard").hidden = false; $("linksCard").open = true;
+          render(); return;
+        }
+        if (!res || !res.ok) throw new Error((res && res.error) || "Couldn't load your team.");
+        var en = res.entry;
+        if (res.closed) {
+          $("entry").hidden = true;
+          banner("Entries are closed, so <strong>" + esc(en.teamName) + "</strong> can't be changed now. " +
+            'Follow the season on the <a href="dashboard.html">2027 Tracker</a>.', "bad");
+          return;
+        }
+        editing = true; editPaid = !!res.paid;
+        field("name").value = en.name; field("teamName").value = en.teamName;
+        field("phone").value = en.phone; field("email").value = en.email; field("address").value = en.address;
+        selected.clear();
+        (en.golfers || []).forEach(function (g) {
+          var exact = Array.from(chipEls.keys()).find(function (k) { return k.toLowerCase() === g.name.toLowerCase(); });
+          if (exact) selected.set(exact, pointsByName.get(exact.toLowerCase()));
+          else selected.set(g.name, Number(g.points) || 1);
+        });
+        $("submitBtn").textContent = "Save changes";
+        $("underGo").textContent = "Save anyway";
+        $("dupNot").textContent = "Your changes were not saved.";
+        banner("You're changing <strong>" + esc(en.teamName) + "</strong>. Saving replaces this team; it doesn't add a new one. " +
+          'You can come back with your link until entries close. <a href="team-picker.html">Enter a new team instead</a>', "info");
+        render();
+      })
+      .catch(function (err) {
+        loading = false; render();
+        banner("Couldn't load your team: " + esc(err.message) + ' <a href="">Try again</a>', "bad");
+      });
+  }
+
   render();
+  if (editCode) loadEdit();
 })();
 </script>
 <script src="sitebar.js"></script>

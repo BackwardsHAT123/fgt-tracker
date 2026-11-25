@@ -11,8 +11,15 @@ var DEADLINE = null;
 
 var HEADERS = [
   'Timestamp', 'Name', 'Phone', 'Email', 'Address', 'Team Name',
-  'Points Used', '# Golfers', 'Golfers', 'Lineup Key', 'Duplicate Of Row', 'Points Version', 'Entry ID', 'Paid'
+  'Points Used', '# Golfers', 'Golfers', 'Lineup Key', 'Duplicate Of Row', 'Points Version', 'Entry ID', 'Paid',
+  'Edit Code', 'Last Edited'
 ];
+
+// Edit links: each entry gets a secret Edit Code (Entries column O). The confirmation email carries a private link,
+// team-picker.html?edit=<code>, that reopens the picker with the team loaded; saving replaces that entry instead of
+// adding one. Links stop working once entries close (Settings B5 = Yes, or the DEADLINE has passed).
+var EDIT_URL = 'https://fgt-mt.com/team-picker.html?edit=';
+var COL_CODE = 15, COL_EDITED = 16;
 
 // Weekly prize money for the team that wins each event (rules sheet), by event type on the Schedule tab.
 // FedExCup playoff events (FedEx St. Jude, BMW) pay $200 like Signature Events (Tom, Nov 20 2026).
@@ -56,8 +63,7 @@ function doGet(e) {
 // picked) are withheld until entries are closed: Settings B5 = Yes, or the DEADLINE has passed.
 function dashboardData_() {
   var set = tab_('Settings');
-  var flag = String(set.getRange(5, 2).getValue() || '').trim().toLowerCase();
-  var closed = flag === 'yes' || !!(DEADLINE && new Date() > DEADLINE);
+  var closed = entriesClosed_();
   var paid = set.getRange(2, 2).getValue();
   var payoutsFinal = String(set.getRange(6, 2).getValue() || '').trim().toLowerCase() === 'yes';
 
@@ -100,17 +106,28 @@ function dashboardData_() {
 }
 
 function doPost(e) {
+  var d;
+  try { d = JSON.parse(e.postData.contents); } catch (x) { return json_({ ok: false, error: 'Bad request.' }); }
+  if (d.action === 'load') return loadEntry_(d); // read only: the team behind an edit link
+
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
-    var d = JSON.parse(e.postData.contents);
 
     if (d.action === 'results') return saveResults_(d); // weekly prize money from the PGA Tour page
     if (d.action === 'schedule') return saveSchedule_(d); // season schedule from the PGA Tour page
 
     if (d.website) return json_({ ok: true }); // honeypot tripped: pretend success, store nothing
 
-    if (DEADLINE && new Date() > DEADLINE) return json_({ ok: false, error: 'Entries are closed.' });
+    if (entriesClosed_()) return json_({ ok: false, closed: true, error: 'Entries are closed.' });
+    if (d.action === 'links') return sendLinks_(d); // "lost your link?" form
+
+    var sheet = sheet_();
+    var editRow = 0;
+    if (d.action === 'edit') {
+      editRow = findByCode_(sheet, d.code);
+      if (!editRow) return json_({ ok: false, badCode: true, error: 'That edit link is not valid.' });
+    }
 
     var name = clean_(d.name), phone = clean_(d.phone), email = clean_(d.email);
     var team = clean_(d.teamName), address = clean_(d.address);
@@ -129,16 +146,21 @@ function doPost(e) {
     var total = golfers.reduce(function (s, g) { return s + g.points; }, 0);
     if (total > BUDGET) return json_({ ok: false, error: 'Team is over ' + BUDGET + ' points.' });
 
-    var sheet = sheet_();
     var key = golfers.map(function (g) { return fold_(g.name); }).sort().join('|');
+    var teamKey = teamKey_(team);
 
-    // Identical-lineup check (rule: first one in keeps the team). Runs inside the script lock, so two
-    // identical teams submitted at the same moment can't both get in. The duplicate is NOT saved.
+    // One person may enter several teams, but no two teams may share a team name (ignoring case, spaces and
+    // punctuation) or the exact same lineup (first one in keeps it). Runs inside the script lock, so two identical
+    // teams sent at the same moment can't both get in. An edit is not compared with its own row.
     var last = sheet.getLastRow();
     if (last > 1) {
-      var keys = sheet.getRange(2, 10, last - 1, 1).getValues();
-      for (var i = 0; i < keys.length; i++) {
-        if (keys[i][0] === key) {
+      var rows = sheet.getRange(2, 6, last - 1, 5).getValues(); // F Team Name .. J Lineup Key
+      for (var i = 0; i < rows.length; i++) {
+        if (i + 2 === editRow || !rows[i][0]) continue;
+        if (teamKey_(rows[i][0]) === teamKey) {
+          return json_({ ok: false, teamTaken: true, error: 'Another team already has that name. Pick a different team name.' });
+        }
+        if (rows[i][4] === key) {
           return json_({
             ok: false,
             duplicate: true,
@@ -152,10 +174,12 @@ function doPost(e) {
       .sort(function (a, b) { return b.points - a.points || a.name.localeCompare(b.name); })
       .map(function (g) { return g.name + ' (' + g.points + ')'; }).join(', ');
 
-    var entryId = Utilities.getUuid().slice(0, 8);
+    if (editRow) return saveEdit_(sheet, editRow, d, name, phone, email, address, team, total, golfers, list, key);
+
+    var entryId = Utilities.getUuid().slice(0, 8), code = newCode_();
     sheet.appendRow([
       new Date(), name, phone, email, address, team,
-      total, golfers.length, list, key, '', clean_(d.pointsVersion), entryId, false
+      total, golfers.length, list, key, '', clean_(d.pointsVersion), entryId, false, code, ''
     ]);
     try { sheet.getRange(sheet.getLastRow(), 14).insertCheckboxes(); } catch (x) {}
 
@@ -166,13 +190,165 @@ function doPost(e) {
       addStanding_(entryId, team, name, total, golfers.length);
     } catch (x) {}
     // Confirmation email. Never fails the entry (Gmail limits personal accounts to about 100 emails a day).
-    try { sendConfirmation_(email, name, team, list, total); } catch (x) {}
+    try { sendConfirmation_(email, name, team, list, total, code, false); } catch (x) {}
     return json_({ ok: true });
   } catch (err) {
     return json_({ ok: false, error: 'Server error. Please try again.' });
   } finally {
     try { lock.releaseLock(); } catch (x) {}
   }
+}
+
+// ---- Edit links -------------------------------------------------------------------------------
+
+function entriesClosed_() {
+  var flag = String(tab_('Settings').getRange(5, 2).getValue() || '').trim().toLowerCase();
+  return flag === 'yes' || !!(DEADLINE && new Date() > DEADLINE);
+}
+
+function newCode_() { return Utilities.getUuid().replace(/-/g, ''); } // 32 hex characters, random
+
+// "The Birdies", "the birdies!" and " THE  BIRDIES " count as the same team name.
+function teamKey_(t) {
+  var s = String(t).replace(/^'/, '');
+  return fold_(s) || s.trim().toLowerCase();
+}
+
+// Entries row (2+) whose Edit Code matches, or 0.
+function findByCode_(sheet, code) {
+  code = String(code || '').trim().toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(code)) return 0;
+  var last = sheet.getLastRow();
+  if (last < 2) return 0;
+  var codes = sheet.getRange(2, COL_CODE, last - 1, 1).getValues();
+  for (var i = 0; i < codes.length; i++) if (String(codes[i][0]) === code) return i + 2;
+  return 0;
+}
+
+// "Scottie Scheffler (6), Chad Ramey (3)" -> [{name, points}]
+function golfersFromList_(list) {
+  return String(list).split(/, (?=[^,]*\(\d\)(?:,|$))/).map(function (item) {
+    var m = item.match(/^(.*) \((\d)\)$/);
+    return m ? { name: m[1], points: Number(m[2]) } : null;
+  }).filter(Boolean);
+}
+
+function editLink_(code) { return EDIT_URL + code; }
+
+// The team behind an edit link, so the page can load it. Only someone holding the link gets the data.
+function loadEntry_(d) {
+  var sheet = sheet_(), row = findByCode_(sheet, d.code);
+  if (!row) return json_({ ok: false, badCode: true, error: 'That edit link is not valid.' });
+  var r = sheet.getRange(row, 1, 1, COL_CODE).getValues()[0];
+  var plain = function (v) { return String(v == null ? '' : v).replace(/^'/, ''); };
+  return json_({
+    ok: true, closed: entriesClosed_(), paid: r[13] === true,
+    entry: { name: plain(r[1]), phone: plain(r[2]), email: plain(r[3]), address: plain(r[4]), teamName: plain(r[5]),
+             golfers: golfersFromList_(r[8]) }
+  });
+}
+
+// Replaces an entry in place. Keeps its first-entered time (A), Entry ID, Paid box, Edit Code and
+// anything Tom typed in "Duplicate Of Row".
+function saveEdit_(sheet, row, d, name, phone, email, address, team, total, golfers, list, key) {
+  var old = sheet.getRange(row, 1, 1, COL_EDITED).getValues()[0];
+  sheet.getRange(row, 2, 1, 9).setValues([[name, phone, email, address, team, total, golfers.length, list, key]]);
+  sheet.getRange(row, 12).setValue(clean_(d.pointsVersion));
+  sheet.getRange(row, COL_EDITED).setValue(new Date());
+  var entryId = old[12], code = String(old[14]);
+  try {
+    replaceLineup_(entryId, team, golfers);
+    updateStanding_(entryId, team, name, total, golfers.length);
+  } catch (x) {}
+  try { sendConfirmation_(email, name, team, list, total, code, true); } catch (x) {}
+  // If the email address changed, tell the old address too, so a forwarded link can't quietly take a team.
+  var oldEmail = String(old[3]).trim();
+  if (oldEmail && oldEmail.toLowerCase() !== email.toLowerCase()) {
+    try {
+      MailApp.sendEmail({ to: oldEmail, name: 'Fantasy Golf Tour', replyTo: CONTACT,
+        subject: 'FGT team changed: ' + team,
+        body: 'The FGT team "' + old[5] + '" was just changed and its email address is now ' + email + '.\n\n' +
+          'If that was not you, write to ' + CONTACT + ' right away.\n\nFantasy Golf Tour' });
+    } catch (x) {}
+  }
+  return json_({ ok: true, edited: true, paid: old[13] === true });
+}
+
+function replaceLineup_(entryId, team, golfers) {
+  var sh = tab_('Lineups'), last = sh.getLastRow(), id = String(entryId);
+  if (last > 1) {
+    var ids = sh.getRange(2, 1, last - 1, 1).getValues();
+    for (var i = ids.length - 1; i >= 0; i--) {
+      if (String(ids[i][0]) !== id) continue;
+      var end = i;
+      while (i > 0 && String(ids[i - 1][0]) === id) i--;
+      var n = end - i + 1;
+      // A sheet can't lose all its non-frozen rows, so keep a spare one at the bottom.
+      if (sh.getMaxRows() - n < 2) sh.insertRowsAfter(sh.getMaxRows(), 1);
+      sh.deleteRows(i + 2, n);
+    }
+  }
+  addLineup_(entryId, team, golfers);
+}
+
+function updateStanding_(entryId, team, name, total, count) {
+  var sh = tab_('Standings'), last = sh.getLastRow();
+  if (last > 1) {
+    var ids = sh.getRange(2, 2, last - 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) {
+      if (String(ids[i][0]) === String(entryId)) {
+        sh.getRange(i + 2, 3, 1, 4).setValues([[team, name, total, count]]);
+        return;
+      }
+    }
+  }
+  addStanding_(entryId, team, name, total, count);
+}
+
+// "Lost your link?": emails the edit links for every team entered with this address. The page always gets the same
+// answer, so it can't be used to find out who entered. At most one email per address every 10 minutes.
+function sendLinks_(d) {
+  var email = clean_(d.email).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json_({ ok: false, error: 'Enter a valid email address.' });
+  var answer = json_({ ok: true, message: 'If a team was entered with that email, its link is on the way. Check spam too.' });
+  var cache = CacheService.getScriptCache(), ck = 'links:' + email.slice(0, 200);
+  if (cache.get(ck)) return answer;
+  cache.put(ck, '1', 600);
+  var sheet = sheet_(), last = sheet.getLastRow();
+  if (last < 2) return answer;
+  var rows = sheet.getRange(2, 1, last - 1, COL_CODE).getValues(), mine = [];
+  rows.forEach(function (r, i) {
+    if (!r[5] || String(r[3]).trim().toLowerCase() !== email) return;
+    var code = String(r[14] || '');
+    if (!code) { code = newCode_(); sheet.getRange(i + 2, COL_CODE).setValue(code); }
+    mine.push({ team: String(r[5]).replace(/^'/, ''), name: String(r[1]), code: code });
+  });
+  if (!mine.length) return answer;
+  var first = mine[0].name.split(' ')[0];
+  var body = ['Hi ' + first + ',', '', 'Here ' + (mine.length === 1 ? 'is the private link' : 'are the private links') +
+      ' to change your Fantasy Golf Tour ' + (mine.length === 1 ? 'team' : 'teams') + ' until entries close:', '']
+    .concat(mine.map(function (m) { return m.team + ': ' + editLink_(m.code); }))
+    .concat(['', 'Keep these to yourself: anyone with a link can change that team.',
+      'Didn\'t ask for this? You can ignore it. Questions: ' + CONTACT + '.', '', 'Fantasy Golf Tour']).join('\n');
+  try {
+    MailApp.sendEmail({ to: email, subject: 'Your FGT edit ' + (mine.length === 1 ? 'link' : 'links'),
+      body: body, name: 'Fantasy Golf Tour', replyTo: CONTACT });
+  } catch (x) {}
+  return answer;
+}
+
+// Menu: shows the edit link for the row selected in the Entries tab (to send to a player by hand).
+function showEditLink() {
+  var ui = SpreadsheetApp.getUi(), sh = SpreadsheetApp.getActiveSheet();
+  var row = sh.getActiveRange() ? sh.getActiveRange().getRow() : 0;
+  if (sh.getName() !== SHEET_NAME || row < 2 || !sh.getRange(row, 6).getValue()) {
+    ui.alert('Click a cell in a team\'s row on the Entries tab first.'); return;
+  }
+  var code = String(sh.getRange(row, COL_CODE).getValue() || '');
+  if (!code) { code = newCode_(); sh.getRange(row, COL_CODE).setValue(code); }
+  ui.alert('Edit link for ' + sh.getRange(row, 6).getValue(),
+    editLink_(code) + '\n\nSend it only to that team\'s owner: anyone with the link can change the team until entries close.',
+    ui.ButtonSet.OK);
 }
 
 // ---- Extra tabs -------------------------------------------------------------------------------
@@ -184,6 +360,7 @@ function onOpen() {
     .addItem('Update event scores', 'refreshEventScores')
     .addItem('Rebuild Lineups and Standings', 'rebuildLineupsAndStandings')
     .addItem('Send me a test confirmation email', 'sendTestConfirmation')
+    .addItem('Show the edit link for the selected team', 'showEditLink')
     .addSeparator()
     .addItem('Email me the unpaid list', 'emailUnpaidList')
     .addItem('Turn on weekly unpaid list (Mondays)', 'turnOnWeeklyUnpaidList')
@@ -212,19 +389,23 @@ function tab_(name) {
 }
 
 // Safe to run any time: creates missing tabs, adds the Entry ID header, fills the Golfers tab.
-function sendConfirmation_(email, name, team, list, total) {
+function sendConfirmation_(email, name, team, list, total, code, edited) {
   var first = String(name).split(' ')[0];
   var body = [
     'Hi ' + first + ',',
     '',
-    'Your Fantasy Golf Tour team is in. Here is what we received:',
+    edited ? 'Your Fantasy Golf Tour team has been changed. Here is your team now:'
+           : 'Your Fantasy Golf Tour team is in. Here is what we received:',
     '',
     'Team name: ' + team,
     'Golfers: ' + list,
     'Points used: ' + total + ' of ' + BUDGET,
     '',
     'Entry fee: $' + ENTRY_FEE + ' by Venmo to @' + VENMO_HANDLE + ' (please put your team name in the note).',
-    'Your team is final once the first tournament begins.',
+    '',
+    code ? 'Want to change it? Use your private link until entries close (then the team is final):\n' + editLink_(code) +
+      '\nKeep this link to yourself: anyone with it can change your team.'
+         : 'Your team is final once entries close.',
     '',
     'Follow the season at ' + TRACKER_URL,
     'Questions or a mistake in your team? Reply to this email or write to ' + CONTACT + '.',
@@ -232,13 +413,14 @@ function sendConfirmation_(email, name, team, list, total) {
     'Good luck!',
     'Fantasy Golf Tour'
   ].join('\n');
-  MailApp.sendEmail({ to: email, subject: 'FGT entry received: ' + team, body: body, name: 'Fantasy Golf Tour', replyTo: CONTACT });
+  MailApp.sendEmail({ to: email, subject: (edited ? 'FGT team changed: ' : 'FGT entry received: ') + team, body: body, name: 'Fantasy Golf Tour', replyTo: CONTACT });
 }
 
 // Sends one test confirmation to the script owner's own address, so Tom can see the email and approve Gmail access.
 function sendTestConfirmation() {
   var me = Session.getEffectiveUser().getEmail();
-  sendConfirmation_(me, 'Test Player', 'Test Team (not a real entry)', 'Scottie Scheffler (6), Chad Ramey (3)', 9);
+  sendConfirmation_(me, 'Test Player', 'Test Team (not a real entry)', 'Scottie Scheffler (6), Chad Ramey (3)', 9,
+    '00000000000000000000000000000000', false);
   SpreadsheetApp.getUi().alert('Test email sent to ' + me + '.');
 }
 
@@ -247,8 +429,7 @@ function sendTestConfirmation() {
 // Weekly unpaid list (Tom's #9): a Monday 9am trigger that emails the owner only once entries have closed
 // (Settings B5 = Yes or the DEADLINE has passed) and only if someone still hasn't paid. Menu item installs it.
 function weeklyUnpaidList() {
-  var flag = String(tab_('Settings').getRange(5, 2).getValue() || '').trim().toLowerCase();
-  if (!(flag === 'yes' || (DEADLINE && new Date() > DEADLINE))) return;
+  if (!entriesClosed_()) return;
   emailUnpaidList({ skipIfNone: true });
 }
 function turnOnWeeklyUnpaidList() {
@@ -640,6 +821,13 @@ function setupSheets() {
   }
   // Paid: a checkbox per entry for tracking Venmo payments. Private: the dashboard never reads the Entries tab.
   if (entries.getRange(1, 14).getValue() !== 'Paid') entries.getRange(1, 14).setValue('Paid').setFontWeight('bold');
+  // Edit Code (private: the secret part of each team's edit link) and Last Edited. Older entries get a code here.
+  entries.getRange(1, COL_CODE, 1, 2).setValues([['Edit Code', 'Last Edited']]).setFontWeight('bold');
+  if (entries.getLastRow() > 1) {
+    var cr = entries.getRange(2, COL_CODE, entries.getLastRow() - 1, 1), cv = cr.getValues(), teams = entries.getRange(2, 6, cv.length, 1).getValues();
+    var filled = cv.map(function (c, i) { return [c[0] || !teams[i][0] ? c[0] : newCode_()]; });
+    cr.setValues(filled);
+  }
   if (entries.getLastRow() > 1) {
     var pc = entries.getRange(2, 14, entries.getLastRow() - 1, 1);
     if (!pc.getDataValidation()) pc.insertCheckboxes();
@@ -897,10 +1085,7 @@ function rebuildLineupsAndStandings() {
   data.forEach(function (r, i) {
     var id = r[12];
     if (!id) { id = Utilities.getUuid().slice(0, 8); entries.getRange(i + 2, 13).setValue(id); }
-    var golfers = String(r[8]).split(/, (?=[^,]*\(\d\)(?:,|$))/).map(function (item) {
-      var m = item.match(/^(.*) \((\d)\)$/);
-      return m ? { name: m[1], points: Number(m[2]) } : null;
-    }).filter(Boolean);
+    var golfers = golfersFromList_(r[8]);
     addLineup_(id, r[5], golfers);
     addStanding_(id, r[5], r[1], r[6], r[7]);
   });
