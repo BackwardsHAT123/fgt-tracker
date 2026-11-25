@@ -400,3 +400,8 @@ Dated history for FGT Tracker. Split off from the working notes on 2026-11-18. A
 - Repair for Tom: M1 -> "Points Version", N1 -> "Entry ID", paste new Code.gs, redeploy, Set up tabs (gives new Entry IDs; no events scored yet, so nothing depends on the old ones).
 - Tested with a fake Sheet in Tom's exact layout (broken headers stop safely; fixed headers rebuild right; new entry, edit, load, unpaid list use the right columns).
 - Tom repaired the headers, redeployed and ran Set up tabs with no errors; dashboard feed shows both teams again. He tested the live flow end to end (links email, edit + "team changed" email, Sheet row updated in place, duplicate team name refused): all works.
+
+## 2026-11-25: Perfect lineup in the weekly recap
+- `perfectLineup_(money, pts)` in Code.gs: 0/1 knapsack, 25-point budget, points from the Golfers tab, unlisted golfers = 1 point, only golfers with money > 0. Checked against 20,000 random lineups on demo data (none beat it; uses all 25 points).
+- `buildRecap_` adds "The perfect lineup" (after Top teams this week): perfect total and golfers; the winner's % of perfect, $ short, how many perfect picks they had, the biggest perfect golfer they missed. And "The perfect season lineup so far" (after Season standings, from week 2): one day-one lineup on season money through this event (same events as the standings), leader's % of perfect, closest 3 teams by shared golfers, how many teams have at least half of it. Pick overlaps need lineups (public once entries close).
+- Tested on the demo data (recap text checked by eye). Tom must paste Code.gs and redeploy for it to show up in recap emails.

@@ -513,6 +513,28 @@ function turnOnWeeklyBackups() {
 function money_(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
 function esc_(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
+// The best team money could have bought with hindsight: the golfers whose earnings add up to the most within the
+// 25-point budget (0/1 knapsack). money: {golfer: earnings}; pts: {fold_(golfer): points}, anyone missing = 1 point
+// (the write-in rule). Returns { total, golfers: [{g, pts, m}] } with golfers most money first.
+function perfectLineup_(money, pts) {
+  var items = Object.keys(money).filter(function (g) { return money[g] > 0; }).map(function (g) {
+    return { g: g, pts: pts[fold_(g)] || 1, m: money[g] };
+  }).sort(function (a, b) { return b.m - a.m || a.g.localeCompare(b.g); });
+  var B = BUDGET, best = [], take = [];
+  for (var b = 0; b <= B; b++) best.push(0);
+  items.forEach(function (it, i) {
+    take.push([]);
+    for (var b = B; b >= it.pts; b--) {
+      var v = best[b - it.pts] + it.m;
+      if (v > best[b] + 0.001) { best[b] = v; take[i][b] = true; }
+    }
+  });
+  var golfers = [], left = B;
+  for (var i = items.length - 1; i >= 0; i--) if (take[i][left]) { golfers.push(items[i]); left -= items[i].pts; }
+  golfers.sort(function (a, b) { return b.m - a.m; });
+  return { total: golfers.reduce(function (s, x) { return s + x.m; }, 0), golfers: golfers };
+}
+
 // Returns { subject, text, html } for one event, or null if it has no scores yet.
 function buildRecap_(event) {
   SpreadsheetApp.flush();   // make sure the EventScores formulas just written are calculated
@@ -661,6 +683,36 @@ function buildRecap_(event) {
   }));
 
   }
+
+  // The perfect lineup (Tom): the best 25 points with hindsight, this week and for the season so far, and how close
+  // the real teams came. Golfer points come from the Golfers tab; unlisted golfers count as 1-pointers.
+  var ptsAll = {}; d.golfers.forEach(function (g) { ptsAll[fold_(g.golfer)] = g.points; });
+  var lineupOf = {}; d.lineups.forEach(function (l) { (lineupOf[l.team] = lineupOf[l.team] || {})[fold_(l.golfer)] = true; });
+  var shared = function (team, perfect) {
+    var mine = lineupOf[team] || {};
+    return perfect.golfers.filter(function (x) { return mine[fold_(x.g)]; });
+  };
+  var gList = function (perfect) {
+    var short = function (m) {
+      return m >= 1e6 ? '$' + (m / 1e6).toFixed(m >= 1e7 ? 1 : 2).replace(/\.?0+$/, '') + 'M' : m >= 1000 ? '$' + Math.round(m / 1000) + 'K' : money_(m);
+    };
+    return perfect.golfers.map(function (x) { return x.g + ' (' + x.pts + ' pt' + (x.pts === 1 ? '' : 's') + ', ' + short(x.m) + ')'; }).join(', ');
+  };
+  var pct = function (a, b) { return b > 0 ? Math.round(a / b * 100) + '%' : '0%'; };
+  var wkMoney = {}; allRes.forEach(function (r) { wkMoney[r.golfer] = (wkMoney[r.golfer] || 0) + r.earnings; });
+  var wkPerfect = perfectLineup_(wkMoney, ptsAll);
+  if (wkPerfect.golfers.length) {
+    h2('The perfect lineup');
+    p('With hindsight, the best ' + BUDGET + ' points at the ' + event + ' would have made ' + money_(wkPerfect.total) + ': ' + gList(wkPerfect) + '.');
+    if (winners.length) {
+      var hit = shared(w0.team, wkPerfect);
+      var missed = wkPerfect.golfers.filter(function (x) { return hit.indexOf(x) < 0; })[0];
+      p((winners.length === 1 ? w0.team : 'The winners') + ' got ' + pct(w0.earnings, wkPerfect.total) + ' of perfect, ' +
+        money_(wkPerfect.total - w0.earnings) + ' short' + (d.lineups.length ? ', with ' + hit.length + ' of the ' + wkPerfect.golfers.length + ' perfect picks' : '') + '.' +
+        (missed && d.lineups.length && winners.length === 1 ? ' The one that got away: ' + missed.g + ' (' + money_(missed.m) + ').' : '') + ' ' +
+        say(['Perfection is overrated anyway.', 'Hindsight is a cruel caddie.', 'Close enough for a trophy.']));
+    }
+  }
   if (table.length) {
   h2('Season standings');
   var totals = table.map(function (t) { return t.total; });
@@ -670,6 +722,36 @@ function buildRecap_(event) {
   }));
   }
   if (climber && climber.move > 0) p('Biggest climb: ' + climber.team + ', up ' + climber.move + ' to #' + climber.rank + '. ' + say(['Look who showed up.', 'Momentum is a thing.', 'Rocket fuel.']));
+
+  // Perfect season lineup: one team picked on day one with hindsight, using season money through this event.
+  var seaMoney = {}, evCount = {};
+  d.results.forEach(function (r) {
+    var i = r.event.toLowerCase() in order ? order[r.event.toLowerCase()] : -1;
+    if (i > myIdx || (i < 0 && myIdx < 1e9)) return;   // same events as the season standings
+    seaMoney[r.golfer] = (seaMoney[r.golfer] || 0) + r.earnings; evCount[r.event] = 1;
+  });
+  var seaPerfect = perfectLineup_(seaMoney, ptsAll), nEv = Object.keys(evCount).length;
+  if (seaPerfect.golfers.length && nEv > 1) {
+    h2('The perfect season lineup so far');
+    p('Picked on day one with hindsight, the best ' + BUDGET + ' points would have earned ' + money_(seaPerfect.total) + ' over ' + nEv + ' events: ' + gList(seaPerfect) + '.');
+    if (table.length) {
+      var lead = table[0];
+      p((table.filter(function (t) { return t.rank === 1; }).length > 1 ? 'The co-leaders are' : 'Season leader ' + lead.team + ' is') + ' at ' +
+        pct(lead.total, seaPerfect.total) + ' of perfect (' + money_(seaPerfect.total - lead.total) + ' behind).');
+    }
+    if (d.lineups.length) {
+      var n = seaPerfect.golfers.length, half = Math.ceil(n / 2);
+      var close = Object.keys(lineupOf).map(function (t) { return { team: t, k: shared(t, seaPerfect).length, total: now[t] || 0 }; })
+        .filter(function (c) { return c.k > 0; })
+        .sort(function (a, b) { return b.k - a.k || b.total - a.total || a.team.localeCompare(b.team); });
+      var nHalf = close.filter(function (c) { return c.k >= half; }).length;
+      if (close.length) {
+        p('Closest by picks: ' + close.slice(0, 3).map(function (c) { return c.team + ' (' + c.k + ' of ' + n + ')'; }).join(', ') + '. ' +
+          (nHalf ? nHalf + ' team' + (nHalf === 1 ? ' has' : 's have') + ' at least half of the perfect lineup.'
+                 : 'Nobody has even half of it. ' + say(['Bold choices all around.', 'The perfect team remains a rumor.', 'Back to the drawing board.'])));
+      }
+    }
+  }
 
   if (next) { h2('Next up'); p(next.event + ' (finishes ' + next.finish + ')' + (label[next.type] ? ', a ' + label[next.type] : '') + '. Weekly prize: ' + money_(nextPrize) + (next.type === 'major' ? ' plus ' + money_(d.prizes.major[1] || 0) + ' for 2nd' : '') + '.'); }
   H.push('<p style="margin:18px 0 6px"><a href="' + TRACKER_URL + '">Full standings, lineups and stats on the 2027 Tracker</a></p>');
